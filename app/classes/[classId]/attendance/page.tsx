@@ -3,9 +3,16 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import FieldError from "@/components/FieldError";
 import { todayISO } from "@/lib/dates";
 import type { AttendanceStatus } from "@/lib/attendance";
 import { useClientEffect } from "@/lib/use-client-effect";
+import {
+  attendanceSaveSchema,
+  inputClassName,
+  isoDateSchema,
+  parseInput,
+} from "@/lib/validation";
 
 type RecordRow = {
   student_id: string;
@@ -27,14 +34,31 @@ export default function MarkAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const loadAttendance = async (signal?: AbortSignal) => {
+    const dateParsed = parseInput(isoDateSchema, date);
+    if (!dateParsed.success) {
+      setDateError(dateParsed.error);
+      setLoading(false);
+      return;
+    }
+
+    setDateError("");
     setLoading(true);
     setError("");
+
     const [attendanceRes, classRes] = await Promise.all([
       fetch(`/api/classes/${classId}/attendance?date=${date}`, { signal }),
       fetch(`/api/classes/${classId}`, { signal }),
     ]);
+
+    if (!attendanceRes.ok) {
+      const payload = await attendanceRes.json().catch(() => ({}));
+      setError(payload.error ?? "Failed to load attendance.");
+      setLoading(false);
+      return;
+    }
 
     const data = await attendanceRes.json();
     const cls = await classRes.json();
@@ -51,6 +75,12 @@ export default function MarkAttendancePage() {
     () => JSON.stringify(records) !== JSON.stringify(initialRecords),
     [records, initialRecords],
   );
+
+  function handleDateChange(value: string) {
+    setDate(value);
+    const parsed = parseInput(isoDateSchema, value);
+    setDateError(parsed.success ? "" : parsed.error);
+  }
 
   function setStatus(studentId: string, status: AttendanceStatus) {
     setRecords((prev) =>
@@ -69,18 +99,30 @@ export default function MarkAttendancePage() {
   async function saveAttendance() {
     setSaving(true);
     setError("");
+
+    const parsed = parseInput(attendanceSaveSchema, {
+      attendance_date: date,
+      notes: "",
+      records: records.map((r) => ({
+        student_id: r.student_id,
+        status: r.status,
+      })),
+    });
+
+    if (!parsed.success) {
+      setError(parsed.error);
+      if (parsed.fieldErrors.attendance_date) {
+        setDateError(parsed.fieldErrors.attendance_date);
+      }
+      setSaving(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/classes/${classId}/attendance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          attendance_date: date,
-          notes: "",
-          records: records.map((r) => ({
-            student_id: r.student_id,
-            status: r.status,
-          })),
-        }),
+        body: JSON.stringify(parsed.data),
       });
 
       const data = await res.json();
@@ -110,9 +152,10 @@ export default function MarkAttendancePage() {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              onChange={(e) => handleDateChange(e.target.value)}
+              className={inputClassName(!!dateError, "")}
             />
+            <FieldError message={dateError} />
           </div>
           {sessionId && (
             <p className="text-sm text-green-700">Existing attendance loaded for editing</p>
@@ -135,7 +178,7 @@ export default function MarkAttendancePage() {
           </button>
           <button
             onClick={saveAttendance}
-            disabled={saving || records.length === 0}
+            disabled={saving || records.length === 0 || !!dateError}
             className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save Attendance"}

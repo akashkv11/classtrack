@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords, isAttendanceStatus } from "@/lib/attendance";
 import { parseISODate } from "@/lib/dates";
+import {
+  attendanceDateQuerySchema,
+  attendanceSaveSchema,
+  parseInput,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 type RouteContext = { params: Promise<{ classId: string }> };
 
@@ -13,12 +19,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const { classId } = await context.params;
   const dateParam = request.nextUrl.searchParams.get("date");
+  const parsed = parseInput(attendanceDateQuerySchema, { date: dateParam ?? "" });
 
-  if (!dateParam) {
-    return NextResponse.json({ error: "date is required" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const attendanceDate = parseISODate(dateParam);
+  const attendanceDate = parseISODate(parsed.data.date);
 
   const students = await prisma.student.findMany({
     where: { classId, isActive: true },
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     session: {
       id: session.id,
       class_id: session.classId,
-      attendance_date: dateParam,
+      attendance_date: parsed.data.date,
       notes: session.notes ?? "",
     },
     records,
@@ -72,17 +79,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const { classId } = await context.params;
   const body = await request.json();
+  const parsed = parseInput(attendanceSaveSchema, body);
 
-  const dateStr =
-    typeof body.attendance_date === "string" ? body.attendance_date : "";
-  const notes = typeof body.notes === "string" ? body.notes : "";
-  const inputRecords = Array.isArray(body.records) ? body.records : [];
-
-  if (!dateStr) {
-    return NextResponse.json({ error: "attendance_date is required" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const attendanceDate = parseISODate(dateStr);
+  const { attendance_date, notes = "", records: inputRecords } = parsed.data;
+  const attendanceDate = parseISODate(attendance_date);
 
   const students = await prisma.student.findMany({
     where: { classId, isActive: true },
@@ -91,13 +95,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const validatedRecords: { studentId: string; status: string }[] = [];
   for (const record of inputRecords) {
-    const studentId = record.student_id;
-    const status = record.status;
-    if (
-      typeof studentId !== "string" ||
-      !studentIds.has(studentId) ||
-      !isAttendanceStatus(status)
-    ) {
+    const { student_id: studentId, status } = record;
+    if (!studentIds.has(studentId) || !isAttendanceStatus(status)) {
       continue;
     }
     validatedRecords.push({ studentId, status });

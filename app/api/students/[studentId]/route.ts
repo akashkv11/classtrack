@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
+import {
+  parseInput,
+  studentUpdateSchema,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 type RouteContext = { params: Promise<{ studentId: string }> };
 
@@ -11,6 +16,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { studentId } = await context.params;
   const body = await request.json();
+  const parsed = parseInput(studentUpdateSchema, body);
+
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
+  }
 
   const data: {
     rollNo?: number;
@@ -20,30 +30,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     isActive?: boolean;
   } = {};
 
-  if (body.roll_no !== undefined) {
-    const rollNo = Number(body.roll_no);
-    if (!Number.isInteger(rollNo) || rollNo < 1) {
-      return NextResponse.json({ error: "Invalid roll number" }, { status: 400 });
-    }
-    data.rollNo = rollNo;
+  if (parsed.data.roll_no !== undefined) {
+    data.rollNo = parsed.data.roll_no;
   }
-  if (typeof body.full_name === "string") {
-    data.fullName = body.full_name.trim();
+  if (parsed.data.full_name !== undefined) {
+    data.fullName = parsed.data.full_name;
   }
-  if (body.admission_no !== undefined) {
-    data.admissionNo =
-      typeof body.admission_no === "string" && body.admission_no.trim()
-        ? body.admission_no.trim()
-        : null;
+  if (parsed.data.admission_no !== undefined) {
+    data.admissionNo = parsed.data.admission_no;
   }
-  if (body.parent_phone !== undefined) {
-    data.parentPhone =
-      typeof body.parent_phone === "string" && body.parent_phone.trim()
-        ? body.parent_phone.trim()
-        : null;
+  if (parsed.data.parent_phone !== undefined) {
+    data.parentPhone = parsed.data.parent_phone;
   }
-  if (typeof body.is_active === "boolean") {
-    data.isActive = body.is_active;
+  if (parsed.data.is_active !== undefined) {
+    data.isActive = parsed.data.is_active;
   }
 
   try {

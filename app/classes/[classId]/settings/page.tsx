@@ -3,7 +3,14 @@
 import { FormEvent, useState } from "react";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import FieldError from "@/components/FieldError";
 import { useClientEffect } from "@/lib/use-client-effect";
+import {
+  classSettingsFormSchema,
+  FieldErrors,
+  inputClassName,
+  parseInput,
+} from "@/lib/validation";
 
 type ClassData = {
   display_name: string;
@@ -21,6 +28,7 @@ export default function ClassSettingsPage() {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   async function loadData(signal?: AbortSignal) {
     const res = await fetch(`/api/classes/${classId}`, { signal });
@@ -37,20 +45,40 @@ export default function ClassSettingsPage() {
     e.preventDefault();
     setSaving(true);
     setMessage("");
+    setFieldErrors({});
+
+    const parsed = parseInput(classSettingsFormSchema, {
+      display_name: displayName,
+      whatsapp_number: whatsappNumber,
+      is_active: isActive,
+    });
+
+    if (!parsed.success) {
+      setFieldErrors(parsed.fieldErrors);
+      setMessage(parsed.error);
+      setSaving(false);
+      return;
+    }
 
     const res = await fetch(`/api/classes/${classId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        display_name: displayName,
-        whatsapp_number: whatsappNumber,
-        is_active: isActive,
-      }),
+      body: JSON.stringify(parsed.data),
     });
 
     setSaving(false);
-    setMessage(res.ok ? "Changes saved." : "Failed to save changes.");
-    if (res.ok) await loadData();
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setMessage(payload.error ?? "Failed to save changes.");
+      if (payload.field_errors) {
+        setFieldErrors(payload.field_errors);
+      }
+      return;
+    }
+
+    setMessage("Changes saved.");
+    await loadData();
   }
 
   if (!data) {
@@ -79,9 +107,9 @@ export default function ClassSettingsPage() {
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              required
+              className={inputClassName(!!fieldErrors.display_name)}
             />
+            <FieldError message={fieldErrors.display_name} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -91,11 +119,12 @@ export default function ClassSettingsPage() {
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
               placeholder="91XXXXXXXXXX"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              className={inputClassName(!!fieldErrors.whatsapp_number)}
             />
             <p className="mt-1 text-xs text-slate-500">
               Format: country code + number, no + or spaces
             </p>
+            <FieldError message={fieldErrors.whatsapp_number} />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input

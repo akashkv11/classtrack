@@ -5,6 +5,7 @@ import {
   setSessionCookie,
   verifyPassword,
 } from "@/lib/auth";
+import { parseInput, unlockSchema, validationErrorResponse } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
   return NextResponse.json({
@@ -14,9 +15,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const password = typeof body.password === "string" ? body.password : "";
+  const parsed = parseInput(unlockSchema, body);
 
-  if (!verifyPassword(password)) {
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
+  }
+
+  if (!verifyPassword(parsed.data.password)) {
     return NextResponse.json(
       { success: false, error: "Invalid password" },
       { status: 401 },

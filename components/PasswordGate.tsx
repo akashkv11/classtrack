@@ -2,27 +2,48 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import FieldError from "@/components/FieldError";
+import {
+  FieldErrors,
+  inputClassName,
+  parseInput,
+  unlockSchema,
+} from "@/lib/validation";
 
 export default function PasswordGate() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
+
+    const parsed = parseInput(unlockSchema, { password });
+    if (!parsed.success) {
+      setFieldErrors(parsed.fieldErrors);
+      setError(parsed.error);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(parsed.data),
       });
 
       if (!res.ok) {
-        setError("Invalid password. Please try again.");
+        const payload = await res.json().catch(() => ({}));
+        setError(payload.error ?? "Invalid password. Please try again.");
+        if (payload.field_errors) {
+          setFieldErrors(payload.field_errors);
+        }
         return;
       }
 
@@ -55,11 +76,11 @@ export default function PasswordGate() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-500 focus:ring-2"
+              className={inputClassName(!!fieldErrors.password, "w-full text-slate-900")}
               placeholder="Enter app password"
               autoFocus
-              required
             />
+            <FieldError message={fieldErrors.password} />
           </div>
 
           {error && (

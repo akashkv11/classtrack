@@ -7,6 +7,11 @@ import {
   SETTING_LATE_COUNTS_AS_PRESENT,
   SETTING_MESSAGE_SIGNATURE,
 } from "@/lib/settings";
+import {
+  parseInput,
+  settingsPatchSchema,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
   if (!(await isRequestAuthenticated(request))) {
@@ -38,25 +43,44 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
+  const parsed = parseInput(settingsPatchSchema, body);
 
-  if (typeof body.active_academic_year_id === "string") {
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
+  }
+
+  const { active_academic_year_id, message_signature, late_counts_as_present } =
+    parsed.data;
+
+  if (active_academic_year_id) {
+    const year = await prisma.academicYear.findUnique({
+      where: { id: active_academic_year_id },
+    });
+
+    if (!year) {
+      return NextResponse.json(
+        { error: "Selected academic year does not exist", field_errors: { active_academic_year_id: "Selected academic year does not exist" } },
+        { status: 400 },
+      );
+    }
+
     await prisma.$transaction([
       prisma.academicYear.updateMany({ data: { isActive: false } }),
       prisma.academicYear.update({
-        where: { id: body.active_academic_year_id },
+        where: { id: active_academic_year_id },
         data: { isActive: true },
       }),
     ]);
   }
 
-  if (typeof body.message_signature === "string") {
-    await setSetting(SETTING_MESSAGE_SIGNATURE, body.message_signature.trim());
+  if (message_signature !== undefined) {
+    await setSetting(SETTING_MESSAGE_SIGNATURE, message_signature);
   }
 
-  if (typeof body.late_counts_as_present === "boolean") {
+  if (late_counts_as_present !== undefined) {
     await setSetting(
       SETTING_LATE_COUNTS_AS_PRESENT,
-      body.late_counts_as_present ? "true" : "false",
+      late_counts_as_present ? "true" : "false",
     );
   }
 

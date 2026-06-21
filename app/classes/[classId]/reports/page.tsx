@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import FieldError from "@/components/FieldError";
 import { useClientEffect } from "@/lib/use-client-effect";
+import { inputClassName, monthSchema, parseInput } from "@/lib/validation";
 
 type ReportStudent = {
   roll_no: number;
@@ -34,18 +36,45 @@ export default function MonthlyReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [className, setClassName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [monthError, setMonthError] = useState("");
 
   useClientEffect(async (signal) => {
+    const monthParsed = parseInput(monthSchema, month);
+    if (!monthParsed.success) {
+      setMonthError(monthParsed.error);
+      setLoading(false);
+      return;
+    }
+
+    setMonthError("");
     setLoading(true);
+    setError("");
+
     const [reportRes, classRes] = await Promise.all([
       fetch(`/api/reports/monthly?class_id=${classId}&month=${month}`, { signal }),
       fetch(`/api/classes/${classId}`, { signal }),
     ]);
+
+    if (!reportRes.ok) {
+      const payload = await reportRes.json().catch(() => ({}));
+      setError(payload.error ?? "Failed to load report.");
+      setReport(null);
+      setLoading(false);
+      return;
+    }
+
     setReport(await reportRes.json());
     const cls = await classRes.json();
     setClassName(cls.display_name ?? "");
     setLoading(false);
   }, [classId, month]);
+
+  function handleMonthChange(value: string) {
+    setMonth(value);
+    const parsed = parseInput(monthSchema, value);
+    setMonthError(parsed.success ? "" : parsed.error);
+  }
 
   return (
     <>
@@ -60,10 +89,15 @@ export default function MonthlyReportPage() {
           <input
             type="month"
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2"
+            onChange={(e) => handleMonthChange(e.target.value)}
+            className={inputClassName(!!monthError, "")}
           />
+          <FieldError message={monthError} />
         </div>
+
+        {error && (
+          <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        )}
 
         {loading ? (
           <p className="text-slate-600">Loading...</p>

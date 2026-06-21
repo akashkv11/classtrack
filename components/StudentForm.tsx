@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import FieldError from "@/components/FieldError";
+import {
+  FieldErrors,
+  inputClassName,
+  parseInput,
+  studentFormSchema,
+} from "@/lib/validation";
 
 type Student = {
   id: string;
@@ -42,20 +49,37 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
   const [isActive, setIsActive] = useState(() => initialFormState(student).isActive);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   if (!open) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setFieldErrors({});
+
+    const parsed = parseInput(studentFormSchema, {
+      roll_no: rollNo,
+      full_name: fullName,
+      admission_no: admissionNo,
+      parent_phone: parentPhone,
+      is_active: isActive,
+    });
+
+    if (!parsed.success) {
+      setFieldErrors(parsed.fieldErrors);
+      setError(parsed.error);
+      return;
+    }
+
+    setLoading(true);
     try {
       await onSave({
-        roll_no: Number(rollNo),
-        full_name: fullName.trim(),
-        admission_no: admissionNo.trim(),
-        parent_phone: parentPhone.trim(),
-        is_active: isActive,
+        roll_no: parsed.data.roll_no,
+        full_name: parsed.data.full_name,
+        admission_no: parsed.data.admission_no,
+        parent_phone: parsed.data.parent_phone,
+        is_active: parsed.data.is_active,
       });
       onClose();
     } catch (err) {
@@ -77,28 +101,30 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             <input
               type="number"
               min={1}
+              step={1}
               value={rollNo}
               onChange={(e) => setRollNo(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              required
+              className={inputClassName(!!fieldErrors.roll_no)}
             />
+            <FieldError message={fieldErrors.roll_no} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              required
+              className={inputClassName(!!fieldErrors.full_name)}
             />
+            <FieldError message={fieldErrors.full_name} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Admission No</label>
             <input
               value={admissionNo}
               onChange={(e) => setAdmissionNo(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              className={inputClassName(!!fieldErrors.admission_no)}
             />
+            <FieldError message={fieldErrors.admission_no} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -107,8 +133,10 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             <input
               value={parentPhone}
               onChange={(e) => setParentPhone(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="91XXXXXXXXXX"
+              className={inputClassName(!!fieldErrors.parent_phone)}
             />
+            <FieldError message={fieldErrors.parent_phone} />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input

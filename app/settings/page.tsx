@@ -2,7 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import AppHeader from "@/components/AppHeader";
+import FieldError from "@/components/FieldError";
 import { useClientEffect } from "@/lib/use-client-effect";
+import {
+  academicYearSchema,
+  FieldErrors,
+  inputClassName,
+  parseInput,
+  settingsFormSchema,
+} from "@/lib/validation";
 
 type SettingsData = {
   academic_years: { id: string; name: string; is_active: boolean }[];
@@ -32,6 +40,8 @@ export default function SettingsPage() {
   const [creatingYear, setCreatingYear] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [yearFieldErrors, setYearFieldErrors] = useState<FieldErrors>({});
+  const [settingsFieldErrors, setSettingsFieldErrors] = useState<FieldErrors>({});
 
   useClientEffect(async (signal) => {
     const res = await fetch("/api/settings", { signal });
@@ -71,11 +81,20 @@ export default function SettingsPage() {
     e.preventDefault();
     setCreatingYear(true);
     setMessage("");
+    setYearFieldErrors({});
+
+    const parsed = parseInput(academicYearSchema, newYear);
+    if (!parsed.success) {
+      setYearFieldErrors(parsed.fieldErrors);
+      setMessage(parsed.error);
+      setCreatingYear(false);
+      return;
+    }
 
     const res = await fetch("/api/academic-years", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newYear),
+      body: JSON.stringify(parsed.data),
     });
 
     setCreatingYear(false);
@@ -83,6 +102,9 @@ export default function SettingsPage() {
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}));
       setMessage(payload.error ?? "Failed to create academic year.");
+      if (payload.field_errors) {
+        setYearFieldErrors(payload.field_errors);
+      }
       return;
     }
 
@@ -93,28 +115,42 @@ export default function SettingsPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setMessage("");
+    setSettingsFieldErrors({});
 
-    if (!activeYearId) {
-      setMessage("Create an academic year before saving settings.");
+    const parsed = parseInput(settingsFormSchema, {
+      active_academic_year_id: activeYearId,
+      message_signature: messageSignature,
+      late_counts_as_present: lateCountsAsPresent,
+    });
+
+    if (!parsed.success) {
+      setSettingsFieldErrors(parsed.fieldErrors);
+      setMessage(parsed.error);
       return;
     }
 
     setSaving(true);
-    setMessage("");
 
     const res = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        active_academic_year_id: activeYearId,
-        message_signature: messageSignature,
-        late_counts_as_present: lateCountsAsPresent,
-      }),
+      body: JSON.stringify(parsed.data),
     });
 
     setSaving(false);
-    setMessage(res.ok ? "Settings saved." : "Failed to save settings.");
-    if (res.ok) await reloadSettings();
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setMessage(payload.error ?? "Failed to save settings.");
+      if (payload.field_errors) {
+        setSettingsFieldErrors(payload.field_errors);
+      }
+      return;
+    }
+
+    setMessage("Settings saved.");
+    await reloadSettings();
   }
 
   const hasYears = (data?.academic_years.length ?? 0) > 0;
@@ -152,9 +188,9 @@ export default function SettingsPage() {
                     setNewYear((current) => ({ ...current, name: e.target.value }))
                   }
                   placeholder="2026-2027"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                  required
+                  className={inputClassName(!!yearFieldErrors.name)}
                 />
+                <FieldError message={yearFieldErrors.name} />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -171,9 +207,9 @@ export default function SettingsPage() {
                         start_date: e.target.value,
                       }))
                     }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                    required
+                    className={inputClassName(!!yearFieldErrors.start_date)}
                   />
+                  <FieldError message={yearFieldErrors.start_date} />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -188,9 +224,9 @@ export default function SettingsPage() {
                         end_date: e.target.value,
                       }))
                     }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                    required
+                    className={inputClassName(!!yearFieldErrors.end_date)}
                   />
+                  <FieldError message={yearFieldErrors.end_date} />
                 </div>
               </div>
 
@@ -212,17 +248,20 @@ export default function SettingsPage() {
                   Active Academic Year
                 </label>
                 {hasYears ? (
-                  <select
-                    value={activeYearId}
-                    onChange={(e) => setActiveYearId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                  >
-                    {data.academic_years.map((year) => (
-                      <option key={year.id} value={year.id}>
-                        {year.name}
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      value={activeYearId}
+                      onChange={(e) => setActiveYearId(e.target.value)}
+                      className={inputClassName(!!settingsFieldErrors.active_academic_year_id)}
+                    >
+                      {data.academic_years.map((year) => (
+                        <option key={year.id} value={year.id}>
+                          {year.name}
+                        </option>
+                      ))}
+                    </select>
+                    <FieldError message={settingsFieldErrors.active_academic_year_id} />
+                  </>
                 ) : (
                   <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                     No academic years yet. Create one above first.
@@ -237,8 +276,9 @@ export default function SettingsPage() {
                 <input
                   value={messageSignature}
                   onChange={(e) => setMessageSignature(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className={inputClassName(!!settingsFieldErrors.message_signature)}
                 />
+                <FieldError message={settingsFieldErrors.message_signature} />
               </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-700">

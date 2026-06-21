@@ -7,22 +7,27 @@ import {
 } from "@/lib/attendance";
 import { lateCountsAsPresent } from "@/lib/settings";
 import { endOfMonth, startOfMonth } from "@/lib/dates";
+import {
+  monthQuerySchema,
+  parseInput,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
   if (!(await isRequestAuthenticated(request))) {
     return unauthorizedResponse();
   }
 
-  const classId = request.nextUrl.searchParams.get("class_id");
-  const monthParam = request.nextUrl.searchParams.get("month");
+  const parsed = parseInput(monthQuerySchema, {
+    class_id: request.nextUrl.searchParams.get("class_id") ?? "",
+    month: request.nextUrl.searchParams.get("month") ?? "",
+  });
 
-  if (!classId || !monthParam || !/^\d{4}-\d{2}$/.test(monthParam)) {
-    return NextResponse.json(
-      { error: "class_id and month (YYYY-MM) are required" },
-      { status: 400 },
-    );
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
+  const { class_id: classId, month: monthParam } = parsed.data;
   const [yearStr, monthStr] = monthParam.split("-");
   const year = Number(yearStr);
   const month = Number(monthStr);

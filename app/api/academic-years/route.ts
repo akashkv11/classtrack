@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
+import {
+  academicYearSchema,
+  parseInput,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   if (!(await isRequestAuthenticated(request))) {
@@ -9,50 +14,45 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  const startDateStr =
-    typeof body.start_date === "string" ? body.start_date.trim() : "";
-  const endDateStr = typeof body.end_date === "string" ? body.end_date.trim() : "";
-  const setActive = body.set_active !== false;
+  const parsed = parseInput(academicYearSchema, body);
 
-  if (!name || !startDateStr || !endDateStr) {
-    return NextResponse.json(
-      { error: "name, start_date, and end_date are required" },
-      { status: 400 },
-    );
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const startDate = parseISODate(startDateStr);
-  const endDate = parseISODate(endDateStr);
-
-  if (endDate < startDate) {
-    return NextResponse.json(
-      { error: "end_date must be on or after start_date" },
-      { status: 400 },
-    );
-  }
+  const { name, start_date, end_date, set_active } = parsed.data;
+  const startDate = parseISODate(start_date);
+  const endDate = parseISODate(end_date);
+  const setActive = set_active !== false;
 
   const existingCount = await prisma.academicYear.count();
   const shouldActivate = setActive || existingCount === 0;
 
-  const year = await prisma.$transaction(async (tx) => {
-    if (shouldActivate) {
-      await tx.academicYear.updateMany({ data: { isActive: false } });
-    }
+  try {
+    const year = await prisma.$transaction(async (tx) => {
+      if (shouldActivate) {
+        await tx.academicYear.updateMany({ data: { isActive: false } });
+      }
 
-    return tx.academicYear.create({
-      data: {
-        name,
-        startDate,
-        endDate,
-        isActive: shouldActivate,
-      },
+      return tx.academicYear.create({
+        data: {
+          name,
+          startDate,
+          endDate,
+          isActive: shouldActivate,
+        },
+      });
     });
-  });
 
-  return NextResponse.json({
-    id: year.id,
-    name: year.name,
-    is_active: year.isActive,
-  });
+    return NextResponse.json({
+      id: year.id,
+      name: year.name,
+      is_active: year.isActive,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "An academic year with this name already exists" },
+      { status: 409 },
+    );
+  }
 }

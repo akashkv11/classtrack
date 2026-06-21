@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
+import {
+  classSettingsPatchSchema,
+  parseInput,
+  validationErrorResponse,
+} from "@/lib/validation";
 
 type RouteContext = { params: Promise<{ classId: string }> };
 
@@ -56,6 +61,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { classId } = await context.params;
   const body = await request.json();
+  const parsed = parseInput(classSettingsPatchSchema, body);
+
+  if (!parsed.success) {
+    return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
+  }
 
   const data: {
     displayName?: string;
@@ -63,24 +73,31 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     isActive?: boolean;
   } = {};
 
-  if (typeof body.display_name === "string") {
-    data.displayName = body.display_name.trim();
+  if (parsed.data.display_name !== undefined) {
+    data.displayName = parsed.data.display_name;
   }
-  if (body.whatsapp_number !== undefined) {
-    const num =
-      typeof body.whatsapp_number === "string"
-        ? body.whatsapp_number.replace(/\D/g, "")
-        : "";
-    data.whatsappNumber = num || null;
+  if (parsed.data.whatsapp_number !== undefined) {
+    data.whatsappNumber = parsed.data.whatsapp_number;
   }
-  if (typeof body.is_active === "boolean") {
-    data.isActive = body.is_active;
+  if (parsed.data.is_active !== undefined) {
+    data.isActive = parsed.data.is_active;
   }
 
-  await prisma.class.update({
-    where: { id: classId },
-    data,
-  });
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json(
+      { error: "At least one field is required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await prisma.class.update({
+      where: { id: classId },
+      data,
+    });
+  } catch {
+    return NextResponse.json({ error: "Class not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 }
