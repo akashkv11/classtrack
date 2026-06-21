@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AcademicYear {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  classes Class[]
+
+  @@map("academic_years")
+}
+
+model Class {
+  id             String   @id @default(uuid()) @db.Uuid
+  academicYearId String   @map("academic_year_id") @db.Uuid
+  level          String
+  stream         String
+  displayName    String   @map("display_name")
+  whatsappNumber String?  @map("whatsapp_number")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  academicYear       AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  students           Student[]
+  attendanceSessions AttendanceSession[]
+
+  @@unique([academicYearId, level, stream])
+  @@map("classes")
+}
+
+model Student {
+  id          String   @id @default(uuid()) @db.Uuid
+  classId     String   @map("class_id") @db.Uuid
+  rollNo      Int      @map("roll_no")
+  admissionNo String?  @map("admission_no")
+  fullName    String   @map("full_name")
+  parentPhone String?  @map("parent_phone")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  class              Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
+  attendanceRecords  AttendanceRecord[]
+
+  @@unique([classId, rollNo])
+  @@unique([classId, admissionNo])
+  @@map("students")
+}
+
+model AttendanceSession {
+  id             String   @id @default(uuid()) @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  attendanceDate DateTime @map("attendance_date") @db.Date
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class   Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
+  records AttendanceRecord[]
+
+  @@unique([classId, attendanceDate])
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  sessionId String   @map("session_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  status    String
+  remarks   String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, studentId])
+  @@map("attendance_records")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
+}
