@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import { useClientEffect } from "@/lib/use-client-effect";
 
 type ClassData = {
   display_name: string;
@@ -21,18 +22,16 @@ export default function ClassSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  const loadData = useCallback(async () => {
-    const res = await fetch(`/api/classes/${classId}`);
+  async function loadData(signal?: AbortSignal) {
+    const res = await fetch(`/api/classes/${classId}`, { signal });
     const cls = await res.json();
     setData(cls);
     setDisplayName(cls.display_name ?? "");
     setWhatsappNumber(cls.whatsapp_number ?? "");
     setIsActive(cls.is_active ?? true);
-  }, [classId]);
+  }
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useClientEffect((signal) => loadData(signal), [classId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

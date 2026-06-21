@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import StudentForm from "@/components/StudentForm";
+import { useClientEffect } from "@/lib/use-client-effect";
 
 type Student = {
   id: string;
@@ -24,20 +25,18 @@ export default function StudentsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
 
-  const loadData = useCallback(async () => {
+  async function loadData(signal?: AbortSignal) {
     const [studentsRes, classRes] = await Promise.all([
-      fetch(`/api/classes/${classId}/students`),
-      fetch(`/api/classes/${classId}`),
+      fetch(`/api/classes/${classId}/students`, { signal }),
+      fetch(`/api/classes/${classId}`, { signal }),
     ]);
     setStudents(await studentsRes.json());
     const cls = await classRes.json();
     setClassName(cls.display_name ?? "");
     setLoading(false);
-  }, [classId]);
+  }
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useClientEffect((signal) => loadData(signal), [classId]);
 
   async function handleSave(data: {
     roll_no: number;
@@ -157,6 +156,7 @@ export default function StudentsPage() {
       </main>
 
       <StudentForm
+        key={editing?.id ?? "new"}
         open={formOpen}
         student={editing}
         onClose={() => {

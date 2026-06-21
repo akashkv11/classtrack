@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { todayISO } from "@/lib/dates";
 import type { AttendanceStatus } from "@/lib/attendance";
+import { useClientEffect } from "@/lib/use-client-effect";
 
 type RecordRow = {
   student_id: string;
@@ -27,12 +28,12 @@ export default function MarkAttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const loadAttendance = useCallback(async () => {
+  const loadAttendance = async (signal?: AbortSignal) => {
     setLoading(true);
     setError("");
     const [attendanceRes, classRes] = await Promise.all([
-      fetch(`/api/classes/${classId}/attendance?date=${date}`),
-      fetch(`/api/classes/${classId}`),
+      fetch(`/api/classes/${classId}/attendance?date=${date}`, { signal }),
+      fetch(`/api/classes/${classId}`, { signal }),
     ]);
 
     const data = await attendanceRes.json();
@@ -42,11 +43,9 @@ export default function MarkAttendancePage() {
     setInitialRecords(JSON.parse(JSON.stringify(data.records ?? [])));
     setSessionId(data.session?.id ?? null);
     setLoading(false);
-  }, [classId, date]);
+  };
 
-  useEffect(() => {
-    loadAttendance();
-  }, [loadAttendance]);
+  useClientEffect((signal) => loadAttendance(signal), [classId, date]);
 
   const hasChanges = useMemo(
     () => JSON.stringify(records) !== JSON.stringify(initialRecords),

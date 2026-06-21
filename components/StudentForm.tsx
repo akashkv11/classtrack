@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Student = {
   id: string;
@@ -24,31 +24,24 @@ type StudentFormProps = {
   }) => Promise<void>;
 };
 
+function initialFormState(student?: Student | null) {
+  return {
+    rollNo: student ? String(student.roll_no) : "",
+    fullName: student?.full_name ?? "",
+    admissionNo: student?.admission_no ?? "",
+    parentPhone: student?.parent_phone ?? "",
+    isActive: student?.is_active ?? true,
+  };
+}
+
 export default function StudentForm({ open, student, onClose, onSave }: StudentFormProps) {
-  const [rollNo, setRollNo] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [admissionNo, setAdmissionNo] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
-  const [isActive, setIsActive] = useState(true);
+  const [rollNo, setRollNo] = useState(() => initialFormState(student).rollNo);
+  const [fullName, setFullName] = useState(() => initialFormState(student).fullName);
+  const [admissionNo, setAdmissionNo] = useState(() => initialFormState(student).admissionNo);
+  const [parentPhone, setParentPhone] = useState(() => initialFormState(student).parentPhone);
+  const [isActive, setIsActive] = useState(() => initialFormState(student).isActive);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (student) {
-      setRollNo(String(student.roll_no));
-      setFullName(student.full_name);
-      setAdmissionNo(student.admission_no ?? "");
-      setParentPhone(student.parent_phone ?? "");
-      setIsActive(student.is_active);
-    } else {
-      setRollNo("");
-      setFullName("");
-      setAdmissionNo("");
-      setParentPhone("");
-      setIsActive(true);
-    }
-    setError("");
-  }, [student, open]);
 
   if (!open) return null;
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import { useClientEffect } from "@/lib/use-client-effect";
 
 type ReportStudent = {
   roll_no: number;
@@ -34,21 +35,17 @@ export default function MonthlyReportPage() {
   const [className, setClassName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const loadReport = useCallback(async () => {
+  useClientEffect(async (signal) => {
     setLoading(true);
     const [reportRes, classRes] = await Promise.all([
-      fetch(`/api/reports/monthly?class_id=${classId}&month=${month}`),
-      fetch(`/api/classes/${classId}`),
+      fetch(`/api/reports/monthly?class_id=${classId}&month=${month}`, { signal }),
+      fetch(`/api/classes/${classId}`, { signal }),
     ]);
     setReport(await reportRes.json());
     const cls = await classRes.json();
     setClassName(cls.display_name ?? "");
     setLoading(false);
   }, [classId, month]);
-
-  useEffect(() => {
-    loadReport();
-  }, [loadReport]);
 
   return (
     <>

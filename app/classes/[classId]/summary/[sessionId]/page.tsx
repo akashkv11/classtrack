@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import WhatsAppPreview from "@/components/WhatsAppPreview";
+import { useClientEffect } from "@/lib/use-client-effect";
 
 type Summary = {
   session_id: string;
@@ -27,14 +28,12 @@ export default function AttendanceSummaryPage() {
     whatsapp_url: "",
   });
 
-  const loadSummary = useCallback(async () => {
-    const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`);
+  useClientEffect(async (signal) => {
+    const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`, {
+      signal,
+    });
     setData(await res.json());
   }, [sessionId]);
-
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
 
   async function openWhatsAppPreview() {
     const res = await fetch(`/api/attendance-sessions/${sessionId}/whatsapp-message`);
