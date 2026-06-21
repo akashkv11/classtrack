@@ -14,7 +14,10 @@ function decodePrismaDevDatabaseUrl(
 }
 
 export function getDirectDatabaseUrl(): string {
-  const configured = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
+  const configured =
+    process.env.DIRECT_DATABASE_URL ??
+    process.env.DIRECT_URL ??
+    process.env.DATABASE_URL;
   if (!configured) {
     throw new Error("DATABASE_URL is not set");
   }

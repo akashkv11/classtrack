@@ -4,6 +4,8 @@ import AppHeader from "@/components/AppHeader";
 import { prisma } from "@/lib/db";
 import { todayISO } from "@/lib/dates";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = { params: Promise<{ classId: string }> };
 
 export default async function ClassDetailsPage({ params }: PageProps) {

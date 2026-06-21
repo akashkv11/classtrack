@@ -3,6 +3,8 @@ import ClassCard from "@/components/ClassCard";
 import { prisma } from "@/lib/db";
 import { todayISO } from "@/lib/dates";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const activeYear = await prisma.academicYear.findFirst({
     where: { isActive: true },
