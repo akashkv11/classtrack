@@ -155,16 +155,18 @@ export default function StudentsPage() {
         )}
       </main>
 
-      <StudentForm
-        key={editing?.id ?? "new"}
-        open={formOpen}
-        student={editing}
-        onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
-        }}
-        onSave={handleSave}
-      />
+      {formOpen && (
+        <StudentForm
+          key={editing?.id ?? "new"}
+          open
+          student={editing}
+          onClose={() => {
+            setFormOpen(false);
+            setEditing(null);
+          }}
+          onSave={handleSave}
+        />
+      )}
     </>
   );
 }

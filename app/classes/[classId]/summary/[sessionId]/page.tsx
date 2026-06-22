@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import FieldError from "@/components/FieldError";
 import WhatsAppPreview from "@/components/WhatsAppPreview";
 import { useClientEffect } from "@/lib/use-client-effect";
+import {
+  classSettingsPatchSchema,
+  FieldErrors,
+  inputClassName,
+  parseInput,
+} from "@/lib/validation";
 
 type Summary = {
   session_id: string;
-  class: { id: string; display_name: string };
+  class: {
+    id: string;
+    display_name: string;
+    whatsapp_number: string | null;
+  };
   attendance_date: string;
   summary: { total: number; present: number; absent: number; late: number };
   absentees: { roll_no: number; full_name: string }[];
@@ -21,6 +32,10 @@ export default function AttendanceSummaryPage() {
   const { classId, sessionId } = params;
 
   const [data, setData] = useState<Summary | null>(null);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [savingWhatsApp, setSavingWhatsApp] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [whatsappFieldErrors, setWhatsappFieldErrors] = useState<FieldErrors>({});
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappData, setWhatsappData] = useState({
     phone_number: "",
@@ -28,18 +43,62 @@ export default function AttendanceSummaryPage() {
     whatsapp_url: "",
   });
 
-  useClientEffect(async (signal) => {
+  async function loadSummary(signal?: AbortSignal) {
     const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`, {
       signal,
     });
-    setData(await res.json());
-  }, [sessionId]);
+    const payload = await res.json();
+    setData(payload);
+    setWhatsappNumber(payload.class?.whatsapp_number ?? "");
+  }
+
+  useClientEffect((signal) => loadSummary(signal), [sessionId]);
+
+  const hasWhatsApp = Boolean(data?.class.whatsapp_number);
+
+  async function handleSaveWhatsApp(e: FormEvent) {
+    e.preventDefault();
+    setSavingWhatsApp(true);
+    setWhatsappMessage("");
+    setWhatsappFieldErrors({});
+
+    const parsed = parseInput(classSettingsPatchSchema, {
+      whatsapp_number: whatsappNumber,
+    });
+
+    if (!parsed.success) {
+      setWhatsappFieldErrors(parsed.fieldErrors);
+      setWhatsappMessage(parsed.error);
+      setSavingWhatsApp(false);
+      return;
+    }
+
+    const res = await fetch(`/api/classes/${classId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
+
+    setSavingWhatsApp(false);
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setWhatsappMessage(payload.error ?? "Failed to save WhatsApp number.");
+      if (payload.field_errors) {
+        setWhatsappFieldErrors(payload.field_errors);
+      }
+      return;
+    }
+
+    setWhatsappMessage("WhatsApp number saved.");
+    await loadSummary();
+  }
 
   async function openWhatsAppPreview() {
     const res = await fetch(`/api/attendance-sessions/${sessionId}/whatsapp-message`);
     const payload = await res.json();
     if (!res.ok) {
-      alert(payload.error ?? "Could not generate WhatsApp message");
+      setWhatsappMessage(payload.error ?? "Could not generate WhatsApp message.");
       return;
     }
     setWhatsappData(payload);
@@ -114,10 +173,61 @@ export default function AttendanceSummaryPage() {
           </section>
         </div>
 
+        {!hasWhatsApp ? (
+          <form
+            onSubmit={handleSaveWhatsApp}
+            className="mb-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-5"
+          >
+            <div>
+              <h2 className="font-semibold text-amber-950">Set up WhatsApp</h2>
+              <p className="mt-1 text-sm text-amber-900">
+                Add the class WhatsApp group number to send the absentee message.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                WhatsApp Number
+              </label>
+              <input
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="91XXXXXXXXXX"
+                className={inputClassName(!!whatsappFieldErrors.whatsapp_number)}
+              />
+              <p className="mt-1 text-xs text-slate-600">
+                Country code + number, no + or spaces (e.g. 91XXXXXXXXXX)
+              </p>
+              <FieldError message={whatsappFieldErrors.whatsapp_number} />
+            </div>
+            {whatsappMessage && (
+              <p className="text-sm text-amber-950">{whatsappMessage}</p>
+            )}
+            <button
+              type="submit"
+              disabled={savingWhatsApp}
+              className="rounded-lg bg-amber-900 px-4 py-2 text-sm font-medium text-white hover:bg-amber-950 disabled:opacity-60"
+            >
+              {savingWhatsApp ? "Saving..." : "Save WhatsApp Number"}
+            </button>
+          </form>
+        ) : (
+          <p className="mb-6 text-sm text-slate-600">
+            WhatsApp: <span className="font-medium text-slate-900">{data.class.whatsapp_number}</span>
+            {" · "}
+            <Link
+              href={`/classes/${classId}/settings`}
+              className="text-blue-600 hover:underline"
+            >
+              Change in class settings
+            </Link>
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openWhatsAppPreview}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            disabled={!hasWhatsApp}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send WhatsApp Message
           </button>

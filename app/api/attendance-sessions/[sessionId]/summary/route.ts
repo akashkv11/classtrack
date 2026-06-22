@@ -40,6 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     class: {
       id: session.class.id,
       display_name: session.class.displayName,
+      whatsapp_number: session.class.whatsappNumber,
     },
     attendance_date: session.attendanceDate.toISOString().slice(0, 10),
     summary: summarizeRecords(session.records),
