@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     student_id: student.id,
     roll_no: student.rollNo,
     full_name: student.fullName,
-    status: recordMap.get(student.id) ?? "present",
+    status: recordMap.get(student.id) ?? "absent",
   }));
 
   if (!session) {

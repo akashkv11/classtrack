@@ -21,6 +21,10 @@ type RecordRow = {
   status: AttendanceStatus;
 };
 
+function isPresentStatus(status: AttendanceStatus): boolean {
+  return status === "present" || status === "late";
+}
+
 export default function MarkAttendancePage() {
   const params = useParams<{ classId: string }>();
   const router = useRouter();
@@ -71,6 +75,12 @@ export default function MarkAttendancePage() {
 
   useClientEffect((signal) => loadAttendance(signal), [classId, date]);
 
+  const presentCount = useMemo(
+    () => records.filter((r) => isPresentStatus(r.status)).length,
+    [records],
+  );
+  const absentCount = records.length - presentCount;
+
   const hasChanges = useMemo(
     () => JSON.stringify(records) !== JSON.stringify(initialRecords),
     [records, initialRecords],
@@ -82,14 +92,22 @@ export default function MarkAttendancePage() {
     setDateError(parsed.success ? "" : parsed.error);
   }
 
-  function setStatus(studentId: string, status: AttendanceStatus) {
+  function toggleStudent(studentId: string) {
     setRecords((prev) =>
-      prev.map((r) => (r.student_id === studentId ? { ...r, status } : r)),
+      prev.map((r) =>
+        r.student_id === studentId
+          ? { ...r, status: isPresentStatus(r.status) ? "absent" : "present" }
+          : r,
+      ),
     );
   }
 
   function markAllPresent() {
     setRecords((prev) => prev.map((r) => ({ ...r, status: "present" as const })));
+  }
+
+  function markAllAbsent() {
+    setRecords((prev) => prev.map((r) => ({ ...r, status: "absent" as const })));
   }
 
   function resetChanges() {
@@ -105,7 +123,7 @@ export default function MarkAttendancePage() {
       notes: "",
       records: records.map((r) => ({
         student_id: r.student_id,
-        status: r.status,
+        status: isPresentStatus(r.status) ? "present" : "absent",
       })),
     });
 
@@ -162,12 +180,28 @@ export default function MarkAttendancePage() {
           )}
         </div>
 
+        {!loading && records.length > 0 && (
+          <p className="mb-4 text-sm text-slate-600">
+            <span className="font-medium text-green-700">{presentCount} present</span>
+            {" · "}
+            <span className="font-medium text-red-700">{absentCount} absent</span>
+            {" · "}
+            Tap a student to mark present. Tap again to mark absent.
+          </p>
+        )}
+
         <div className="mb-4 flex flex-wrap gap-2">
           <button
             onClick={markAllPresent}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
           >
             Mark All Present
+          </button>
+          <button
+            onClick={markAllAbsent}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
+          >
+            Mark All Absent
           </button>
           <button
             onClick={resetChanges}
@@ -202,37 +236,51 @@ export default function MarkAttendancePage() {
         ) : records.length === 0 ? (
           <p className="text-slate-600">No active students in this class.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-slate-700">Roll No</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">Name</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">Present</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">Absent</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">Late</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.student_id} className="border-b border-slate-100">
-                    <td className="px-4 py-3">{record.roll_no}</td>
-                    <td className="px-4 py-3">{record.full_name}</td>
-                    {(["present", "absent", "late"] as const).map((status) => (
-                      <td key={status} className="px-4 py-3">
-                        <input
-                          type="radio"
-                          name={`status-${record.student_id}`}
-                          checked={record.status === status}
-                          onChange={() => setStatus(record.student_id, status)}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {records.map((record) => {
+              const present = isPresentStatus(record.status);
+              return (
+                <li key={record.student_id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleStudent(record.student_id)}
+                    aria-pressed={present}
+                    className={`flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition ${
+                      present
+                        ? "border-green-500 bg-green-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                        present
+                          ? "bg-green-600 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {record.roll_no}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block truncate text-sm ${
+                          present ? "font-semibold text-slate-900" : "text-slate-700"
+                        }`}
+                      >
+                        {record.full_name}
+                      </span>
+                      <span
+                        className={`mt-0.5 block text-xs font-medium ${
+                          present ? "text-green-700" : "text-slate-500"
+                        }`}
+                      >
+                        {present ? "Present · tap to mark absent" : "Absent · tap to mark present"}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </main>
     </>
