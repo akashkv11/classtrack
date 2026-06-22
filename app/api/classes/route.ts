@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
-import { todayISO } from "@/lib/dates";
+import { todayISO, parseISODate } from "@/lib/dates";
 
 export async function GET(request: NextRequest) {
   if (!(await isRequestAuthenticated(request))) {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     include: {
       _count: { select: { students: { where: { isActive: true } } } },
       attendanceSessions: {
-        where: { attendanceDate: new Date(today) },
+        where: { attendanceDate: parseISODate(today) },
         take: 1,
       },
     },

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
-import { buildAbsenteeMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
-import { getMessageSignature } from "@/lib/settings";
+import { buildAbsenteeMessage, buildWhatsAppUrl, subjectForStream } from "@/lib/whatsapp";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
@@ -39,12 +38,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     .filter((r) => r.status === "absent")
     .map((r) => ({ rollNo: r.student.rollNo, fullName: r.student.fullName }));
 
-  const signature = await getMessageSignature();
   const message = buildAbsenteeMessage({
     className: session.class.displayName,
+    subject: subjectForStream(session.class.stream),
     date: session.attendanceDate,
     absentees,
-    signature,
   });
 
   return NextResponse.json({

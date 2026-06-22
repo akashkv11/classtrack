@@ -1,7 +1,7 @@
 import AppHeader from "@/components/AppHeader";
 import ClassCard from "@/components/ClassCard";
 import { prisma } from "@/lib/db";
-import { todayISO } from "@/lib/dates";
+import { todayISO, parseISODate } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
         include: {
           _count: { select: { students: { where: { isActive: true } } } },
           attendanceSessions: {
-            where: { attendanceDate: new Date(today) },
+            where: { attendanceDate: parseISODate(today) },
             take: 1,
           },
         },

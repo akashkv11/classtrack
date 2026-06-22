@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { prisma } from "@/lib/db";
-import { todayISO } from "@/lib/dates";
+import { todayISO, formatISODate } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
 
   const today = todayISO();
   const todayMarked = cls.attendanceSessions.some(
-    (s) => s.attendanceDate.toISOString().slice(0, 10) === today,
+    (s) => formatISODate(s.attendanceDate) === today,
   );
 
   return (
@@ -79,7 +79,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
           ) : (
             <ul className="space-y-2">
               {cls.attendanceSessions.map((session) => {
-                const date = session.attendanceDate.toISOString().slice(0, 10);
+                const date = formatISODate(session.attendanceDate);
                 return (
                   <li key={session.id}>
                     <Link

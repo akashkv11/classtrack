@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
-import { todayISO } from "@/lib/dates";
+import { todayISO, formatISODate } from "@/lib/dates";
 import {
   classSettingsPatchSchema,
   parseInput,
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const today = todayISO();
   const todaySession = cls.attendanceSessions.find(
-    (s) => s.attendanceDate.toISOString().slice(0, 10) === today,
+    (s) => formatISODate(s.attendanceDate) === today,
   );
 
   return NextResponse.json({
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     is_active: cls.isActive,
     today_status: todaySession ? "marked" : "not_marked",
     recent_dates: cls.attendanceSessions.map((s) =>
-      s.attendanceDate.toISOString().slice(0, 10),
+      formatISODate(s.attendanceDate),
     ),
   });
 }

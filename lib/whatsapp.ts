@@ -5,22 +5,32 @@ type Absentee = {
   fullName: string;
 };
 
+export function subjectForStream(stream: string): string | null {
+  if (stream === "science") return "Computer Science";
+  if (stream === "commerce") return "Computer Application";
+  return null;
+}
+
 export function buildAbsenteeMessage(options: {
   className: string;
+  subject?: string | null;
   date: Date;
   absentees: Absentee[];
-  signature: string;
 }): string {
-  const { className, date, absentees, signature } = options;
+  const { className, subject, date, absentees } = options;
   const dateStr = formatDisplayDate(date);
 
   const lines = [
     "Attendance Update",
     "",
     `Class: ${className}`,
-    `Date: ${dateStr}`,
-    "",
   ];
+
+  if (subject) {
+    lines.push(`Subject: ${subject}`);
+  }
+
+  lines.push(`Date: ${dateStr}`, "");
 
   if (absentees.length === 0) {
     lines.push("All students are present today.");
@@ -31,7 +41,6 @@ export function buildAbsenteeMessage(options: {
     });
   }
 
-  lines.push("", signature);
   return lines.join("\n");
 }
 

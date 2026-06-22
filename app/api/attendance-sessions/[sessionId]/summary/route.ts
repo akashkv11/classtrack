@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords } from "@/lib/attendance";
+import { formatISODate } from "@/lib/dates";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       display_name: session.class.displayName,
       whatsapp_number: session.class.whatsappNumber,
     },
-    attendance_date: session.attendanceDate.toISOString().slice(0, 10),
+    attendance_date: formatISODate(session.attendanceDate),
     summary: summarizeRecords(session.records),
     absentees,
     late_students: lateStudents,
