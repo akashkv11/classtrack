@@ -1,10 +1,12 @@
 import Link from "next/link";
+import SendWhatsAppButton from "@/components/SendWhatsAppButton";
 
 type ClassCardProps = {
   id: string;
   displayName: string;
   studentCount: number;
   todayStatus: "marked" | "not_marked";
+  todaySessionId?: string | null;
 };
 
 export default function ClassCard({
@@ -12,6 +14,7 @@ export default function ClassCard({
   displayName,
   studentCount,
   todayStatus,
+  todaySessionId,
 }: ClassCardProps) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -30,6 +33,17 @@ export default function ClassCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {todayStatus === "marked" && todaySessionId && (
+          <>
+            <Link
+              href={`/classes/${id}/summary/${todaySessionId}`}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              View Attendance
+            </Link>
+            <SendWhatsAppButton sessionId={todaySessionId} />
+          </>
+        )}
         <Link
           href={`/classes/${id}/attendance`}
           className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
