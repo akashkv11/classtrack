@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Badge from "@/components/ui/badge";
 
 type ClassListCardProps = {
   id: string;
@@ -20,15 +21,9 @@ export default function ClassListCard({
     >
       <h2 className="text-lg font-semibold text-slate-900">{displayName}</h2>
       <p className="mt-1 text-sm text-slate-600">{studentCount} students</p>
-      <span
-        className={`mt-3 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-          todayStatus === "marked"
-            ? "bg-green-100 text-green-800"
-            : "bg-amber-100 text-amber-800"
-        }`}
-      >
+      <Badge variant={todayStatus === "marked" ? "success" : "warning"} className="mt-3">
         {todayStatus === "marked" ? "Today's attendance marked" : "Not marked today"}
-      </span>
+      </Badge>
     </Link>
   );
 }

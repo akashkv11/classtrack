@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import PasswordGate from "@/components/PasswordGate";
+import PasswordGate from "@/components/auth/password-gate";
 import { isAuthenticated } from "@/lib/auth";
 
 export default async function HomePage() {

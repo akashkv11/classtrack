@@ -1,5 +1,5 @@
-import AppTopBar from "@/components/AppTopBar";
-import Sidebar from "@/components/Sidebar";
+import AppTopBar from "@/components/layout/app-top-bar";
+import Sidebar from "@/components/layout/sidebar";
 
 type AppShellProps = {
   children: React.ReactNode;

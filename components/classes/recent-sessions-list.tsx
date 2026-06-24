@@ -1,0 +1,44 @@
+import { ButtonLink } from "@/components/ui/button";
+import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
+
+type Session = {
+  id: string;
+  date: string;
+};
+
+type RecentSessionsListProps = {
+  classId: string;
+  sessions: Session[];
+};
+
+export default function RecentSessionsList({ classId, sessions }: RecentSessionsListProps) {
+  return (
+    <section className="mb-10">
+      <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Attendance Dates</h2>
+      {sessions.length === 0 ? (
+        <p className="text-sm text-slate-600">No attendance recorded yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {sessions.map((session) => (
+            <li
+              key={session.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3"
+            >
+              <span className="text-sm font-medium text-slate-900">{session.date}</span>
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink
+                  href={`/classes/${classId}/summary/${session.id}`}
+                  variant="secondary"
+                  size="sm"
+                >
+                  View
+                </ButtonLink>
+                <SendWhatsAppButton sessionId={session.id} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

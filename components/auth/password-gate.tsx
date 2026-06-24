@@ -2,13 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import FieldError from "@/components/FieldError";
-import {
-  FieldErrors,
-  inputClassName,
-  parseInput,
-  unlockSchema,
-} from "@/lib/validation";
+import { Button } from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Alert from "@/components/ui/alert";
+import FormField, { TextInput } from "@/components/ui/form-field";
+import { FieldErrors, parseInput, unlockSchema } from "@/lib/validation";
 
 export default function PasswordGate() {
   const router = useRouter();
@@ -58,7 +56,7 @@ export default function PasswordGate() {
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <Card padding="lg" className="w-full max-w-md rounded-2xl">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-slate-900">ClassTrack</h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -67,35 +65,25 @@ export default function PasswordGate() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
+          <FormField label="Password" error={fieldErrors.password}>
+            <TextInput
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputClassName(!!fieldErrors.password, "w-full text-slate-900")}
               placeholder="Enter app password"
+              error={!!fieldErrors.password}
               autoFocus
             />
-            <FieldError message={fieldErrors.password} />
-          </div>
+          </FormField>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-          )}
+          {error && <Alert variant="error">{error}</Alert>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading} className="w-full py-2.5">
             {loading ? "Unlocking..." : "Unlock"}
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }
