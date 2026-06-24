@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     rollNo?: number;
     fullName?: string;
     admissionNo?: string | null;
+    email?: string | null;
     parentPhone?: string | null;
     isActive?: boolean;
   } = {};
@@ -38,6 +39,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
   if (parsed.data.admission_no !== undefined) {
     data.admissionNo = parsed.data.admission_no;
+  }
+  if (parsed.data.email !== undefined) {
+    data.email = parsed.data.email;
   }
   if (parsed.data.parent_phone !== undefined) {
     data.parentPhone = parsed.data.parent_phone;

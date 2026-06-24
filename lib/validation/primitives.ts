@@ -53,6 +53,19 @@ export function normalizeOptionalPhone(value: string): string | null {
   return digits || null;
 }
 
+export const optionalEmailSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || z.email().safeParse(value).success,
+    "Enter a valid email address",
+  );
+
+export function normalizeOptionalEmail(value: string): string | null {
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || null;
+}
+
 export function normalizeWhatsAppNumber(value: string): string | null {
   const digits = stripDigits(value);
   return digits || null;

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       roll_no: s.rollNo,
       full_name: s.fullName,
       admission_no: s.admissionNo,
+      email: s.email,
       parent_phone: s.parentPhone,
       is_active: s.isActive,
     })),
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const { roll_no, full_name, admission_no, parent_phone } = parsed.data;
+  const { roll_no, full_name, admission_no, email, parent_phone } = parsed.data;
 
   try {
     const student = await prisma.student.create({
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         rollNo: roll_no,
         fullName: full_name,
         admissionNo: admission_no,
+        email,
         parentPhone: parent_phone,
       },
     });
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         roll_no: student.rollNo,
         full_name: student.fullName,
         admission_no: student.admissionNo,
+        email: student.email,
         is_active: student.isActive,
       },
     });

@@ -11,6 +11,7 @@ type Student = {
   roll_no: number;
   full_name: string;
   admission_no: string | null;
+  email: string | null;
   parent_phone: string | null;
   is_active: boolean;
 };
@@ -42,6 +43,7 @@ export default function StudentsPage() {
     roll_no: number;
     full_name: string;
     admission_no: string;
+    email: string;
     parent_phone: string;
     is_active: boolean;
   }) {
@@ -105,6 +107,7 @@ export default function StudentsPage() {
                   <th className="px-4 py-3 font-medium text-slate-700">Roll No</th>
                   <th className="px-4 py-3 font-medium text-slate-700">Full Name</th>
                   <th className="px-4 py-3 font-medium text-slate-700">Admission No</th>
+                  <th className="px-4 py-3 font-medium text-slate-700">Email</th>
                   <th className="px-4 py-3 font-medium text-slate-700">Status</th>
                   <th className="px-4 py-3 font-medium text-slate-700">Actions</th>
                 </tr>
@@ -115,6 +118,7 @@ export default function StudentsPage() {
                     <td className="px-4 py-3">{student.roll_no}</td>
                     <td className="px-4 py-3">{student.full_name}</td>
                     <td className="px-4 py-3">{student.admission_no ?? "—"}</td>
+                    <td className="px-4 py-3">{student.email ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${

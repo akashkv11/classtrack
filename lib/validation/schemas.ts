@@ -2,8 +2,10 @@ import { z } from "zod";
 import {
   isoDateSchema,
   monthSchema,
+  normalizeOptionalEmail,
   normalizeOptionalPhone,
   normalizeWhatsAppNumber,
+  optionalEmailSchema,
   optionalPhoneSchema,
   optionalWhatsAppSchema,
   uuidSchema,
@@ -27,6 +29,7 @@ export const studentFormSchema = z.object({
     .string()
     .trim()
     .max(50, "Admission number must be 50 characters or less"),
+  email: optionalEmailSchema,
   parent_phone: optionalPhoneSchema,
   is_active: z.boolean(),
 });
@@ -50,6 +53,17 @@ export const studentCreateSchema = z.object({
       z
         .string()
         .max(50, "Admission number must be 50 characters or less")
+        .nullable(),
+    ),
+  email: z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((value) =>
+      typeof value === "string" ? normalizeOptionalEmail(value) : null,
+    )
+    .pipe(
+      z
+        .email("Enter a valid email address")
+        .max(254, "Email must be 254 characters or less")
         .nullable(),
     ),
   parent_phone: z
@@ -88,6 +102,18 @@ export const studentUpdateSchema = z
         z
           .string()
           .max(50, "Admission number must be 50 characters or less")
+          .nullable(),
+      )
+      .optional(),
+    email: z
+      .union([z.string(), z.null(), z.undefined()])
+      .transform((value) =>
+        typeof value === "string" ? normalizeOptionalEmail(value) : null,
+      )
+      .pipe(
+        z
+          .email("Enter a valid email address")
+          .max(254, "Email must be 254 characters or less")
           .nullable(),
       )
       .optional(),

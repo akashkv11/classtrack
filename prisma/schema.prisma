@@ -44,6 +44,7 @@ model Student {
   rollNo      Int      @map("roll_no")
   admissionNo String?  @map("admission_no")
   fullName    String   @map("full_name")
+  email       String?
   parentPhone String?  @map("parent_phone")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

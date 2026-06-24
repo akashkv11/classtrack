@@ -14,6 +14,7 @@ type Student = {
   roll_no: number;
   full_name: string;
   admission_no: string | null;
+  email: string | null;
   parent_phone: string | null;
   is_active: boolean;
 };
@@ -26,6 +27,7 @@ type StudentFormProps = {
     roll_no: number;
     full_name: string;
     admission_no: string;
+    email: string;
     parent_phone: string;
     is_active: boolean;
   }) => Promise<void>;
@@ -36,6 +38,7 @@ function initialFormState(student?: Student | null) {
     rollNo: student ? String(student.roll_no) : "",
     fullName: student?.full_name ?? "",
     admissionNo: student?.admission_no ?? "",
+    email: student?.email ?? "",
     parentPhone: student?.parent_phone ?? "",
     isActive: student?.is_active ?? true,
   };
@@ -45,6 +48,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
   const [rollNo, setRollNo] = useState(() => initialFormState(student).rollNo);
   const [fullName, setFullName] = useState(() => initialFormState(student).fullName);
   const [admissionNo, setAdmissionNo] = useState(() => initialFormState(student).admissionNo);
+  const [email, setEmail] = useState(() => initialFormState(student).email);
   const [parentPhone, setParentPhone] = useState(() => initialFormState(student).parentPhone);
   const [isActive, setIsActive] = useState(() => initialFormState(student).isActive);
   const [loading, setLoading] = useState(false);
@@ -62,6 +66,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
       roll_no: rollNo,
       full_name: fullName,
       admission_no: admissionNo,
+      email,
       parent_phone: parentPhone,
       is_active: isActive,
     });
@@ -78,6 +83,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
         roll_no: parsed.data.roll_no,
         full_name: parsed.data.full_name,
         admission_no: parsed.data.admission_no,
+        email: parsed.data.email,
         parent_phone: parsed.data.parent_phone,
         is_active: parsed.data.is_active,
       });
@@ -125,6 +131,19 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
               className={inputClassName(!!fieldErrors.admission_no)}
             />
             <FieldError message={fieldErrors.admission_no} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="student@example.com"
+              className={inputClassName(!!fieldErrors.email)}
+            />
+            <FieldError message={fieldErrors.email} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
