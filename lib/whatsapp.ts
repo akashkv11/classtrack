@@ -3,7 +3,15 @@ import { formatDisplayDate } from "@/lib/dates";
 type Absentee = {
   rollNo: number;
   fullName: string;
+  monthlyAbsentCount?: number;
 };
+
+export function formatAbsenteeLine(student: Absentee): string {
+  if (student.monthlyAbsentCount && student.monthlyAbsentCount > 1) {
+    return `${student.fullName} (${student.monthlyAbsentCount} class absent)`;
+  }
+  return student.fullName;
+}
 
 export function subjectForStream(stream: string): string | null {
   if (stream === "science") return "Computer Science";
@@ -37,7 +45,7 @@ export function buildAbsenteeMessage(options: {
   } else {
     lines.push("Absentees:");
     absentees.forEach((student, index) => {
-      lines.push(`${index + 1}. ${student.fullName}`);
+      lines.push(`${index + 1}. ${formatAbsenteeLine(student)}`);
     });
   }
 

@@ -19,6 +19,22 @@ export function summarizeRecords(
   );
 }
 
+export function countAbsentDaysByStudent(
+  sessions: { records: { studentId: string; status: string }[] }[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const session of sessions) {
+    for (const record of session.records) {
+      if (record.status === "absent") {
+        counts.set(record.studentId, (counts.get(record.studentId) ?? 0) + 1);
+      }
+    }
+  }
+
+  return counts;
+}
+
 export function calculateAttendancePercentage(options: {
   presentDays: number;
   lateDays: number;

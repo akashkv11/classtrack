@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
+import { countAbsentDaysByStudent } from "@/lib/attendance";
+import { endOfMonth, startOfMonth } from "@/lib/dates";
 import { buildAbsenteeMessage, buildWhatsAppUrl, subjectForStream } from "@/lib/whatsapp";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
@@ -34,9 +36,39 @@ export async function GET(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const absentees = session.records
-    .filter((r) => r.status === "absent")
-    .map((r) => ({ rollNo: r.student.rollNo, fullName: r.student.fullName }));
+  const absentRecords = session.records.filter((r) => r.status === "absent");
+  const absentStudentIds = absentRecords.map((r) => r.studentId);
+
+  const attendanceDate = session.attendanceDate;
+  const year = attendanceDate.getUTCFullYear();
+  const month = attendanceDate.getUTCMonth() + 1;
+  const rangeStart = startOfMonth(year, month);
+  const rangeEnd = endOfMonth(year, month);
+
+  const monthSessions = absentStudentIds.length
+    ? await prisma.attendanceSession.findMany({
+        where: {
+          classId: session.classId,
+          attendanceDate: { gte: rangeStart, lte: rangeEnd },
+        },
+        include: {
+          records: {
+            where: {
+              status: "absent",
+              studentId: { in: absentStudentIds },
+            },
+          },
+        },
+      })
+    : [];
+
+  const monthlyAbsentCounts = countAbsentDaysByStudent(monthSessions);
+
+  const absentees = absentRecords.map((r) => ({
+    rollNo: r.student.rollNo,
+    fullName: r.student.fullName,
+    monthlyAbsentCount: monthlyAbsentCounts.get(r.studentId) ?? 1,
+  }));
 
   const message = buildAbsenteeMessage({
     className: session.class.displayName,
