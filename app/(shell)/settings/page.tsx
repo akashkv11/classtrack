@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import AppHeader from "@/components/AppHeader";
 import FieldError from "@/components/FieldError";
 import { useClientEffect } from "@/lib/use-client-effect";
 import {
@@ -156,9 +155,9 @@ export default function SettingsPage() {
   const hasYears = (data?.academic_years.length ?? 0) > 0;
 
   return (
-    <>
-      <AppHeader title="Settings" backHref="/dashboard" />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-2xl px-6 py-8">
+      <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+      <div className="mt-8">
         {!data ? (
           <p className="text-slate-600">Loading...</p>
         ) : (
@@ -307,7 +306,7 @@ export default function SettingsPage() {
             </form>
           </div>
         )}
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

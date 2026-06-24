@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
 import SendWhatsAppButton from "@/components/SendWhatsAppButton";
+import StudentsSection from "@/components/StudentsSection";
 import { prisma } from "@/lib/db";
-import { todayISO, formatISODate } from "@/lib/dates";
+import { formatISODate, todayISO } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +34,19 @@ export default async function ClassDetailsPage({ params }: PageProps) {
 
   return (
     <>
-      <AppHeader
-        title={cls.displayName}
-        subtitle={`${cls.academicYear.name} · ${cls._count.students} students`}
-        backHref="/dashboard"
-      />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <main className="mx-auto w-full max-w-6xl px-6 py-8">
+        <Link
+          href="/classes"
+          className="mb-4 inline-block text-sm text-blue-600 hover:underline"
+        >
+          ← Back to Classes
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900">{cls.displayName}</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          {cls.academicYear.name} · {cls._count.students} students
+        </p>
+
+        <div className="mb-8 mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-600">Today&apos;s attendance</p>
           <p className="mt-1 text-lg font-semibold text-slate-900">
             {todayMarked ? "Marked" : "Not marked yet"}
@@ -66,12 +72,6 @@ export default async function ClassDetailsPage({ params }: PageProps) {
             Mark Today&apos;s Attendance
           </Link>
           <Link
-            href={`/classes/${classId}/students`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Manage the Students
-          </Link>
-          <Link
             href={`/classes/${classId}/reports`}
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
@@ -85,7 +85,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
           </Link>
         </div>
 
-        <section>
+        <section className="mb-10">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Attendance Dates</h2>
           {cls.attendanceSessions.length === 0 ? (
             <p className="text-sm text-slate-600">No attendance recorded yet.</p>
@@ -114,6 +114,8 @@ export default async function ClassDetailsPage({ params }: PageProps) {
             </ul>
           )}
         </section>
+
+        <StudentsSection classId={classId} />
       </main>
     </>
   );
