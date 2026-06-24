@@ -45,15 +45,19 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {classes.map((cls) => (
-              <ClassCard
-                key={cls.id}
-                id={cls.id}
-                displayName={cls.displayName}
-                studentCount={cls._count.students}
-                todayStatus={cls.attendanceSessions.length > 0 ? "marked" : "not_marked"}
-              />
-            ))}
+            {classes.map((cls) => {
+              const todaySession = cls.attendanceSessions[0] ?? null;
+              return (
+                <ClassCard
+                  key={cls.id}
+                  id={cls.id}
+                  displayName={cls.displayName}
+                  studentCount={cls._count.students}
+                  todayStatus={todaySession ? "marked" : "not_marked"}
+                  todaySessionId={todaySession?.id}
+                />
+              );
+            })}
           </div>
         )}
       </main>

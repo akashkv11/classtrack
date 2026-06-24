@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
+import SendWhatsAppButton from "@/components/SendWhatsAppButton";
 import { prisma } from "@/lib/db";
 import { todayISO, formatISODate } from "@/lib/dates";
 
@@ -26,9 +27,10 @@ export default async function ClassDetailsPage({ params }: PageProps) {
   if (!cls) notFound();
 
   const today = todayISO();
-  const todayMarked = cls.attendanceSessions.some(
+  const todaySession = cls.attendanceSessions.find(
     (s) => formatISODate(s.attendanceDate) === today,
   );
+  const todayMarked = Boolean(todaySession);
 
   return (
     <>
@@ -43,6 +45,17 @@ export default async function ClassDetailsPage({ params }: PageProps) {
           <p className="mt-1 text-lg font-semibold text-slate-900">
             {todayMarked ? "Marked" : "Not marked yet"}
           </p>
+          {todayMarked && todaySession && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/classes/${classId}/summary/${todaySession.id}`}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                View Attendance
+              </Link>
+              <SendWhatsAppButton sessionId={todaySession.id} />
+            </div>
+          )}
         </div>
 
         <div className="mb-8 flex flex-wrap gap-3">
@@ -81,13 +94,20 @@ export default async function ClassDetailsPage({ params }: PageProps) {
               {cls.attendanceSessions.map((session) => {
                 const date = formatISODate(session.attendanceDate);
                 return (
-                  <li key={session.id}>
-                    <Link
-                      href={`/classes/${classId}/summary/${session.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {date}
-                    </Link>
+                  <li
+                    key={session.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3"
+                  >
+                    <span className="text-sm font-medium text-slate-900">{date}</span>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/classes/${classId}/summary/${session.id}`}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        View
+                      </Link>
+                      <SendWhatsAppButton sessionId={session.id} />
+                    </div>
                   </li>
                 );
               })}
