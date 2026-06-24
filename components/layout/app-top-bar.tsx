@@ -13,19 +13,24 @@ export default function AppTopBar() {
   }
 
   return (
-    <header className="flex items-center justify-end gap-3 border-b border-slate-200 bg-white px-6 py-3">
-      <Link
-        href="/settings"
-        className="text-sm font-medium text-slate-600 hover:text-slate-900"
-      >
-        Settings
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+      <Link href="/dashboard" className="text-base font-bold text-slate-900 lg:hidden">
+        ClassTrack
       </Link>
-      <button
-        onClick={handleLock}
-        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      >
-        Lock
-      </button>
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <Link
+          href="/settings"
+          className="text-sm font-medium text-slate-600 hover:text-slate-900"
+        >
+          Settings
+        </Link>
+        <button
+          onClick={handleLock}
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Lock
+        </button>
+      </div>
     </header>
   );
 }

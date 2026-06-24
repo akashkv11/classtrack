@@ -1,3 +1,4 @@
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
@@ -20,12 +21,17 @@ export default function TodayAttendanceCard({
         {marked ? "Marked" : "Not marked yet"}
       </p>
       {marked && sessionId && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <ButtonLink href={`/classes/${classId}/summary/${sessionId}`} variant="secondary" size="sm">
+        <ActionBar className="mt-4">
+          <ButtonLink
+            href={`/classes/${classId}/summary/${sessionId}`}
+            variant="secondary"
+            size="sm"
+            className={actionButtonClassName}
+          >
             View Attendance
           </ButtonLink>
-          <SendWhatsAppButton sessionId={sessionId} />
-        </div>
+          <SendWhatsAppButton sessionId={sessionId} className={actionButtonClassName} />
+        </ActionBar>
       )}
     </Card>
   );

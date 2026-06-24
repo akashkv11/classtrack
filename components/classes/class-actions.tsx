@@ -1,3 +1,4 @@
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
 
 type ClassActionsProps = {
@@ -6,16 +7,28 @@ type ClassActionsProps = {
 
 export default function ClassActions({ classId }: ClassActionsProps) {
   return (
-    <div className="mb-8 flex flex-wrap gap-3">
-      <ButtonLink href={`/classes/${classId}/attendance`} variant="primary">
+    <ActionBar className="mb-8">
+      <ButtonLink
+        href={`/classes/${classId}/attendance`}
+        variant="primary"
+        className={actionButtonClassName}
+      >
         Mark Today&apos;s Attendance
       </ButtonLink>
-      <ButtonLink href={`/classes/${classId}/reports`} variant="secondary">
+      <ButtonLink
+        href={`/classes/${classId}/reports`}
+        variant="secondary"
+        className={actionButtonClassName}
+      >
         View Monthly Report
       </ButtonLink>
-      <ButtonLink href={`/classes/${classId}/settings`} variant="secondary">
+      <ButtonLink
+        href={`/classes/${classId}/settings`}
+        variant="secondary"
+        className={actionButtonClassName}
+      >
         Class Settings
       </ButtonLink>
-    </div>
+    </ActionBar>
   );
 }

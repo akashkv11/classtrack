@@ -1,3 +1,4 @@
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { Button, ButtonLink } from "@/components/ui/button";
 
 type AttendanceToolbarProps = {
@@ -24,24 +25,50 @@ export default function AttendanceToolbar({
   onSave,
 }: AttendanceToolbarProps) {
   return (
-    <div className="mb-4 flex flex-wrap gap-2">
-      <Button variant="secondary" size="sm" onClick={onMarkAllPresent}>
+    <ActionBar className="mb-4">
+      <Button
+        variant="secondary"
+        size="sm"
+        className={actionButtonClassName}
+        onClick={onMarkAllPresent}
+      >
         Mark All Present
       </Button>
-      <Button variant="secondary" size="sm" onClick={onMarkAllAbsent}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className={actionButtonClassName}
+        onClick={onMarkAllAbsent}
+      >
         Mark All Absent
       </Button>
-      <Button variant="secondary" size="sm" onClick={onReset} disabled={!hasChanges}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className={actionButtonClassName}
+        onClick={onReset}
+        disabled={!hasChanges}
+      >
         Reset Changes
       </Button>
-      <Button size="sm" onClick={onSave} disabled={saving || !canSave}>
+      <Button
+        size="sm"
+        className={actionButtonClassName}
+        onClick={onSave}
+        disabled={saving || !canSave}
+      >
         {saving ? "Saving..." : "Save Attendance"}
       </Button>
       {sessionId && (
-        <ButtonLink href={`/classes/${classId}/summary/${sessionId}`} variant="secondary" size="sm">
+        <ButtonLink
+          href={`/classes/${classId}/summary/${sessionId}`}
+          variant="secondary"
+          size="sm"
+          className={actionButtonClassName}
+        >
           View Summary
         </ButtonLink>
       )}
-    </div>
+    </ActionBar>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import Modal from "@/components/ui/modal";
+import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import { Button, ButtonLink } from "@/components/ui/button";
 
 type WhatsAppPreviewProps = {
@@ -25,11 +25,17 @@ export default function WhatsAppPreview({
       onClose={onClose}
       maxWidth="lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
+        <div className={modalFooterClassName}>
+          <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <ButtonLink href={whatsappUrl} variant="whatsapp" target="_blank" rel="noopener noreferrer">
+          <ButtonLink
+            href={whatsappUrl}
+            variant="whatsapp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto"
+          >
             Open WhatsApp
           </ButtonLink>
         </div>

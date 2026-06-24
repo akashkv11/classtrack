@@ -7,9 +7,14 @@ import { useWhatsAppMessage } from "@/components/whatsapp/use-whatsapp-message";
 type SendWhatsAppButtonProps = {
   sessionId: string;
   size?: "sm" | "md";
+  className?: string;
 };
 
-export default function SendWhatsAppButton({ sessionId, size = "sm" }: SendWhatsAppButtonProps) {
+export default function SendWhatsAppButton({
+  sessionId,
+  size = "sm",
+  className,
+}: SendWhatsAppButtonProps) {
   const { open, loading, error, data, openPreview, closePreview } = useWhatsAppMessage();
 
   return (
@@ -20,6 +25,7 @@ export default function SendWhatsAppButton({ sessionId, size = "sm" }: SendWhats
         size={size}
         onClick={() => openPreview(sessionId)}
         disabled={loading}
+        className={className}
       >
         {loading ? "Loading..." : "Send WhatsApp"}
       </Button>

@@ -77,7 +77,7 @@ export default function WhatsAppNumberForm({
         />
       </FormField>
       {message && <p className="text-sm text-slate-700">{message}</p>}
-      <Button type="submit" variant={variant === "panel" ? "amber" : "primary"} disabled={saving}>
+      <Button type="submit" variant={variant === "panel" ? "amber" : "primary"} disabled={saving} className="w-full sm:w-auto">
         {saving ? "Saving..." : "Save WhatsApp Number"}
       </Button>
     </form>

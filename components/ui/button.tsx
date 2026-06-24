@@ -26,7 +26,7 @@ type ButtonBaseProps = {
 
 function buttonClassName(variant: ButtonVariant, size: ButtonSize, className = "") {
   return [
-    "rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
     variants[variant],
     sizes[size],
     className,

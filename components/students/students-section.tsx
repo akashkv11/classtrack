@@ -67,13 +67,14 @@ export default function StudentsSection({ classId }: StudentsSectionProps) {
 
   return (
     <section id="students">
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-slate-900">Students</h2>
         <Button
           onClick={() => {
             setEditing(null);
             setFormOpen(true);
           }}
+          className="w-full sm:w-auto"
         >
           Add Student
         </Button>

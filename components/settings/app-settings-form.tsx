@@ -118,7 +118,7 @@ export default function AppSettingsForm({
 
         {message && <p className="text-sm text-slate-700">{message}</p>}
 
-        <Button type="submit" disabled={saving || !hasYears}>
+        <Button type="submit" disabled={saving || !hasYears} className="w-full sm:w-auto">
           {saving ? "Saving..." : "Save Settings"}
         </Button>
       </form>

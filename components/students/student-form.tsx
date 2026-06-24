@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Modal from "@/components/ui/modal";
+import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import FormField, { CheckboxField, TextInput } from "@/components/ui/form-field";
 import Alert from "@/components/ui/alert";
@@ -74,11 +74,11 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
       title={student ? "Edit Student" : "Add Student"}
       onClose={onClose}
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>
+        <div className={modalFooterClassName}>
+          <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" form="student-form" disabled={loading}>
+          <Button type="submit" form="student-form" disabled={loading} className="w-full sm:w-auto">
             {loading ? "Saving..." : "Save"}
           </Button>
         </div>

@@ -29,7 +29,7 @@ export function StatCard({ label, value }: StatCardProps) {
   return (
     <Card padding="sm">
       <p className="text-sm text-slate-600">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
+      <p className="text-xl font-bold text-slate-900 sm:text-2xl">{value}</p>
     </Card>
   );
 }

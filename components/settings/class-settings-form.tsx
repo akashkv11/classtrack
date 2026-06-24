@@ -93,7 +93,7 @@ export default function ClassSettingsForm({
         </FormField>
         <CheckboxField label="Active" checked={isActive} onChange={setIsActive} />
         {message && <p className="text-sm text-slate-700">{message}</p>}
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} className="w-full sm:w-auto">
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </form>

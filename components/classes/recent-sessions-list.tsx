@@ -1,3 +1,4 @@
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
 
@@ -22,18 +23,21 @@ export default function RecentSessionsList({ classId, sessions }: RecentSessions
           {sessions.map((session) => (
             <li
               key={session.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-3"
             >
-              <span className="text-sm font-medium text-slate-900">{session.date}</span>
-              <div className="flex flex-wrap gap-2">
-                <ButtonLink
-                  href={`/classes/${classId}/summary/${session.id}`}
-                  variant="secondary"
-                  size="sm"
-                >
-                  View
-                </ButtonLink>
-                <SendWhatsAppButton sessionId={session.id} />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm font-medium text-slate-900">{session.date}</span>
+                <ActionBar className="sm:justify-end">
+                  <ButtonLink
+                    href={`/classes/${classId}/summary/${session.id}`}
+                    variant="secondary"
+                    size="sm"
+                    className={actionButtonClassName}
+                  >
+                    View
+                  </ButtonLink>
+                  <SendWhatsAppButton sessionId={session.id} className={actionButtonClassName} />
+                </ActionBar>
               </div>
             </li>
           ))}

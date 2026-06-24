@@ -112,7 +112,7 @@ export default function AcademicYearForm({ hasYears, onCreated }: AcademicYearFo
 
         {message && <p className="text-sm text-slate-700">{message}</p>}
 
-        <Button type="submit" variant="dark" disabled={creating}>
+        <Button type="submit" variant="dark" disabled={creating} className="w-full sm:w-auto">
           {creating ? "Creating..." : "Create Academic Year"}
         </Button>
       </form>

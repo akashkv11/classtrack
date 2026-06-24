@@ -151,13 +151,14 @@ export default function MarkAttendancePage() {
         backHref={`/classes/${classId}`}
       />
 
-      <div className="mb-4 flex flex-wrap items-end gap-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
         <FormField label="Date" error={dateError}>
           <TextInput
             type="date"
             value={date}
             onChange={(e) => handleDateChange(e.target.value)}
             error={!!dateError}
+            className="w-full sm:w-auto"
           />
         </FormField>
         {sessionId && (

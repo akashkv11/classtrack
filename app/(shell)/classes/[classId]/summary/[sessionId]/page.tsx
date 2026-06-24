@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useClass } from "@/components/classes/class-provider";
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { Button, ButtonLink } from "@/components/ui/button";
 import Card, { StatCard } from "@/components/ui/card";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
@@ -50,7 +51,7 @@ export default function AttendanceSummaryPage() {
         backHref={`/classes/${classId}`}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Total" value={data.summary.total} />
         <StatCard label="Present" value={data.summary.present} />
         <StatCard label="Absent" value={data.summary.absent} />
@@ -106,22 +107,27 @@ export default function AttendanceSummaryPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-3">
+      <ActionBar>
         <Button
           variant="whatsapp"
+          className={actionButtonClassName}
           onClick={() => openPreview(sessionId)}
           disabled={!hasWhatsApp || loading}
         >
           {loading ? "Loading..." : "Send WhatsApp Message"}
         </Button>
         {error && <p className="w-full text-sm text-red-700">{error}</p>}
-        <ButtonLink href={`/classes/${classId}/attendance`} variant="secondary">
+        <ButtonLink
+          href={`/classes/${classId}/attendance`}
+          variant="secondary"
+          className={actionButtonClassName}
+        >
           Edit Attendance
         </ButtonLink>
-        <ButtonLink href="/classes" variant="secondary">
+        <ButtonLink href="/classes" variant="secondary" className={actionButtonClassName}>
           Back to Classes
         </ButtonLink>
-      </div>
+      </ActionBar>
 
       <WhatsAppPreview
         open={open}

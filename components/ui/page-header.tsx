@@ -16,12 +16,16 @@ export default function PageHeader({
   return (
     <div className="mb-6">
       {backHref && (
-        <Link href={backHref} className="mb-2 inline-block text-sm text-blue-600 hover:underline">
-          {backLabel}
+        <Link
+          href={backHref}
+          className="mb-2 inline-block text-sm text-blue-600 hover:underline break-words"
+        >
+          <span className="sm:hidden">← Back</span>
+          <span className="hidden sm:inline">{backLabel}</span>
         </Link>
       )}
-      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-      {subtitle && <p className="mt-1 text-sm text-slate-600">{subtitle}</p>}
+      <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>
+      {subtitle && <p className="mt-1 text-sm text-slate-600 break-words">{subtitle}</p>}
     </div>
   );
 }
