@@ -18,9 +18,10 @@ import { useClientEffect } from "@/lib/use-client-effect";
 
 type StudentsSectionProps = {
   classId: string;
+  showTitle?: boolean;
 };
 
-export default function StudentsSection({ classId }: StudentsSectionProps) {
+export default function StudentsSection({ classId, showTitle = true }: StudentsSectionProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -67,8 +68,12 @@ export default function StudentsSection({ classId }: StudentsSectionProps) {
 
   return (
     <section id="students">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Students</h2>
+      <div
+        className={`mb-4 flex flex-col gap-3 sm:flex-row sm:items-center ${
+          showTitle ? "sm:justify-between" : "sm:justify-end"
+        }`}
+      >
+        {showTitle && <h2 className="text-lg font-semibold text-slate-900">Students</h2>}
         <Button
           onClick={() => {
             setEditing(null);

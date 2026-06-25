@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import ClassActions from "@/components/classes/class-actions";
-import RecentSessionsList from "@/components/classes/recent-sessions-list";
+import ClassDetailContent from "@/components/classes/class-detail-content";
 import TodayAttendanceCard from "@/components/classes/today-attendance-card";
-import StudentsSection from "@/components/students/students-section";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { formatISODate, todayISO } from "@/lib/dates";
@@ -44,8 +43,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
       />
 
       <ClassActions classId={classId} />
-      <RecentSessionsList classId={classId} sessions={sessions} />
-      <StudentsSection classId={classId} />
+      <ClassDetailContent classId={classId} sessions={sessions} />
     </PageContainer>
   );
 }

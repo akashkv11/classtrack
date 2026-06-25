@@ -10,12 +10,19 @@ type Session = {
 type RecentSessionsListProps = {
   classId: string;
   sessions: Session[];
+  showTitle?: boolean;
 };
 
-export default function RecentSessionsList({ classId, sessions }: RecentSessionsListProps) {
+export default function RecentSessionsList({
+  classId,
+  sessions,
+  showTitle = true,
+}: RecentSessionsListProps) {
   return (
-    <section className="mb-10">
-      <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Attendance Dates</h2>
+    <section className={showTitle ? "mb-10" : undefined}>
+      {showTitle && (
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Attendance Dates</h2>
+      )}
       {sessions.length === 0 ? (
         <p className="text-sm text-slate-600">No attendance recorded yet.</p>
       ) : (
