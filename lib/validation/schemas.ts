@@ -234,3 +234,214 @@ export const monthQuerySchema = z.object({
   class_id: uuidSchema,
   month: monthSchema,
 });
+
+const timeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{2}:\d{2}$/, "Enter a valid time (HH:MM)");
+
+const repeatDaySchema = z.enum([
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+]);
+
+const scheduleExceptionSchema = z.object({
+  date: isoDateSchema,
+  start_time: timeSchema,
+  end_time: timeSchema,
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+});
+
+const timetableEntryFieldsSchema = z.object({
+  class_id: uuidSchema,
+  subject: z
+    .string()
+    .trim()
+    .min(1, "Subject is required")
+    .max(100, "Subject must be 100 characters or less"),
+  schedule_type: z.enum(["one_time", "repeating"], {
+    error: "Schedule type must be one_time or repeating",
+  }),
+  entry_date: isoDateSchema.optional(),
+  repeat_days: z.array(repeatDaySchema).optional(),
+  schedule_exceptions: z.array(scheduleExceptionSchema).optional(),
+  repeat_start: isoDateSchema.optional(),
+  repeat_end: isoDateSchema.optional(),
+  start_time: timeSchema.optional(),
+  end_time: timeSchema.optional(),
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+});
+
+function refineTimetableSchedule(
+  data: z.infer<typeof timetableEntryFieldsSchema>,
+  ctx: z.RefinementCtx,
+) {
+  if (data.schedule_type === "one_time") {
+    if (!data.start_time) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Start time is required",
+        path: ["start_time"],
+      });
+    }
+    if (!data.end_time) {
+      ctx.addIssue({
+        code: "custom",
+        message: "End time is required",
+        path: ["end_time"],
+      });
+    }
+    if (data.start_time && data.end_time && data.end_time <= data.start_time) {
+      ctx.addIssue({
+        code: "custom",
+        message: "End time must be after start time",
+        path: ["end_time"],
+      });
+    }
+    if (!data.entry_date) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Date is required for a one-time entry",
+        path: ["entry_date"],
+      });
+    }
+    return;
+  }
+
+  if (!data.repeat_days?.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Select at least one repeat day",
+      path: ["repeat_days"],
+    });
+  }
+  if (!data.start_time) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Start time is required",
+      path: ["start_time"],
+    });
+  }
+  if (!data.end_time) {
+    ctx.addIssue({
+      code: "custom",
+      message: "End time is required",
+      path: ["end_time"],
+    });
+  }
+  if (data.start_time && data.end_time && data.end_time <= data.start_time) {
+    ctx.addIssue({
+      code: "custom",
+      message: "End time must be after start time",
+      path: ["end_time"],
+    });
+  }
+
+  const exceptions = data.schedule_exceptions ?? [];
+  const seenDates = new Set<string>();
+  exceptions.forEach((exception, index) => {
+    if (exception.end_time <= exception.start_time) {
+      ctx.addIssue({
+        code: "custom",
+        message: "End time must be after start time",
+        path: ["schedule_exceptions", index, "end_time"],
+      });
+    }
+    if (seenDates.has(exception.date)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Each one-time change needs a unique date",
+        path: ["schedule_exceptions", index, "date"],
+      });
+    }
+    seenDates.add(exception.date);
+
+    if (data.repeat_start && exception.date < data.repeat_start) {
+      ctx.addIssue({
+        code: "custom",
+        message: "One-time change must be within the repeat period",
+        path: ["schedule_exceptions", index, "date"],
+      });
+    }
+    if (data.repeat_end && exception.date > data.repeat_end) {
+      ctx.addIssue({
+        code: "custom",
+        message: "One-time change must be within the repeat period",
+        path: ["schedule_exceptions", index, "date"],
+      });
+    }
+    if (data.repeat_days?.length) {
+      const weekday = new Date(`${exception.date}T12:00:00`).getDay();
+      const map = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      if (!data.repeat_days.includes(map[weekday] as (typeof data.repeat_days)[number])) {
+        ctx.addIssue({
+          code: "custom",
+          message: "One-time change must fall on a regular repeat day",
+          path: ["schedule_exceptions", index, "date"],
+        });
+      }
+    }
+  });
+
+  if (!data.repeat_start) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Repeat start date is required",
+      path: ["repeat_start"],
+    });
+  }
+  if (!data.repeat_end) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Repeat end date is required",
+      path: ["repeat_end"],
+    });
+  }
+  if (data.repeat_start && data.repeat_end && data.repeat_end < data.repeat_start) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Repeat end date must be on or after start date",
+      path: ["repeat_end"],
+    });
+  }
+}
+
+export const timetableEntryCreateSchema = timetableEntryFieldsSchema.superRefine(
+  refineTimetableSchedule,
+);
+
+export const timetableEntryUpdateSchema = z
+  .object({
+    class_id: uuidSchema.optional(),
+    subject: z
+      .string()
+      .trim()
+      .min(1, "Subject is required")
+      .max(100, "Subject must be 100 characters or less")
+      .optional(),
+    schedule_type: z.enum(["one_time", "repeating"]).optional(),
+    entry_date: isoDateSchema.nullable().optional(),
+    repeat_days: z.array(repeatDaySchema).optional(),
+    schedule_exceptions: z.array(scheduleExceptionSchema).optional(),
+    repeat_start: isoDateSchema.nullable().optional(),
+    repeat_end: isoDateSchema.nullable().optional(),
+    start_time: timeSchema.optional(),
+    end_time: timeSchema.optional(),
+    notes: z.string().max(500, "Notes must be 500 characters or less").nullable().optional(),
+    is_active: z.boolean().optional(),
+  })
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "At least one field is required",
+  });

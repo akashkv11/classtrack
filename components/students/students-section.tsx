@@ -5,6 +5,7 @@ import StudentForm from "@/components/students/student-form";
 import { Button } from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
 import Card from "@/components/ui/card";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import Table, {
   TableBody,
@@ -26,6 +27,8 @@ export default function StudentsSection({ classId, showTitle = true }: StudentsS
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<Student | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   async function loadData(signal?: AbortSignal) {
     const res = await fetch(`/api/classes/${classId}/students`, { signal });
@@ -60,10 +63,17 @@ export default function StudentsSection({ classId, showTitle = true }: StudentsS
     await loadData();
   }
 
-  async function handleDeactivate(student: Student) {
-    if (!confirm(`Deactivate ${student.full_name}?`)) return;
+  async function confirmDeactivate() {
+    if (!deactivateTarget) return;
+
+    setDeactivating(true);
+    const student = deactivateTarget;
+
     await fetch(`/api/students/${student.id}`, { method: "DELETE" });
     await loadData();
+
+    setDeactivating(false);
+    setDeactivateTarget(null);
   }
 
   return (
@@ -128,7 +138,7 @@ export default function StudentsSection({ classId, showTitle = true }: StudentsS
                     </button>
                     {student.is_active && (
                       <button
-                        onClick={() => handleDeactivate(student)}
+                        onClick={() => setDeactivateTarget(student)}
                         className="text-sm text-red-600 hover:underline"
                       >
                         Deactivate
@@ -154,6 +164,21 @@ export default function StudentsSection({ classId, showTitle = true }: StudentsS
           onSave={handleSave}
         />
       )}
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        title="Deactivate student?"
+        description={
+          deactivateTarget
+            ? `Deactivate ${deactivateTarget.full_name}? They will no longer appear in active student lists.`
+            : ""
+        }
+        confirmLabel="Deactivate"
+        confirmVariant="danger"
+        loading={deactivating}
+        onConfirm={confirmDeactivate}
+        onCancel={() => setDeactivateTarget(null)}
+      />
     </section>
   );
 }

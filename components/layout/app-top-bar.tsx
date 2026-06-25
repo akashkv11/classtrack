@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type AppTopBarProps = {
   onMenuClick: () => void;
 };
 
+const topNavLinks = [
+  { href: "/today", label: "Today" },
+  { href: "/timetable", label: "Timetable" },
+  { href: "/settings", label: "Settings" },
+] as const;
+
 export default function AppTopBar({ onMenuClick }: AppTopBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   async function handleLock() {
     await fetch("/api/auth/lock", { method: "POST" });
@@ -29,6 +36,22 @@ export default function AppTopBar({ onMenuClick }: AppTopBarProps) {
       <Link href="/today" className="text-lg font-bold text-slate-900 lg:hidden">
         ClassTrack
       </Link>
+      <nav className="hidden items-center gap-4 md:flex">
+        {topNavLinks.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`text-sm font-medium transition-colors ${
+                active ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <button
           type="button"

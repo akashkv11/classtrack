@@ -1,19 +1,17 @@
 import NoAcademicYearAlert from "@/components/classes/no-academic-year-alert";
-import { StatCard } from "@/components/ui/card";
+import TodaySchedule from "@/components/today/today-schedule";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import { prisma } from "@/lib/db";
+import { todayISO } from "@/lib/dates";
 import { getActiveAcademicYear } from "@/lib/queries/classes";
+import { getTodaySchedule } from "@/lib/queries/timetable";
 
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
   const activeYear = await getActiveAcademicYear();
-  const classCount = activeYear
-    ? await prisma.class.count({
-        where: { academicYearId: activeYear.id, isActive: true },
-      })
-    : 0;
+  const today = todayISO();
+  const schedule = activeYear ? await getTodaySchedule(today) : [];
 
   return (
     <PageContainer>
@@ -23,10 +21,7 @@ export default async function TodayPage() {
       />
 
       {activeYear ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <StatCard label="Active academic year" value={activeYear.name} />
-          <StatCard label="Active classes" value={classCount} />
-        </div>
+        <TodaySchedule items={schedule} />
       ) : (
         <NoAcademicYearAlert />
       )}

@@ -34,7 +34,9 @@ export default function Modal({
           {children}
         </div>
         {footer ? (
-          <div className="border-t border-slate-200 p-4 sm:p-6 sm:pt-0">{footer}</div>
+          <div className="border-t border-slate-200 p-4 sm:p-6 sm:pt-0">
+            {footer}
+          </div>
         ) : (
           <div className="border-t border-slate-200 p-4 sm:border-0 sm:p-6 sm:pt-0">
             <div className="flex justify-end">
@@ -50,4 +52,4 @@ export default function Modal({
 }
 
 export const modalFooterClassName =
-  "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end";
+  "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-3";

@@ -19,6 +19,13 @@ export const appModules: AppModule[] = [
     match: exactOrChild("/today"),
   },
   {
+    id: "timetable",
+    href: "/timetable",
+    label: "Timetable",
+    description: "Manage your weekly teaching schedule and class periods.",
+    match: exactOrChild("/timetable"),
+  },
+  {
     id: "classes",
     href: "/classes",
     label: "Classes",

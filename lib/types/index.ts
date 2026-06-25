@@ -7,3 +7,10 @@ export type {
 } from "./attendance";
 export type { ReportStudent, MonthlyReport } from "./report";
 export type { SettingsData } from "./settings";
+export type {
+  ScheduleType,
+  TimetableEntrySummary,
+  TimetableOverlap,
+  TimetableScheduleException,
+  TodayScheduleItem,
+} from "./timetable";
