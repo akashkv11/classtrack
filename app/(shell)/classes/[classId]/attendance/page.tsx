@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import AttendanceGrid, { isPresentStatus } from "@/components/attendance/attendance-grid";
+import AttendanceGrid from "@/components/attendance/attendance-grid";
 import AttendanceToolbar from "@/components/attendance/attendance-toolbar";
 import { useClass } from "@/components/classes/class-provider";
 import Alert from "@/components/ui/alert";
@@ -63,10 +63,17 @@ export default function MarkAttendancePage() {
   useClientEffect((signal) => loadAttendance(signal), [classId, date]);
 
   const presentCount = useMemo(
-    () => records.filter((r) => isPresentStatus(r.status)).length,
+    () => records.filter((r) => r.status === "present").length,
     [records],
   );
-  const absentCount = records.length - presentCount;
+  const lateCount = useMemo(
+    () => records.filter((r) => r.status === "late").length,
+    [records],
+  );
+  const absentCount = useMemo(
+    () => records.filter((r) => r.status === "absent").length,
+    [records],
+  );
 
   const hasChanges = useMemo(
     () => JSON.stringify(records) !== JSON.stringify(initialRecords),
@@ -81,11 +88,18 @@ export default function MarkAttendancePage() {
 
   function toggleStudent(studentId: string) {
     setRecords((prev) =>
-      prev.map((r) =>
-        r.student_id === studentId
-          ? { ...r, status: isPresentStatus(r.status) ? "absent" : "present" }
-          : r,
-      ),
+      prev.map((r) => {
+        if (r.student_id !== studentId) return r;
+        if (r.status === "absent") return { ...r, status: "present" };
+        if (r.status === "present") return { ...r, status: "absent" };
+        return { ...r, status: "present" };
+      }),
+    );
+  }
+
+  function markStudentLate(studentId: string) {
+    setRecords((prev) =>
+      prev.map((r) => (r.student_id === studentId ? { ...r, status: "late" } : r)),
     );
   }
 
@@ -110,7 +124,7 @@ export default function MarkAttendancePage() {
       notes: "",
       records: records.map((r) => ({
         student_id: r.student_id,
-        status: isPresentStatus(r.status) ? "present" : "absent",
+        status: r.status,
       })),
     });
 
@@ -170,9 +184,12 @@ export default function MarkAttendancePage() {
         <p className="mb-4 text-sm text-slate-600">
           <span className="font-medium text-green-700">{presentCount} present</span>
           {" · "}
+          <span className="font-medium text-amber-700">{lateCount} late</span>
+          {" · "}
           <span className="font-medium text-red-700">{absentCount} absent</span>
           {" · "}
-          Tap a student to mark present. Tap again to mark absent.
+          Tap a student for present/absent. Tap <span className="font-semibold text-amber-700">L</span> for
+          late.
         </p>
       )}
 
@@ -195,7 +212,11 @@ export default function MarkAttendancePage() {
       ) : records.length === 0 ? (
         <EmptyState message="No active students in this class." />
       ) : (
-        <AttendanceGrid records={records} onToggle={toggleStudent} />
+        <AttendanceGrid
+          records={records}
+          onToggle={toggleStudent}
+          onMarkLate={markStudentLate}
+        />
       )}
     </PageContainer>
   );
