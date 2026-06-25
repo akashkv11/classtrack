@@ -45,7 +45,7 @@ export default function PasswordGate() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/today");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
