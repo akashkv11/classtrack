@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import FormField, { CheckboxField, TextInput } from "@/components/ui/form-field";
+import FormField, {
+  CheckboxField,
+  TextInput,
+} from "@/components/ui/form-field";
 import Alert from "@/components/ui/alert";
 import type { Student, StudentFormData } from "@/lib/types";
 import { FieldErrors, parseInput, studentFormSchema } from "@/lib/validation";
@@ -26,13 +29,26 @@ function initialFormState(student?: Student | null) {
   };
 }
 
-export default function StudentForm({ open, student, onClose, onSave }: StudentFormProps) {
+export default function StudentForm({
+  open,
+  student,
+  onClose,
+  onSave,
+}: StudentFormProps) {
   const [rollNo, setRollNo] = useState(() => initialFormState(student).rollNo);
-  const [fullName, setFullName] = useState(() => initialFormState(student).fullName);
-  const [admissionNo, setAdmissionNo] = useState(() => initialFormState(student).admissionNo);
+  const [fullName, setFullName] = useState(
+    () => initialFormState(student).fullName,
+  );
+  const [admissionNo, setAdmissionNo] = useState(
+    () => initialFormState(student).admissionNo,
+  );
   const [email, setEmail] = useState(() => initialFormState(student).email);
-  const [parentPhone, setParentPhone] = useState(() => initialFormState(student).parentPhone);
-  const [isActive, setIsActive] = useState(() => initialFormState(student).isActive);
+  const [parentPhone, setParentPhone] = useState(
+    () => initialFormState(student).parentPhone,
+  );
+  const [isActive, setIsActive] = useState(
+    () => initialFormState(student).isActive,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -74,11 +90,21 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
       title={student ? "Edit Student" : "Add Student"}
       onClose={onClose}
       footer={
-        <div className={modalFooterClassName}>
-          <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">
+        <div className={`${modalFooterClassName} mt-4`}>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button type="submit" form="student-form" disabled={loading} className="w-full sm:w-auto">
+          <Button
+            type="submit"
+            form="student-form"
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
             {loading ? "Saving..." : "Save"}
           </Button>
         </div>
@@ -93,6 +119,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             value={rollNo}
             onChange={(e) => setRollNo(e.target.value)}
             error={!!fieldErrors.roll_no}
+            className="w-90 "
           />
         </FormField>
         <FormField label="Full Name" error={fieldErrors.full_name}>
@@ -100,6 +127,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             error={!!fieldErrors.full_name}
+            className="w-90 "
           />
         </FormField>
         <FormField label="Admission No" error={fieldErrors.admission_no}>
@@ -107,6 +135,7 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             value={admissionNo}
             onChange={(e) => setAdmissionNo(e.target.value)}
             error={!!fieldErrors.admission_no}
+            className="w-90 "
           />
         </FormField>
         <FormField label="Email (optional)" error={fieldErrors.email}>
@@ -116,17 +145,26 @@ export default function StudentForm({ open, student, onClose, onSave }: StudentF
             onChange={(e) => setEmail(e.target.value)}
             placeholder="student@example.com"
             error={!!fieldErrors.email}
+            className="w-90 "
           />
         </FormField>
-        <FormField label="Parent Phone (optional)" error={fieldErrors.parent_phone}>
+        <FormField
+          label="Parent Phone (optional)"
+          error={fieldErrors.parent_phone}
+        >
           <TextInput
             value={parentPhone}
             onChange={(e) => setParentPhone(e.target.value)}
             placeholder="91XXXXXXXXXX"
             error={!!fieldErrors.parent_phone}
+            className="w-90 "
           />
         </FormField>
-        <CheckboxField label="Active" checked={isActive} onChange={setIsActive} />
+        <CheckboxField
+          label="Active"
+          checked={isActive}
+          onChange={setIsActive}
+        />
         {error && <Alert variant="error">{error}</Alert>}
       </form>
     </Modal>
