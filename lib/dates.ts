@@ -25,6 +25,17 @@ export function todayISO(): string {
   return `${year}-${month}-${day}`;
 }
 
+export function formatTodayHeading(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 export function startOfMonth(year: number, month: number): Date {
   return new Date(Date.UTC(year, month - 1, 1));
 }

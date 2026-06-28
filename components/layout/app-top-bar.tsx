@@ -2,16 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { mainNavItems } from "@/lib/navigation";
 
 type AppTopBarProps = {
   onMenuClick: () => void;
 };
-
-const topNavLinks = [
-  { href: "/today", label: "Today" },
-  { href: "/timetable", label: "Timetable" },
-  { href: "/settings", label: "Settings" },
-] as const;
 
 export default function AppTopBar({ onMenuClick }: AppTopBarProps) {
   const router = useRouter();
@@ -33,12 +28,12 @@ export default function AppTopBar({ onMenuClick }: AppTopBarProps) {
       >
         Menu
       </button>
-      <Link href="/today" className="text-lg font-bold text-slate-900 lg:hidden">
+      <Link href="/dashboard" className="text-lg font-bold text-slate-900 lg:hidden">
         ClassTrack
       </Link>
       <nav className="hidden items-center gap-4 md:flex">
-        {topNavLinks.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {mainNavItems.map((item) => {
+          const active = item.match(pathname);
           return (
             <Link
               key={item.href}

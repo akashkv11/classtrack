@@ -4,7 +4,7 @@ import { isAuthenticated } from "@/lib/auth";
 
 export default async function HomePage() {
   if (await isAuthenticated()) {
-    redirect("/today");
+    redirect("/dashboard");
   }
 
   return <PasswordGate />;

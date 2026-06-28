@@ -12,11 +12,11 @@ function exactOrChild(href: string) {
 
 export const appModules: AppModule[] = [
   {
-    id: "today",
-    href: "/today",
-    label: "Today",
-    description: "Your daily overview — classes, tasks, and what needs attention.",
-    match: exactOrChild("/today"),
+    id: "dashboard",
+    href: "/dashboard",
+    label: "Dashboard",
+    description: "Your control center — today's work, classes, and what needs attention.",
+    match: exactOrChild("/dashboard"),
   },
   {
     id: "timetable",
@@ -104,7 +104,11 @@ export const appModules: AppModule[] = [
   },
 ];
 
-export const mainNavItems = appModules;
+const primaryNavIds = ["dashboard", "timetable", "classes", "reports", "settings"] as const;
+
+export const mainNavItems = primaryNavIds
+  .map((id) => appModules.find((module) => module.id === id))
+  .filter((module): module is AppModule => module !== undefined);
 
 export function getModuleById(id: string): AppModule | undefined {
   return appModules.find((module) => module.id === id);
