@@ -3,12 +3,21 @@
 import Badge from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Card from "@/components/ui/card";
+import SyllabusTopicStatusIcon from "@/components/syllabus/syllabus-topic-status-icon";
 import type { SyllabusTopic } from "@/lib/types/syllabus";
 import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   statusBadgeVariant,
 } from "@/lib/syllabus/progress";
+
+const STATUS_BORDER: Record<string, string> = {
+  NOT_STARTED: "border-l-slate-200",
+  IN_PROGRESS: "border-l-blue-500",
+  COMPLETED: "border-l-green-600",
+  REVISED: "border-l-emerald-700",
+  SKIPPED: "border-l-amber-500",
+};
 
 type SyllabusTopicListProps = {
   topics: SyllabusTopic[];
@@ -38,14 +47,20 @@ export default function SyllabusTopicList({
   return (
     <div className="space-y-4">
       {topics.map((topic) => (
-        <Card key={topic.id}>
+        <Card
+          key={topic.id}
+          className={`border-l-4 ${STATUS_BORDER[topic.status] ?? STATUS_BORDER.NOT_STARTED}`}
+        >
           <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
             <button
               type="button"
               onClick={() => onSelectTopic(topic)}
-              className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
+              className="flex items-start gap-2 text-left hover:text-blue-700"
             >
-              {topic.topic_title}
+              <SyllabusTopicStatusIcon status={topic.status} className="mt-0.5" />
+              <span className="text-base font-semibold text-slate-900">
+                {topic.topic_title}
+              </span>
             </button>
             <Badge variant={statusBadgeVariant(topic.status)}>
               {STATUS_LABELS[topic.status as keyof typeof STATUS_LABELS] ?? topic.status}

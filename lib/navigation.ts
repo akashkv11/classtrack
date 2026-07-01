@@ -11,9 +11,14 @@ function exactOrChild(href: string) {
 }
 
 const classSyllabusPath = /^\/classes\/[^/]+\/syllabus(\/|$)/;
+const classTeachingDiaryPath = /^\/classes\/[^/]+\/teaching-diary(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
+}
+
+function isClassTeachingDiaryPath(path: string) {
+  return classTeachingDiaryPath.test(path);
 }
 
 export const appModules: AppModule[] = [
@@ -37,14 +42,19 @@ export const appModules: AppModule[] = [
     label: "Classes",
     description: "View and manage your classes, students, and attendance.",
     match: (path) =>
-      (path === "/classes" || path.startsWith("/classes/")) && !isClassSyllabusPath(path),
+      (path === "/classes" || path.startsWith("/classes/")) &&
+      !isClassSyllabusPath(path) &&
+      !isClassTeachingDiaryPath(path),
   },
   {
     id: "teaching-diary",
     href: "/teaching-diary",
     label: "Teaching Diary",
     description: "Record what you taught in each class session.",
-    match: exactOrChild("/teaching-diary"),
+    match: (path) =>
+      path === "/teaching-diary" ||
+      path.startsWith("/teaching-diary/") ||
+      isClassTeachingDiaryPath(path),
   },
   {
     id: "attendance-alerts",
@@ -116,8 +126,9 @@ export const appModules: AppModule[] = [
 
 const primaryNavIds = [
   "dashboard",
-  "timetable",
   "classes",
+  "timetable",
+  "teaching-diary",
   "syllabus-progress",
   "reports",
   "settings",

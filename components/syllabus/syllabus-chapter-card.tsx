@@ -3,6 +3,8 @@
 import Badge from "@/components/ui/badge";
 import Card from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
+import SyllabusTopicStatusIcon from "@/components/syllabus/syllabus-topic-status-icon";
+import { SyllabusProgressBar } from "@/components/syllabus/syllabus-progress-bar";
 import type { SyllabusChapterSummary } from "@/lib/types/syllabus";
 import { STATUS_LABELS, statusBadgeVariant } from "@/lib/syllabus/progress";
 
@@ -35,7 +37,7 @@ export default function SyllabusChapterCard({
 
   return (
     <Card>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-base font-semibold text-slate-900">{label}</h3>
           <p className="mt-1 text-sm text-slate-600">
@@ -47,22 +49,22 @@ export default function SyllabusChapterCard({
         </Badge>
       </div>
 
-      <p className="mb-3 text-sm text-slate-600">
-        Progress: {chapter.progress_percentage}%
-      </p>
+      <SyllabusProgressBar
+        breakdown={chapter.status_summary}
+        size="sm"
+        className="mb-4"
+      />
 
       {chapter.topics.length > 0 && (
-        <ul className="mb-4 space-y-1 text-sm text-slate-700">
+        <ul className="mb-4 space-y-1.5 text-sm text-slate-700">
           {chapter.topics.slice(0, 6).map((topic) => (
             <li key={topic.id} className="flex items-center gap-2">
-              <span className="text-slate-400">
-                {topic.status === "COMPLETED" || topic.status === "REVISED" ? "☑" : "□"}
-              </span>
-              {topic.topic_title}
+              <SyllabusTopicStatusIcon status={topic.status} />
+              <span className="truncate">{topic.topic_title}</span>
             </li>
           ))}
           {chapter.topics.length > 6 && (
-            <li className="text-slate-500">+ {chapter.topics.length - 6} more topics</li>
+            <li className="pl-6 text-slate-500">+ {chapter.topics.length - 6} more topics</li>
           )}
         </ul>
       )}

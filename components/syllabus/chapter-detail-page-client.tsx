@@ -11,6 +11,7 @@ import Alert from "@/components/ui/alert";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import Card from "@/components/ui/card";
+import { SyllabusProgressPanel } from "@/components/syllabus/syllabus-progress-bar";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { useClass } from "@/components/classes/class-provider";
@@ -143,10 +144,6 @@ export default function ChapterDetailPageClient() {
       : chapter.chapter_title
     : "Chapter";
 
-  const completedCount = chapter
-    ? chapter.progress.completed + chapter.progress.revised
-    : 0;
-
   const chapterSummaryForForm = chapter
     ? {
         id: chapter.id,
@@ -213,10 +210,7 @@ export default function ChapterDetailPageClient() {
           )}
 
           <Card className="mb-6">
-            <p className="text-sm text-slate-600">
-              Progress: {completedCount} / {chapter.progress.total} topics completed (
-              {chapter.progress.progress_percentage}%)
-            </p>
+            <SyllabusProgressPanel breakdown={chapter.progress} showLegend />
           </Card>
 
           <SyllabusTopicList
