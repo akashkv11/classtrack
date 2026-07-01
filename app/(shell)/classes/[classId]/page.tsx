@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ClassActions from "@/components/classes/class-actions";
+import AcademicWorkLinks from "@/components/classes/academic-work-links";
 import ClassDetailContent from "@/components/classes/class-detail-content";
 import TodayAttendanceCard from "@/components/classes/today-attendance-card";
 import PageContainer from "@/components/ui/page-container";
@@ -42,6 +43,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
         sessionId={todaySession?.id}
       />
 
+      <AcademicWorkLinks classId={classId} />
       <ClassActions classId={classId} />
       <ClassDetailContent classId={classId} sessions={sessions} />
     </PageContainer>

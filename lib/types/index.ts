@@ -14,3 +14,16 @@ export type {
   TimetableScheduleException,
   TodayScheduleItem,
 } from "./timetable";
+export type {
+  SyllabusSubtopic,
+  SyllabusTopic,
+  SyllabusStatusSummary,
+  SyllabusSubjectSummary,
+  SyllabusChapterSummary,
+  SyllabusSubjectDetail,
+  SyllabusChapterDetail,
+  SyllabusChapterOption,
+  SyllabusImportPreviewData,
+  SyllabusExistingSubject,
+  SyllabusClassOverview,
+} from "./syllabus";

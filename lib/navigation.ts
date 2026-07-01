@@ -10,6 +10,12 @@ function exactOrChild(href: string) {
   return (path: string) => path === href || path.startsWith(`${href}/`);
 }
 
+const classSyllabusPath = /^\/classes\/[^/]+\/syllabus(\/|$)/;
+
+function isClassSyllabusPath(path: string) {
+  return classSyllabusPath.test(path);
+}
+
 export const appModules: AppModule[] = [
   {
     id: "dashboard",
@@ -30,7 +36,8 @@ export const appModules: AppModule[] = [
     href: "/classes",
     label: "Classes",
     description: "View and manage your classes, students, and attendance.",
-    match: (path) => path === "/classes" || path.startsWith("/classes/"),
+    match: (path) =>
+      (path === "/classes" || path.startsWith("/classes/")) && !isClassSyllabusPath(path),
   },
   {
     id: "teaching-diary",
@@ -86,7 +93,10 @@ export const appModules: AppModule[] = [
     href: "/syllabus-progress",
     label: "Syllabus Progress",
     description: "Track syllabus coverage across topics and units.",
-    match: exactOrChild("/syllabus-progress"),
+    match: (path) =>
+      path === "/syllabus-progress" ||
+      path.startsWith("/syllabus-progress/") ||
+      isClassSyllabusPath(path),
   },
   {
     id: "reports",
@@ -104,7 +114,14 @@ export const appModules: AppModule[] = [
   },
 ];
 
-const primaryNavIds = ["dashboard", "timetable", "classes", "reports", "settings"] as const;
+const primaryNavIds = [
+  "dashboard",
+  "timetable",
+  "classes",
+  "syllabus-progress",
+  "reports",
+  "settings",
+] as const;
 
 export const mainNavItems = primaryNavIds
   .map((id) => appModules.find((module) => module.id === id))

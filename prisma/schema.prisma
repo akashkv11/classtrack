@@ -34,9 +34,72 @@ model Class {
   students           Student[]
   attendanceSessions AttendanceSession[]
   timetableEntries   TimetableEntry[]
+  syllabusSubjects   SyllabusSubject[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
+}
+
+model SyllabusSubject {
+  id           String   @id @default(uuid()) @db.Uuid
+  classId      String   @map("class_id") @db.Uuid
+  subjectName  String   @map("subject_name")
+  sourceName   String?  @map("source_name")
+  sourceUrl    String?  @map("source_url")
+  textbookName String?  @map("textbook_name")
+  board        String?
+  academicYear String?  @map("academic_year")
+  stream       String?
+  importMeta   Json?    @map("import_meta")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class    Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  chapters SyllabusChapter[]
+
+  @@map("syllabus_subjects")
+}
+
+model SyllabusChapter {
+  id                String   @id @default(uuid()) @db.Uuid
+  syllabusSubjectId String   @map("syllabus_subject_id") @db.Uuid
+  chapterNumber     Int?     @map("chapter_number")
+  chapterTitle      String   @map("chapter_title")
+  chapterSummary    String?  @map("chapter_summary")
+  displayOrder      Int      @default(0) @map("display_order")
+  metadata          Json?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  syllabusSubject SyllabusSubject @relation(fields: [syllabusSubjectId], references: [id], onDelete: Cascade)
+  topics          SyllabusTopic[]
+
+  @@map("syllabus_chapters")
+}
+
+model SyllabusTopic {
+  id                String    @id @default(uuid()) @db.Uuid
+  syllabusChapterId String    @map("syllabus_chapter_id") @db.Uuid
+  topicTitle        String    @map("topic_title")
+  topicDescription  String?   @map("topic_description")
+  subtopics         Json?
+  status            String    @default("NOT_STARTED")
+  priority          String    @default("NORMAL")
+  estimatedClasses  Int?      @map("estimated_classes")
+  targetDate        DateTime? @map("target_date") @db.Date
+  startedAt         DateTime? @map("started_at") @db.Date
+  completedAt       DateTime? @map("completed_at") @db.Date
+  revisedAt         DateTime? @map("revised_at") @db.Date
+  remarks           String?
+  needsManualReview Boolean   @default(false) @map("needs_manual_review")
+  displayOrder      Int       @default(0) @map("display_order")
+  metadata          Json?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  syllabusChapter SyllabusChapter @relation(fields: [syllabusChapterId], references: [id], onDelete: Cascade)
+
+  @@map("syllabus_topics")
 }
 
 model TimetableEntry {
