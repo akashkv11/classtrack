@@ -1,6 +1,7 @@
 export * from "./primitives";
 export * from "./schemas";
 export * from "./syllabus-schemas";
+export * from "./teaching-diary-schemas";
 export * from "./parse";
 
 // QUESTION: Why is this here?

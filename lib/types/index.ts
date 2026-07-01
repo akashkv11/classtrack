@@ -27,3 +27,12 @@ export type {
   SyllabusExistingSubject,
   SyllabusClassOverview,
 } from "./syllabus";
+export type {
+  DiaryStatus,
+  StudentResponse,
+  SyllabusStatusUpdate,
+  TeachingDiaryEntrySummary,
+  TeachingDiarySummary,
+  TeachingDiaryListResponse,
+  TeachingDiaryClassOverview,
+} from "./teaching-diary";

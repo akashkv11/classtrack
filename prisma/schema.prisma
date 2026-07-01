@@ -34,7 +34,8 @@ model Class {
   students           Student[]
   attendanceSessions AttendanceSession[]
   timetableEntries   TimetableEntry[]
-  syllabusSubjects   SyllabusSubject[]
+  syllabusSubjects      SyllabusSubject[]
+  teachingDiaryEntries  TeachingDiaryEntry[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
@@ -54,8 +55,9 @@ model SyllabusSubject {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  class    Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
-  chapters SyllabusChapter[]
+  class                Class                 @relation(fields: [classId], references: [id], onDelete: Cascade)
+  chapters             SyllabusChapter[]
+  teachingDiaryEntries TeachingDiaryEntry[]
 
   @@map("syllabus_subjects")
 }
@@ -71,8 +73,9 @@ model SyllabusChapter {
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  syllabusSubject SyllabusSubject @relation(fields: [syllabusSubjectId], references: [id], onDelete: Cascade)
-  topics          SyllabusTopic[]
+  syllabusSubject      SyllabusSubject        @relation(fields: [syllabusSubjectId], references: [id], onDelete: Cascade)
+  topics               SyllabusTopic[]
+  teachingDiaryEntries TeachingDiaryEntry[]
 
   @@map("syllabus_chapters")
 }
@@ -97,9 +100,40 @@ model SyllabusTopic {
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  syllabusChapter SyllabusChapter @relation(fields: [syllabusChapterId], references: [id], onDelete: Cascade)
+  syllabusChapter      SyllabusChapter        @relation(fields: [syllabusChapterId], references: [id], onDelete: Cascade)
+  teachingDiaryEntries TeachingDiaryEntry[]
 
   @@map("syllabus_topics")
+}
+
+model TeachingDiaryEntry {
+  id                   String   @id @default(uuid()) @db.Uuid
+  classId              String   @map("class_id") @db.Uuid
+  syllabusSubjectId    String?  @map("syllabus_subject_id") @db.Uuid
+  syllabusChapterId    String?  @map("syllabus_chapter_id") @db.Uuid
+  syllabusTopicId      String?  @map("syllabus_topic_id") @db.Uuid
+  entryDate            DateTime @map("entry_date") @db.Date
+  topicTaught          String   @map("topic_taught")
+  teachingNotes        String?  @map("teaching_notes")
+  examplesCovered      String?  @map("examples_covered")
+  studentResponse      String?  @map("student_response")
+  nextClassPlan        String?  @map("next_class_plan")
+  homeworkGiven        Boolean  @default(false) @map("homework_given")
+  homeworkNote         String?  @map("homework_note")
+  diaryStatus          String   @default("TAUGHT") @map("diary_status")
+  syllabusStatusUpdate String?  @map("syllabus_status_update")
+  remarks              String?
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class           Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  syllabusSubject SyllabusSubject? @relation(fields: [syllabusSubjectId], references: [id], onDelete: SetNull)
+  syllabusChapter SyllabusChapter? @relation(fields: [syllabusChapterId], references: [id], onDelete: SetNull)
+  syllabusTopic   SyllabusTopic?   @relation(fields: [syllabusTopicId], references: [id], onDelete: SetNull)
+
+  @@index([classId, entryDate])
+  @@index([syllabusTopicId])
+  @@map("teaching_diary_entries")
 }
 
 model TimetableEntry {
