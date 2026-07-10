@@ -9,12 +9,11 @@ export default function TeachingDiarySummaryCards({
   summary,
 }: TeachingDiarySummaryCardsProps) {
   return (
-    <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard label="Total Entries" value={summary.total_entries} />
       <StatCard label="Topics Taught" value={summary.topics_completed} />
       <StatCard label="Partial Topics" value={summary.topics_in_progress} />
       <StatCard label="Revision Entries" value={summary.revision_entries} />
-      <StatCard label="Homework Given" value={summary.homework_given} />
     </div>
   );
 }

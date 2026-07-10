@@ -11,8 +11,6 @@ CREATE TABLE "teaching_diary_entries" (
     "examples_covered" TEXT,
     "student_response" TEXT,
     "next_class_plan" TEXT,
-    "homework_given" BOOLEAN NOT NULL DEFAULT false,
-    "homework_note" TEXT,
     "diary_status" TEXT NOT NULL DEFAULT 'TAUGHT',
     "syllabus_status_update" TEXT,
     "remarks" TEXT,

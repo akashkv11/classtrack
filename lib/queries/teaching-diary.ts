@@ -20,8 +20,6 @@ type DbEntry = {
   examplesCovered: string | null;
   studentResponse: string | null;
   nextClassPlan: string | null;
-  homeworkGiven: boolean;
-  homeworkNote: string | null;
   diaryStatus: string;
   syllabusStatusUpdate: string | null;
   remarks: string | null;
@@ -81,8 +79,6 @@ export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
     examples_covered: entry.examplesCovered,
     student_response: (entry.studentResponse as StudentResponse) ?? null,
     next_class_plan: entry.nextClassPlan,
-    homework_given: entry.homeworkGiven,
-    homework_note: entry.homeworkNote,
     diary_status: entry.diaryStatus as DiaryStatus,
     syllabus_status_update: entry.syllabusStatusUpdate as SyllabusStatusUpdate | null,
     remarks: entry.remarks,
@@ -100,7 +96,6 @@ export function computeDiarySummary(
     topics_in_progress: entries.filter((e) => e.diary_status === "PARTIALLY_TAUGHT")
       .length,
     revision_entries: entries.filter((e) => e.diary_status === "REVISION").length,
-    homework_given: entries.filter((e) => e.homework_given).length,
   };
 }
 

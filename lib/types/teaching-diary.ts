@@ -40,8 +40,6 @@ export type TeachingDiaryEntrySummary = {
   examples_covered: string | null;
   student_response: StudentResponse | null;
   next_class_plan: string | null;
-  homework_given: boolean;
-  homework_note: string | null;
   diary_status: DiaryStatus;
   syllabus_status_update: SyllabusStatusUpdate | null;
   remarks: string | null;
@@ -54,7 +52,6 @@ export type TeachingDiarySummary = {
   topics_completed: number;
   topics_in_progress: number;
   revision_entries: number;
-  homework_given: number;
 };
 
 export type TeachingDiaryClassOverview = {

@@ -74,8 +74,6 @@ function TeachingDiaryFormDialog({
     () => entry?.student_response ?? "NOT_RECORDED",
   );
   const [nextClassPlan, setNextClassPlan] = useState(() => entry?.next_class_plan ?? "");
-  const [homeworkGiven, setHomeworkGiven] = useState(() => entry?.homework_given ?? false);
-  const [homeworkNote, setHomeworkNote] = useState(() => entry?.homework_note ?? "");
   const [diaryStatus, setDiaryStatus] = useState<DiaryStatus>(
     () => entry?.diary_status ?? "TAUGHT",
   );
@@ -230,8 +228,6 @@ function TeachingDiaryFormDialog({
       examples_covered: examplesCovered.trim() || null,
       student_response: studentResponse,
       next_class_plan: nextClassPlan.trim() || null,
-      homework_given: homeworkGiven,
-      homework_note: homeworkGiven ? homeworkNote.trim() || null : null,
       diary_status: diaryStatus,
       syllabus_status_update: syllabusStatusUpdate,
       remarks: remarks.trim() || null,
@@ -451,27 +447,6 @@ function TeachingDiaryFormDialog({
             onChange={(e) => setNextClassPlan(e.target.value)}
           />
         </FormField>
-
-        <FormField label="Homework Given?" error={fieldErrors.homework_given}>
-          <SelectInput
-            value={homeworkGiven ? "yes" : "no"}
-            onChange={(e) => setHomeworkGiven(e.target.value === "yes")}
-          >
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </SelectInput>
-        </FormField>
-
-        {homeworkGiven && (
-          <FormField label="Homework Note" error={fieldErrors.homework_note}>
-            <TextInput
-              value={homeworkNote}
-              onChange={(e) => setHomeworkNote(e.target.value)}
-              placeholder="Brief homework description"
-              error={!!fieldErrors.homework_note}
-            />
-          </FormField>
-        )}
 
         <FormField label="Diary Status" error={fieldErrors.diary_status}>
           <SelectInput

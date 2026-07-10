@@ -118,8 +118,6 @@ model TeachingDiaryEntry {
   examplesCovered      String?  @map("examples_covered")
   studentResponse      String?  @map("student_response")
   nextClassPlan        String?  @map("next_class_plan")
-  homeworkGiven        Boolean  @default(false) @map("homework_given")
-  homeworkNote         String?  @map("homework_note")
   diaryStatus          String   @default("TAUGHT") @map("diary_status")
   syllabusStatusUpdate String?  @map("syllabus_status_update")
   remarks              String?

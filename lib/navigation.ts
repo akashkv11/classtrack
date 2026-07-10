@@ -64,13 +64,6 @@ export const appModules: AppModule[] = [
     match: exactOrChild("/attendance-alerts"),
   },
   {
-    id: "homework",
-    href: "/homework",
-    label: "Homework",
-    description: "Assign and track homework for your classes.",
-    match: exactOrChild("/homework"),
-  },
-  {
     id: "marks",
     href: "/marks",
     label: "Marks / Assessments",

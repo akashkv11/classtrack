@@ -85,12 +85,6 @@ export default function TeachingDiaryCard({
             {entry.next_class_plan}
           </div>
         )}
-        <div>
-          <span className="font-medium text-slate-800">Homework: </span>
-          {entry.homework_given
-            ? entry.homework_note || "Given"
-            : "Not given"}
-        </div>
         {entry.remarks && (
           <div>
             <span className="font-medium text-slate-800">Remarks: </span>

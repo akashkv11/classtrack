@@ -32,8 +32,6 @@ export const teachingDiaryCreateSchema = z.object({
   examples_covered: z.string().trim().optional().nullable(),
   student_response: studentResponseSchema.default("NOT_RECORDED"),
   next_class_plan: z.string().trim().optional().nullable(),
-  homework_given: z.boolean().default(false),
-  homework_note: z.string().trim().optional().nullable(),
   diary_status: diaryStatusSchema,
   syllabus_status_update: syllabusStatusUpdateSchema.default("KEEP_CURRENT"),
   remarks: z.string().trim().optional().nullable(),

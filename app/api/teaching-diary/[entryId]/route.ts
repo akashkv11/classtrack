@@ -133,12 +133,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       ...(parsed.data.next_class_plan !== undefined && {
         nextClassPlan: parsed.data.next_class_plan,
       }),
-      ...(parsed.data.homework_given !== undefined && {
-        homeworkGiven: parsed.data.homework_given,
-      }),
-      ...(parsed.data.homework_note !== undefined && {
-        homeworkNote: parsed.data.homework_note,
-      }),
       ...(parsed.data.diary_status !== undefined && {
         diaryStatus: parsed.data.diary_status,
       }),

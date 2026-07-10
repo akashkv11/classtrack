@@ -95,8 +95,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       examplesCovered: parsed.data.examples_covered ?? null,
       studentResponse: parsed.data.student_response,
       nextClassPlan: parsed.data.next_class_plan ?? null,
-      homeworkGiven: parsed.data.homework_given,
-      homeworkNote: parsed.data.homework_note ?? null,
       diaryStatus: parsed.data.diary_status,
       syllabusStatusUpdate: parsed.data.syllabus_status_update,
       remarks: parsed.data.remarks ?? null,
