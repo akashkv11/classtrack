@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import StudentForm from "@/components/students/student-form";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,13 @@ export default function StudentsSection({ classId, showTitle = true }: StudentsS
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/classes/${classId}/students/${student.id}`}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Profile
+                    </Link>
                     <button
                       onClick={() => {
                         setEditing(student);

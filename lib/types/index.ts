@@ -58,3 +58,11 @@ export type {
   StudentAssessmentHistory,
   StudentAssessmentHistoryEntry,
 } from "./assessment";
+export type {
+  StudentProfile,
+  StudentProfileSummary,
+  StudentProfileAttendance,
+  StudentProfileLatestAssessment,
+  StudentProfileClassOverview,
+  StudentProfileListItem,
+} from "./student-profile";

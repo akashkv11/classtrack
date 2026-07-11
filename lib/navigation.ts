@@ -14,6 +14,7 @@ const classSyllabusPath = /^\/classes\/[^/]+\/syllabus(\/|$)/;
 const classTeachingDiaryPath = /^\/classes\/[^/]+\/teaching-diary(\/|$)/;
 const classReportsPath = /^\/classes\/[^/]+\/reports(\/|$)/;
 const classAssessmentsPath = /^\/classes\/[^/]+\/assessments(\/|$)/;
+const classStudentsPath = /^\/classes\/[^/]+\/students(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
@@ -29,6 +30,10 @@ function isClassReportsPath(path: string) {
 
 function isClassAssessmentsPath(path: string) {
   return classAssessmentsPath.test(path);
+}
+
+function isClassStudentsPath(path: string) {
+  return classStudentsPath.test(path);
 }
 
 export const appModules: AppModule[] = [
@@ -56,7 +61,8 @@ export const appModules: AppModule[] = [
       !isClassSyllabusPath(path) &&
       !isClassTeachingDiaryPath(path) &&
       !isClassReportsPath(path) &&
-      !isClassAssessmentsPath(path),
+      !isClassAssessmentsPath(path) &&
+      !isClassStudentsPath(path),
   },
   {
     id: "teaching-diary",
@@ -90,7 +96,10 @@ export const appModules: AppModule[] = [
     href: "/student-profile",
     label: "Student Profile",
     description: "Look up a student’s details, history, and performance.",
-    match: exactOrChild("/student-profile"),
+    match: (path) =>
+      path === "/student-profile" ||
+      path.startsWith("/student-profile/") ||
+      isClassStudentsPath(path),
   },
   {
     id: "student-notes",
@@ -143,6 +152,7 @@ const primaryNavIds = [
   "syllabus-progress",
   "reports",
   "marks",
+  "student-profile",
   "settings",
 ] as const;
 
