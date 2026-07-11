@@ -15,6 +15,7 @@ import WhatsAppPreview from "@/components/whatsapp/whatsapp-preview";
 import WhatsAppMissingItemsDialog from "@/components/whatsapp/whatsapp-missing-items-dialog";
 import { useWhatsAppMessage } from "@/components/whatsapp/use-whatsapp-message";
 import type { AttendanceSummary } from "@/lib/types";
+import { buildAttendanceLink } from "@/lib/timetable/links";
 import { useClientEffect } from "@/lib/use-client-effect";
 
 export default function AttendanceSummaryPage() {
@@ -52,6 +53,13 @@ export default function AttendanceSummaryPage() {
   }
 
   const hasWhatsApp = Boolean(data.class.whatsapp_number);
+  const editAttendanceHref = buildAttendanceLink(classId, {
+    date: data.attendance_date,
+    timetableEntryId: data.timetable_entry_id ?? undefined,
+    subject: data.timetable_subject ?? undefined,
+    startTime: data.timetable_start_time ?? undefined,
+    endTime: data.timetable_end_time ?? undefined,
+  });
 
   return (
     <PageContainer>
@@ -128,7 +136,7 @@ export default function AttendanceSummaryPage() {
         </Button>
         {error && <p className="w-full text-sm text-red-700">{error}</p>}
         <ButtonLink
-          href={`/classes/${classId}/attendance`}
+          href={editAttendanceHref}
           variant="secondary"
           className={actionButtonClassName}
         >

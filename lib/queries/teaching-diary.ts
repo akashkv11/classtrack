@@ -248,18 +248,19 @@ export async function findTeachingDiaryDuplicate(options: {
     : {};
 
   if (options.syllabusTopicId) {
-    const byDateAndTopic = await prisma.teachingDiaryEntry.findFirst({
+    const byDateTopicAndSlot = await prisma.teachingDiaryEntry.findFirst({
       where: {
         classId: options.classId,
         entryDate: parseISODate(options.entryDate),
         syllabusTopicId: options.syllabusTopicId,
+        timetableEntryId: options.timetableEntryId ?? null,
         ...exclude,
       },
       select: { id: true },
     });
 
-    if (byDateAndTopic) {
-      return "A diary entry for this topic on this date already exists.";
+    if (byDateTopicAndSlot) {
+      return "A diary entry for this topic in this class slot already exists.";
     }
 
     if (options.diaryStatus === "TAUGHT") {

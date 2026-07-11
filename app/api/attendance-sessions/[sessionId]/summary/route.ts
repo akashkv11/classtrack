@@ -17,6 +17,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     where: { id: sessionId },
     include: {
       class: true,
+      timetableEntry: {
+        select: {
+          id: true,
+          subject: true,
+          startTime: true,
+          endTime: true,
+        },
+      },
       records: {
         include: { student: true },
         orderBy: { student: { rollNo: "asc" } },
@@ -44,6 +52,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       whatsapp_number: session.class.whatsappNumber,
     },
     attendance_date: formatISODate(session.attendanceDate),
+    timetable_entry_id: session.timetableEntryId,
+    timetable_subject: session.timetableEntry?.subject ?? null,
+    timetable_start_time: session.timetableEntry?.startTime ?? null,
+    timetable_end_time: session.timetableEntry?.endTime ?? null,
     summary: summarizeRecords(session.records),
     absentees,
     late_students: lateStudents,

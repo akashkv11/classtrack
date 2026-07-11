@@ -7,6 +7,7 @@ export type ClassWorkspaceOverview = {
   today: string;
   attendance_marked: boolean;
   attendance_session_id: string | null;
+  attendance_sessions_today: number;
   diary_added_today: boolean;
   open_alerts_count: number;
   open_student_notes: number;
@@ -27,7 +28,6 @@ export async function getClassWorkspaceOverview(
       _count: { select: { students: { where: { isActive: true } } } },
       attendanceSessions: {
         where: { attendanceDate: parseISODate(today) },
-        take: 1,
         select: { id: true },
       },
       syllabusSubjects: {
@@ -65,12 +65,14 @@ export async function getClassWorkspaceOverview(
       (alert) => alert.status === "OPEN" || alert.status === "IN_PROGRESS",
     ).length ?? 0;
 
-  const todaySession = cls.attendanceSessions[0];
+  const todaySessions = cls.attendanceSessions;
+  const singleSession = todaySessions.length === 1 ? todaySessions[0] : null;
 
   return {
     today,
-    attendance_marked: Boolean(todaySession),
-    attendance_session_id: todaySession?.id ?? null,
+    attendance_marked: todaySessions.length > 0,
+    attendance_session_id: singleSession?.id ?? null,
+    attendance_sessions_today: todaySessions.length,
     diary_added_today: Boolean(diaryToday),
     open_alerts_count: openAlerts,
     open_student_notes: openNotes,

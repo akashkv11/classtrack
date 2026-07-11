@@ -207,7 +207,7 @@ model AttendanceSession {
   timetableEntry  TimetableEntry?  @relation(fields: [timetableEntryId], references: [id], onDelete: SetNull)
   records AttendanceRecord[]
 
-  @@unique([classId, attendanceDate])
+  @@unique([classId, attendanceDate, timetableEntryId])
   @@index([timetableEntryId])
   @@map("attendance_sessions")
 }

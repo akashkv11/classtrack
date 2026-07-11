@@ -12,6 +12,7 @@ export type WhatsAppMissingItem = {
 export function getWhatsAppMissingItems(options: {
   classId: string;
   attendanceDate: string;
+  timetableEntryId?: string | null;
   whatsappChannelUrl: string | null;
   diaryEntry: unknown | null;
 }): WhatsAppMissingItem[] {
@@ -19,6 +20,7 @@ export function getWhatsAppMissingItems(options: {
   const settingsHref = `/classes/${options.classId}/settings`;
   const diaryHref = buildTeachingDiaryLink(options.classId, {
     date: options.attendanceDate,
+    timetableEntryId: options.timetableEntryId ?? undefined,
     openForm: true,
   });
 

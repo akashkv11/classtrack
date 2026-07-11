@@ -116,13 +116,17 @@ export async function getTodaySchedule(isoDate: string): Promise<TodayScheduleIt
       classId: { in: classIds },
       attendanceDate: parseISODate(isoDate),
     },
-    select: { id: true, classId: true },
+    select: { id: true, classId: true, timetableEntryId: true },
   });
 
-  const sessionByClassId = new Map(sessions.map((s) => [s.classId, s.id]));
+  const sessionByTimetableEntry = new Map(
+    sessions
+      .filter((session) => session.timetableEntryId)
+      .map((session) => [session.timetableEntryId!, session.id]),
+  );
 
   return todaysEntries.map(({ entry, schedule }, index) => {
-    const sessionId = sessionByClassId.get(entry.class_id) ?? null;
+    const sessionId = sessionByTimetableEntry.get(entry.id) ?? null;
     return {
       entry_id: entry.id,
       period_number: index + 1,

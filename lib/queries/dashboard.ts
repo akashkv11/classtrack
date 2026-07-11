@@ -145,15 +145,31 @@ async function getTodaySessionsByClass(classIds: string[], today: string) {
     },
   });
 
-  return new Map(
-    sessions.map((session) => [
-      session.classId,
-      {
-        id: session.id,
-        summary: summarizeRecords(session.records),
-      },
-    ]),
-  );
+  const byTimetableEntry = new Map<
+    string,
+    { id: string; summary: ReturnType<typeof summarizeRecords> }
+  >();
+  const byClass = new Map<
+    string,
+    { id: string; summary: ReturnType<typeof summarizeRecords> }[]
+  >();
+
+  for (const session of sessions) {
+    const item = {
+      id: session.id,
+      summary: summarizeRecords(session.records),
+    };
+
+    if (session.timetableEntryId) {
+      byTimetableEntry.set(session.timetableEntryId, item);
+    }
+
+    const classSessions = byClass.get(session.classId) ?? [];
+    classSessions.push(item);
+    byClass.set(session.classId, classSessions);
+  }
+
+  return { byTimetableEntry, byClass };
 }
 
 async function getDiaryContextByClass(classIds: string[], today: string) {
@@ -216,17 +232,10 @@ async function getDiaryContextByClass(classIds: string[], today: string) {
 }
 
 function resolveDiaryForScheduleItem(
-  item: { entry_id: string; class_id: string; subject: string },
+  item: { entry_id: string },
   diaryContext: Awaited<ReturnType<typeof getDiaryContextByClass>>,
 ) {
-  const linked = diaryContext.todayByTimetableEntry.get(item.entry_id);
-  if (linked) return linked;
-
-  const subjectKey = `${item.class_id}:${normalizeSubjectName(item.subject)}`;
-  const bySubject = diaryContext.todayByClassSubject.get(subjectKey);
-  if (bySubject) return bySubject;
-
-  return null;
+  return diaryContext.todayByTimetableEntry.get(item.entry_id) ?? null;
 }
 
 async function getOpenAlertMetricsByClass(classIds: string[], month: string) {
@@ -383,7 +392,9 @@ async function getDashboardTodayItems(today: string): Promise<DashboardTodayItem
   ]);
 
   return schedule.map((item) => {
-    const session = sessions.get(item.class_id);
+    const session =
+      sessions.byTimetableEntry.get(item.entry_id) ??
+      sessions.byClass.get(item.class_id)?.[0];
     const todayDiary = resolveDiaryForScheduleItem(item, diaryContext);
     const latestDiary = diaryContext.latestByClass.get(item.class_id);
     const alerts = alertMetrics.get(item.class_id);
@@ -447,7 +458,8 @@ async function getDashboardClassCards(
   ]);
 
   return classes.map((cls) => {
-    const session = sessions.get(cls.id);
+    const classSessions = sessions.byClass.get(cls.id) ?? [];
+    const session = classSessions.length === 1 ? classSessions[0] : undefined;
     const todayDiary = diaryContext.todayByClass.get(cls.id);
     const latestDiary = diaryContext.latestByClass.get(cls.id);
     const diaryEntry = todayDiary ?? latestDiary;
@@ -457,7 +469,7 @@ async function getDashboardClassCards(
       class_id: cls.id,
       display_name: cls.displayName,
       student_count: cls._count.students,
-      attendance_marked_today: Boolean(session),
+      attendance_marked_today: classSessions.length > 0,
       attendance_session_id: session?.id ?? null,
       attendance_present: session?.summary.present ?? null,
       attendance_absent: session?.summary.absent ?? null,

@@ -239,6 +239,7 @@ export const classCreateSchema = z.object({
 
 export const attendanceDateQuerySchema = z.object({
   date: isoDateSchema,
+  timetable_entry_id: uuidSchema.optional().nullable(),
 });
 
 export const attendanceSaveSchema = z.object({

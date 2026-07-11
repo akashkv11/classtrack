@@ -50,9 +50,15 @@ export default function MarkAttendancePage() {
     setLoading(true);
     setError("");
 
-    const attendanceRes = await fetch(`/api/classes/${classId}/attendance?date=${date}`, {
-      signal,
-    });
+    const params = new URLSearchParams({ date });
+    if (timetableEntryId) {
+      params.set("timetable_entry_id", timetableEntryId);
+    }
+
+    const attendanceRes = await fetch(
+      `/api/classes/${classId}/attendance?${params.toString()}`,
+      { signal },
+    );
 
     if (!attendanceRes.ok) {
       const payload = await attendanceRes.json().catch(() => ({}));
@@ -68,7 +74,7 @@ export default function MarkAttendancePage() {
     setLoading(false);
   };
 
-  useClientEffect((signal) => loadAttendance(signal), [classId, date]);
+  useClientEffect((signal) => loadAttendance(signal), [classId, date, timetableEntryId]);
 
   const presentCount = useMemo(
     () => records.filter((r) => r.status === "present").length,

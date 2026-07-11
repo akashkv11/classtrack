@@ -45,7 +45,7 @@ async function findDiaryEntryForSession(options: {
       include: diaryInclude,
       orderBy: { createdAt: "desc" },
     });
-    if (linkedEntry) return linkedEntry;
+    return linkedEntry;
   }
 
   return prisma.teachingDiaryEntry.findFirst({
@@ -156,6 +156,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const missingItems = getWhatsAppMissingItems({
     classId: session.classId,
     attendanceDate: isoDate,
+    timetableEntryId: session.timetableEntryId,
     whatsappChannelUrl: session.class.whatsappChannelUrl,
     diaryEntry,
   });

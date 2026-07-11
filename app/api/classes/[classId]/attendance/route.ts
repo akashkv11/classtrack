@@ -3,6 +3,10 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords, isAttendanceStatus } from "@/lib/attendance";
 import { parseISODate } from "@/lib/dates";
+import {
+  findAttendanceSessionForSlot,
+  upsertAttendanceSessionForSlot,
+} from "@/lib/queries/attendance-sessions";
 import { validateTimetableEntryForClass } from "@/lib/timetable/access";
 import {
   attendanceDateQuerySchema,
@@ -20,27 +24,36 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const { classId } = await context.params;
   const dateParam = request.nextUrl.searchParams.get("date");
-  const parsed = parseInput(attendanceDateQuerySchema, { date: dateParam ?? "" });
+  const timetableEntryId = request.nextUrl.searchParams.get("timetable_entry_id");
+  const parsed = parseInput(attendanceDateQuerySchema, {
+    date: dateParam ?? "",
+    timetable_entry_id: timetableEntryId,
+  });
 
   if (!parsed.success) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
   const attendanceDate = parseISODate(parsed.data.date);
+  const slotTimetableId = parsed.data.timetable_entry_id ?? null;
+
+  if (slotTimetableId) {
+    const timetableCheck = await validateTimetableEntryForClass(classId, slotTimetableId);
+    if (!timetableCheck.ok) {
+      return NextResponse.json({ error: timetableCheck.error }, { status: 400 });
+    }
+  }
 
   const students = await prisma.student.findMany({
     where: { classId, isActive: true },
     orderBy: { rollNo: "asc" },
   });
 
-  const session = await prisma.attendanceSession.findUnique({
-    where: {
-      classId_attendanceDate: { classId, attendanceDate },
-    },
-    include: {
-      records: true,
-    },
-  });
+  const session = await findAttendanceSessionForSlot(
+    classId,
+    attendanceDate,
+    slotTimetableId,
+  );
 
   const recordMap = new Map(
     session?.records.map((r) => [r.studentId, r.status]) ?? [],
@@ -90,11 +103,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const { attendance_date, notes = "", records: inputRecords, timetable_entry_id } =
     parsed.data;
   const attendanceDate = parseISODate(attendance_date);
+  const slotTimetableId = timetable_entry_id ?? null;
 
-  if (timetable_entry_id) {
+  if (slotTimetableId) {
     const timetableCheck = await validateTimetableEntryForClass(
       classId,
-      timetable_entry_id,
+      slotTimetableId,
     );
     if (!timetableCheck.ok) {
       return NextResponse.json({ error: timetableCheck.error }, { status: 400 });
@@ -123,20 +137,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   const session = await prisma.$transaction(async (tx) => {
-    const upserted = await tx.attendanceSession.upsert({
-      where: {
-        classId_attendanceDate: { classId, attendanceDate },
-      },
-      create: {
-        classId,
-        attendanceDate,
-        notes,
-        timetableEntryId: timetable_entry_id ?? null,
-      },
-      update: {
-        notes,
-        ...(timetable_entry_id ? { timetableEntryId: timetable_entry_id } : {}),
-      },
+    const upserted = await upsertAttendanceSessionForSlot(tx, {
+      classId,
+      attendanceDate,
+      timetableEntryId: slotTimetableId,
+      notes,
     });
 
     for (const record of validatedRecords) {

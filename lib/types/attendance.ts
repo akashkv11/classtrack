@@ -16,6 +16,10 @@ export type AttendanceSummary = {
     whatsapp_number: string | null;
   };
   attendance_date: string;
+  timetable_entry_id: string | null;
+  timetable_subject: string | null;
+  timetable_start_time: string | null;
+  timetable_end_time: string | null;
   summary: { total: number; present: number; absent: number; late: number };
   absentees: { roll_no: number; full_name: string }[];
   late_students: { roll_no: number; full_name: string }[];

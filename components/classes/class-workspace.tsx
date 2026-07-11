@@ -152,6 +152,15 @@ export default function ClassWorkspace({
                 className={actionButtonClassName}
               />
             </>
+          ) : overview.attendance_marked ? (
+            <ButtonLink
+              href="/timetable"
+              variant="secondary"
+              size="sm"
+              className={actionButtonClassName}
+            >
+              View today&apos;s sessions ({overview.attendance_sessions_today})
+            </ButtonLink>
           ) : (
             <ButtonLink
               href={`${base}/attendance`}
