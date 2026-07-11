@@ -17,6 +17,7 @@ const classAssessmentsPath = /^\/classes\/[^/]+\/assessments(\/|$)/;
 const classStudentsPath = /^\/classes\/[^/]+\/students(\/|$)/;
 const classStudentNotesPath = /^\/classes\/[^/]+\/student-notes(\/|$)/;
 const classParentCommunicationPath = /^\/classes\/[^/]+\/parent-communication(\/|$)/;
+const classAttendanceAlertsPath = /^\/classes\/[^/]+\/attendance-alerts(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
@@ -46,6 +47,10 @@ function isClassParentCommunicationPath(path: string) {
   return classParentCommunicationPath.test(path);
 }
 
+function isClassAttendanceAlertsPath(path: string) {
+  return classAttendanceAlertsPath.test(path);
+}
+
 export const appModules: AppModule[] = [
   {
     id: "dashboard",
@@ -66,15 +71,7 @@ export const appModules: AppModule[] = [
     href: "/classes",
     label: "Classes",
     description: "View and manage your classes, students, and attendance.",
-    match: (path) =>
-      (path === "/classes" || path.startsWith("/classes/")) &&
-      !isClassSyllabusPath(path) &&
-      !isClassTeachingDiaryPath(path) &&
-      !isClassReportsPath(path) &&
-      !isClassAssessmentsPath(path) &&
-      !isClassStudentsPath(path) &&
-      !isClassStudentNotesPath(path) &&
-      !isClassParentCommunicationPath(path),
+    match: (path) => path === "/classes" || path.startsWith("/classes/"),
   },
   {
     id: "teaching-diary",
@@ -91,7 +88,10 @@ export const appModules: AppModule[] = [
     href: "/attendance-alerts",
     label: "Attendance Alerts",
     description: "Review students with frequent absences and attendance concerns.",
-    match: exactOrChild("/attendance-alerts"),
+    match: (path) =>
+      path === "/attendance-alerts" ||
+      path.startsWith("/attendance-alerts/") ||
+      isClassAttendanceAlertsPath(path),
   },
   {
     id: "marks",
@@ -164,15 +164,16 @@ export const appModules: AppModule[] = [
 
 const primaryNavIds = [
   "dashboard",
-  "classes",
   "timetable",
+  "classes",
   "teaching-diary",
-  "syllabus-progress",
-  "reports",
+  "attendance-alerts",
   "marks",
   "student-profile",
   "student-notes",
   "parent-communication",
+  "syllabus-progress",
+  "reports",
   "settings",
 ] as const;
 

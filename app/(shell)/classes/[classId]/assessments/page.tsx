@@ -30,8 +30,8 @@ export default async function ClassAssessmentsPage({ params }: PageProps) {
       <PageHeader
         title="Assessments"
         subtitle={cls.displayName}
-        backHref="/marks"
-        backLabel="← Back to Marks / Assessments"
+        backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
       <AssessmentsPageClient

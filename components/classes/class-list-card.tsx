@@ -1,5 +1,6 @@
 import Link from "next/link";
-import Badge from "@/components/ui/badge";
+import { StatusBadgeFromConfig } from "@/components/ui/status-badge";
+import { attendanceMarkedStatus } from "@/lib/ui/status-badges";
 
 type ClassListCardProps = {
   id: string;
@@ -21,9 +22,10 @@ export default function ClassListCard({
     >
       <h2 className="text-lg font-semibold text-slate-900">{displayName}</h2>
       <p className="mt-1 text-sm text-slate-600">{studentCount} students</p>
-      <Badge variant={todayStatus === "marked" ? "success" : "warning"} className="mt-3">
-        {todayStatus === "marked" ? "Today's attendance marked" : "Not marked today"}
-      </Badge>
+      <StatusBadgeFromConfig
+        status={attendanceMarkedStatus(todayStatus === "marked")}
+        className="mt-3"
+      />
     </Link>
   );
 }

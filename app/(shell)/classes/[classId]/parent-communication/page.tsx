@@ -21,8 +21,8 @@ export default async function ClassParentCommunicationPage({ params }: PageProps
       <PageHeader
         title="Parent Communication"
         subtitle={cls.displayName}
-        backHref="/parent-communication"
-        backLabel="← Back to Parent Communication"
+        backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
       <p className="mb-6 text-sm text-slate-600">

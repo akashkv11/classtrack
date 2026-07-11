@@ -39,6 +39,7 @@ model Class {
   assessments           Assessment[]
   studentNotes          StudentNote[]
   parentCommunications  ParentCommunication[]
+  attendanceAlertStatuses AttendanceAlertStatus[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
@@ -115,6 +116,7 @@ model SyllabusTopic {
 model TeachingDiaryEntry {
   id                   String   @id @default(uuid()) @db.Uuid
   classId              String   @map("class_id") @db.Uuid
+  timetableEntryId     String?  @map("timetable_entry_id") @db.Uuid
   syllabusSubjectId    String?  @map("syllabus_subject_id") @db.Uuid
   syllabusChapterId    String?  @map("syllabus_chapter_id") @db.Uuid
   syllabusTopicId      String?  @map("syllabus_topic_id") @db.Uuid
@@ -131,11 +133,13 @@ model TeachingDiaryEntry {
   updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   class           Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  timetableEntry  TimetableEntry?  @relation(fields: [timetableEntryId], references: [id], onDelete: SetNull)
   syllabusSubject SyllabusSubject? @relation(fields: [syllabusSubjectId], references: [id], onDelete: SetNull)
   syllabusChapter SyllabusChapter? @relation(fields: [syllabusChapterId], references: [id], onDelete: SetNull)
   syllabusTopic   SyllabusTopic?   @relation(fields: [syllabusTopicId], references: [id], onDelete: SetNull)
 
   @@index([classId, entryDate])
+  @@index([timetableEntryId])
   @@index([syllabusTopicId])
   @@map("teaching_diary_entries")
 }
@@ -159,6 +163,9 @@ model TimetableEntry {
 
   class Class @relation(fields: [classId], references: [id], onDelete: Restrict)
 
+  attendanceSessions AttendanceSession[]
+  teachingDiaryEntries TeachingDiaryEntry[]
+
   @@map("timetable_entries")
 }
 
@@ -178,6 +185,7 @@ model Student {
   assessmentMarks       AssessmentMark[]
   studentNotes          StudentNote[]
   parentCommunications  ParentCommunication[]
+  attendanceAlertStatuses AttendanceAlertStatus[]
 
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
@@ -185,17 +193,20 @@ model Student {
 }
 
 model AttendanceSession {
-  id             String   @id @default(uuid()) @db.Uuid
-  classId        String   @map("class_id") @db.Uuid
-  attendanceDate DateTime @map("attendance_date") @db.Date
+  id               String   @id @default(uuid()) @db.Uuid
+  classId          String   @map("class_id") @db.Uuid
+  timetableEntryId String?  @map("timetable_entry_id") @db.Uuid
+  attendanceDate   DateTime @map("attendance_date") @db.Date
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  class   Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
+  class           Class            @relation(fields: [classId], references: [id], onDelete: Restrict)
+  timetableEntry  TimetableEntry?  @relation(fields: [timetableEntryId], references: [id], onDelete: SetNull)
   records AttendanceRecord[]
 
   @@unique([classId, attendanceDate])
+  @@index([timetableEntryId])
   @@map("attendance_sessions")
 }
 
@@ -308,6 +319,25 @@ model ParentCommunication {
 
   @@index([studentId, communicationDate])
   @@map("parent_communications")
+}
+
+model AttendanceAlertStatus {
+  id        String   @id @default(uuid()) @db.Uuid
+  classId   String   @map("class_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  alertKey  String   @map("alert_key")
+  alertType String   @map("alert_type")
+  month     String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, alertKey])
+  @@index([classId, month])
+  @@map("attendance_alert_statuses")
 }
 
 model AppSetting {

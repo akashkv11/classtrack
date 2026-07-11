@@ -3,7 +3,8 @@ import {
   calculateAttendancePercentage,
   type AttendanceStatus,
 } from "@/lib/attendance";
-import { endOfMonth, formatISODate, startOfMonth } from "@/lib/dates";
+import { computeAssessmentSummary } from "@/lib/assessments/summary";
+import { endOfMonth, formatISODate, parseISODate, startOfMonth } from "@/lib/dates";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
 import {
@@ -11,10 +12,11 @@ import {
   getTeachingDiaryEntriesForClass,
   mapEntryToJson,
 } from "@/lib/queries/teaching-diary";
-import { lateCountsAsPresent } from "@/lib/settings";
+import { getLowMarksThresholdPercent, lateCountsAsPresent } from "@/lib/settings";
 import { getSyllabusSummary } from "@/lib/syllabus/progress";
 import { DIARY_STATUS_LABELS } from "@/lib/teaching-diary/status";
 import type {
+  AssessmentsReport,
   MonthlyAcademicWorkReport,
   MonthlyReport,
   PendingContinuationItem,
@@ -301,6 +303,77 @@ export async function getMonthlyAcademicWorkReport(
     revision_classes: activeEntries.filter((e) => e.diary_status === "REVISION").length,
     pending_continuation: pendingContinuation,
     diary_entries: reportEntries,
+  };
+}
+
+export async function getAssessmentsReport(
+  classId: string,
+  month?: string,
+): Promise<AssessmentsReport | null> {
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  if (!cls) return null;
+
+  const studentCount = await prisma.student.count({
+    where: { classId, isActive: true },
+  });
+
+  const dateFilter = month ? monthToDateRange(month) : null;
+
+  const assessments = await prisma.assessment.findMany({
+    where: {
+      classId,
+      ...(dateFilter
+        ? {
+            assessmentDate: {
+              gte: parseISODate(dateFilter.dateFrom),
+              lte: parseISODate(dateFilter.dateTo),
+            },
+          }
+        : {}),
+    },
+    include: {
+      syllabusSubject: { select: { subjectName: true } },
+      marks: { select: { marksObtained: true } },
+    },
+    orderBy: [{ assessmentDate: "desc" }, { createdAt: "desc" }],
+  });
+
+  const lowMarksThreshold = await getLowMarksThresholdPercent();
+
+  const rows = assessments.map((assessment) => {
+    const withMarks = assessment.marks.filter((m) => m.marksObtained !== null);
+    let classAverage: number | null = null;
+    if (withMarks.length > 0) {
+      const sum = withMarks.reduce((a, m) => a + (m.marksObtained as number), 0);
+      classAverage = Math.round((sum / withMarks.length) * 10) / 10;
+    }
+
+    const summary = computeAssessmentSummary(
+      assessment.marks,
+      assessment.maxMarks,
+      studentCount,
+      lowMarksThreshold,
+    );
+
+    return {
+      id: assessment.id,
+      name: assessment.name,
+      assessment_type: assessment.assessmentType,
+      assessment_date: formatISODate(assessment.assessmentDate),
+      subject_name: assessment.syllabusSubject.subjectName,
+      max_marks: assessment.maxMarks,
+      class_average: classAverage,
+      marks_entered_count: withMarks.length,
+      student_count: studentCount,
+      below_threshold_count: summary.below_40_percent_count,
+    };
+  });
+
+  return {
+    class: { id: cls.id, display_name: cls.displayName },
+    month: month ?? null,
+    low_marks_threshold_percent: lowMarksThreshold,
+    assessments: rows,
   };
 }
 

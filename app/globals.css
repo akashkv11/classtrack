@@ -44,5 +44,48 @@ textarea::placeholder {
 
   body {
     background: #ffffff;
+    color: #0f172a;
+  }
+
+  #report-content {
+    box-shadow: none !important;
+  }
+
+  #report-content .rounded-xl,
+  #report-content [class*="rounded-xl"] {
+    border-radius: 0;
+    box-shadow: none !important;
+  }
+
+  #report-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  #report-content th,
+  #report-content td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  #report-content thead {
+    display: table-header-group;
+  }
+
+  #report-content tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .report-footer {
+    break-before: avoid;
+    page-break-before: avoid;
   }
 }

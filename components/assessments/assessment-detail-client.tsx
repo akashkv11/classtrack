@@ -20,12 +20,14 @@ type AssessmentDetailClientProps = {
   classId: string;
   assessmentId: string;
   initialData: AssessmentMarksResponse;
+  lowMarksThresholdPercent: number;
 };
 
 export default function AssessmentDetailClient({
   classId,
   assessmentId,
   initialData,
+  lowMarksThresholdPercent,
 }: AssessmentDetailClientProps) {
   const router = useRouter();
   const [records, setRecords] = useState<AssessmentMarkRow[]>(initialData.records);
@@ -125,7 +127,11 @@ export default function AssessmentDetailClient({
       </Card>
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Assessment Summary</h3>
-      <AssessmentSummaryCards summary={summary} maxMarks={maxMarks} />
+      <AssessmentSummaryCards
+        summary={summary}
+        maxMarks={maxMarks}
+        lowMarksThresholdPercent={lowMarksThresholdPercent}
+      />
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Enter Marks</h3>
 

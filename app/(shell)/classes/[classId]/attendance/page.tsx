@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AttendanceGrid from "@/components/attendance/attendance-grid";
 import AttendanceToolbar from "@/components/attendance/attendance-toolbar";
 import { useClass } from "@/components/classes/class-provider";
@@ -10,6 +10,7 @@ import FormField, { TextInput } from "@/components/ui/form-field";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
+import { formatTime12h } from "@/lib/timetable";
 import type { AttendanceRecordRow } from "@/lib/types";
 import { todayISO } from "@/lib/dates";
 import { useClientEffect } from "@/lib/use-client-effect";
@@ -17,11 +18,18 @@ import { attendanceSaveSchema, isoDateSchema, parseInput } from "@/lib/validatio
 
 export default function MarkAttendancePage() {
   const params = useParams<{ classId: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const classId = params.classId;
   const { displayName } = useClass();
 
-  const [date, setDate] = useState(todayISO());
+  const timetableEntryId = searchParams.get("timetable_entry_id");
+  const timetableSubject = searchParams.get("subject");
+  const timetableStartTime = searchParams.get("start_time");
+  const timetableEndTime = searchParams.get("end_time");
+  const initialDate = searchParams.get("date") ?? todayISO();
+
+  const [date, setDate] = useState(initialDate);
   const [records, setRecords] = useState<AttendanceRecordRow[]>([]);
   const [initialRecords, setInitialRecords] = useState<AttendanceRecordRow[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -121,6 +129,7 @@ export default function MarkAttendancePage() {
 
     const parsed = parseInput(attendanceSaveSchema, {
       attendance_date: date,
+      timetable_entry_id: timetableEntryId,
       notes: "",
       records: records.map((r) => ({
         student_id: r.student_id,
@@ -164,6 +173,17 @@ export default function MarkAttendancePage() {
         subtitle={displayName}
         backHref={`/classes/${classId}`}
       />
+
+      {timetableEntryId && (
+        <Alert variant="info" className="mb-4">
+          Marking attendance for today&apos;s scheduled class
+          {timetableSubject ? ` · ${timetableSubject}` : ""}
+          {timetableStartTime && timetableEndTime
+            ? ` · ${formatTime12h(timetableStartTime)} – ${formatTime12h(timetableEndTime)}`
+            : ""}
+          .
+        </Alert>
+      )}
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
         <FormField label="Date" error={dateError}>

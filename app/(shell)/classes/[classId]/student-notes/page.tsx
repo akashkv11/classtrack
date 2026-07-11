@@ -21,8 +21,8 @@ export default async function ClassStudentNotesPage({ params }: PageProps) {
       <PageHeader
         title="Student Notes"
         subtitle={cls.displayName}
-        backHref="/student-notes"
-        backLabel="← Back to Student Notes"
+        backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
       <p className="mb-6 text-sm text-slate-600">

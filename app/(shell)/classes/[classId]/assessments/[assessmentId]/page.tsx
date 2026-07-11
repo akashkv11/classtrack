@@ -4,6 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
 import { getAssessmentMarksGrid } from "@/lib/queries/assessments";
+import { getLowMarksThresholdPercent } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,10 @@ export default async function AssessmentDetailPage({ params }: PageProps) {
   const cls = await getClassById(classId);
   if (!cls) notFound();
 
-  const data = await getAssessmentMarksGrid(assessmentId, classId);
+  const [data, lowMarksThresholdPercent] = await Promise.all([
+    getAssessmentMarksGrid(assessmentId, classId),
+    getLowMarksThresholdPercent(),
+  ]);
   if (!data) notFound();
 
   return (
@@ -32,6 +36,7 @@ export default async function AssessmentDetailPage({ params }: PageProps) {
         classId={classId}
         assessmentId={assessmentId}
         initialData={data}
+        lowMarksThresholdPercent={lowMarksThresholdPercent}
       />
     </PageContainer>
   );

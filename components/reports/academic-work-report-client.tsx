@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import AcademicWorkReportView from "@/components/reports/academic-work-report-view";
-import ReportPrintButton from "@/components/reports/report-print-button";
+import ReportHeader, { ReportFooter } from "@/components/reports/report-header";
+import ReportPrintActions from "@/components/reports/report-print-actions";
 import ReportSubjectFilter from "@/components/reports/report-subject-filter";
 import Alert from "@/components/ui/alert";
 import FormField, { TextInput } from "@/components/ui/form-field";
 import LoadingState from "@/components/ui/loading-state";
 import type { MonthlyAcademicWorkReport } from "@/lib/types/report";
 import type { SyllabusSubjectSummary } from "@/lib/types/syllabus";
+import type { ReportSettings } from "@/lib/types/settings";
 import { useClientEffect } from "@/lib/use-client-effect";
 import { monthSchema, parseInput } from "@/lib/validation";
 
@@ -20,11 +22,13 @@ function currentMonth(): string {
 type AcademicWorkReportClientProps = {
   classId: string;
   subjects: SyllabusSubjectSummary[];
+  reportSettings: ReportSettings;
 };
 
 export default function AcademicWorkReportClient({
   classId,
   subjects,
+  reportSettings,
 }: AcademicWorkReportClientProps) {
   const [month, setMonth] = useState(currentMonth());
   const [subjectId, setSubjectId] = useState("");
@@ -87,7 +91,7 @@ export default function AcademicWorkReportClient({
             onChange={setSubjectId}
           />
         </div>
-        <ReportPrintButton />
+        <ReportPrintActions disabled={!report || loading} />
       </div>
 
       {error && (
@@ -100,7 +104,19 @@ export default function AcademicWorkReportClient({
         <LoadingState />
       ) : report ? (
         <div id="report-content">
+          <ReportHeader
+            settings={reportSettings}
+            title="Monthly Academic Work Report"
+            subtitle={[
+              report.class.display_name,
+              report.subject ? `Subject: ${report.subject.name}` : null,
+              `Month: ${report.month}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
           <AcademicWorkReportView report={report} />
+          <ReportFooter settings={reportSettings} />
         </div>
       ) : null}
     </>

@@ -13,6 +13,7 @@ import FormField, { SelectInput } from "@/components/ui/form-field";
 import { EmptyState } from "@/components/ui/loading-state";
 import Card from "@/components/ui/card";
 import { todayISO } from "@/lib/dates";
+import { formatTime12h } from "@/lib/timetable";
 import { DIARY_STATUS_LABELS } from "@/lib/teaching-diary/status";
 import type {
   DiaryStatus,
@@ -27,6 +28,15 @@ type TeachingDiaryPageClientProps = {
   classId: string;
   initialSubjects: SyllabusSubjectSummary[];
   initialData: TeachingDiaryListResponse;
+  timetablePrefill?: {
+    timetable_entry_id?: string;
+    entry_date: string;
+    subject_name?: string;
+    syllabus_subject_id?: string | null;
+    start_time?: string;
+    end_time?: string;
+    open_form?: boolean;
+  } | null;
 };
 
 function getMonthRange(preset: DateRangePreset): {
@@ -69,6 +79,7 @@ export default function TeachingDiaryPageClient({
   classId,
   initialSubjects,
   initialData,
+  timetablePrefill = null,
 }: TeachingDiaryPageClientProps) {
   const router = useRouter();
   const [entries, setEntries] = useState(initialData.entries);
@@ -76,7 +87,7 @@ export default function TeachingDiaryPageClient({
   const [subjectFilter, setSubjectFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRangePreset>("this_month");
   const [statusFilter, setStatusFilter] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(Boolean(timetablePrefill?.open_form));
   const [editingEntry, setEditingEntry] =
     useState<TeachingDiaryEntrySummary | null>(null);
   const [deletingEntry, setDeletingEntry] =
@@ -166,6 +177,19 @@ export default function TeachingDiaryPageClient({
       </ActionBar>
 
       {error && <Alert variant="error">{error}</Alert>}
+
+      {timetablePrefill && (
+        <Alert variant="info" className="mb-4">
+          {timetablePrefill.timetable_entry_id
+            ? "Adding a diary entry for today's scheduled class"
+            : "Creating a diary entry from your timetable"}
+          {timetablePrefill.subject_name ? ` · ${timetablePrefill.subject_name}` : ""}
+          {timetablePrefill.start_time && timetablePrefill.end_time
+            ? ` · ${formatTime12h(timetablePrefill.start_time)} – ${formatTime12h(timetablePrefill.end_time)}`
+            : ""}
+          .
+        </Alert>
+      )}
 
       <Card className="mb-6">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -274,6 +298,7 @@ export default function TeachingDiaryPageClient({
         classId={classId}
         subjects={initialSubjects}
         entry={editingEntry}
+        timetablePrefill={!editingEntry ? timetablePrefill : null}
         onClose={() => {
           setShowForm(false);
           setEditingEntry(null);

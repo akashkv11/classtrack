@@ -24,6 +24,7 @@ export const syllabusStatusUpdateSchema = z.enum([
 
 export const teachingDiaryCreateSchema = z.object({
   entry_date: isoDateSchema,
+  timetable_entry_id: uuidSchema.optional().nullable(),
   syllabus_subject_id: uuidSchema.optional().nullable(),
   syllabus_chapter_id: uuidSchema.optional().nullable(),
   syllabus_topic_id: uuidSchema.optional().nullable(),

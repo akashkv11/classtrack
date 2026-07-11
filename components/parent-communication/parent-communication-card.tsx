@@ -1,13 +1,12 @@
-import Badge from "@/components/ui/badge";
 import Card from "@/components/ui/card";
+import { StatusBadgeFromConfig } from "@/components/ui/status-badge";
 import { formatDisplayDate } from "@/lib/dates";
 import {
   COMMUNICATION_REASON_LABELS,
-  COMMUNICATION_STATUS_LABELS,
   COMMUNICATION_TYPE_LABELS,
-  communicationStatusBadgeVariant,
 } from "@/lib/parent-communication/status";
 import { NOTE_CATEGORY_LABELS } from "@/lib/student-notes/status";
+import { parentCommunicationStatus } from "@/lib/ui/status-badges";
 import type { NoteCategory } from "@/lib/types/student-note";
 import type { ParentCommunicationSummary } from "@/lib/types/parent-communication";
 
@@ -22,8 +21,6 @@ export default function ParentCommunicationCard({
   onEdit,
   onDelete,
 }: ParentCommunicationCardProps) {
-  const statusVariant = communicationStatusBadgeVariant(communication.status);
-
   return (
     <Card padding="sm" className="mb-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -36,9 +33,7 @@ export default function ParentCommunicationCard({
           {" · "}
           {COMMUNICATION_REASON_LABELS[communication.reason]}
         </p>
-        <Badge variant={statusVariant}>
-          {COMMUNICATION_STATUS_LABELS[communication.status]}
-        </Badge>
+        <StatusBadgeFromConfig status={parentCommunicationStatus(communication.status)} />
       </div>
 
       <p className="text-sm text-slate-800">{communication.summary}</p>

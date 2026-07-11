@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import TimetableEntryCard from "@/components/timetable/timetable-entry-card";
+import TimetableScheduleCard from "@/components/timetable/timetable-schedule-card";
 import TimetableEntryForm, {
   type ClassOption,
   type TimetableFormValues,
@@ -23,11 +24,14 @@ import {
   WEEKDAYS,
 } from "@/lib/timetable";
 import type { TimetableEntrySummary, TimetableOverlap } from "@/lib/types/timetable";
+import type { DashboardTodayItem } from "@/lib/types/dashboard";
 import type { FieldErrors } from "@/lib/validation";
 
 type TimetableContentProps = {
   classes: ClassOption[];
   initialEntries: TimetableEntrySummary[];
+  todayItems?: DashboardTodayItem[];
+  today?: string;
 };
 
 type ViewTab = "weekly" | "all";
@@ -61,6 +65,8 @@ function formValuesToPayload(values: TimetableFormValues) {
 export default function TimetableContent({
   classes,
   initialEntries,
+  todayItems = [],
+  today = "",
 }: TimetableContentProps) {
   const [entries, setEntries] = useState(initialEntries);
   const [activeTab, setActiveTab] = useState<ViewTab>("weekly");
@@ -222,6 +228,22 @@ export default function TimetableContent({
         <Alert variant={overlapWarning ? "warning" : "info"} className="mb-4">
           {message}
         </Alert>
+      )}
+
+      {todayItems.length > 0 && today && (
+        <section className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Today&apos;s Schedule</h2>
+          <div className="space-y-4">
+            {todayItems.map((item) => (
+              <TimetableScheduleCard
+                key={item.entry_id}
+                item={item}
+                date={today}
+                showPeriodNumber
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {showForm && (

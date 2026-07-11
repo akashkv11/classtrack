@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords, isAttendanceStatus } from "@/lib/attendance";
 import { parseISODate } from "@/lib/dates";
+import { validateTimetableEntryForClass } from "@/lib/timetable/access";
 import {
   attendanceDateQuerySchema,
   attendanceSaveSchema,
@@ -66,6 +67,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       id: session.id,
       class_id: session.classId,
       attendance_date: parsed.data.date,
+      timetable_entry_id: session.timetableEntryId,
       notes: session.notes ?? "",
     },
     records,
@@ -85,8 +87,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const { attendance_date, notes = "", records: inputRecords } = parsed.data;
+  const { attendance_date, notes = "", records: inputRecords, timetable_entry_id } =
+    parsed.data;
   const attendanceDate = parseISODate(attendance_date);
+
+  if (timetable_entry_id) {
+    const timetableCheck = await validateTimetableEntryForClass(
+      classId,
+      timetable_entry_id,
+    );
+    if (!timetableCheck.ok) {
+      return NextResponse.json({ error: timetableCheck.error }, { status: 400 });
+    }
+  }
 
   const students = await prisma.student.findMany({
     where: { classId, isActive: true },
@@ -118,8 +131,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         classId,
         attendanceDate,
         notes,
+        timetableEntryId: timetable_entry_id ?? null,
       },
-      update: { notes },
+      update: {
+        notes,
+        ...(timetable_entry_id ? { timetableEntryId: timetable_entry_id } : {}),
+      },
     });
 
     for (const record of validatedRecords) {

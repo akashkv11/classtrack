@@ -14,3 +14,11 @@ export const reportDiaryQuerySchema = z.object({
   month: monthSchema.optional(),
   subject_id: uuidSchema.optional(),
 });
+
+export const reportAssessmentsQuerySchema = z.object({
+  month: monthSchema.optional(),
+});
+
+export const reportStudentProfileQuerySchema = z.object({
+  student_id: uuidSchema,
+});

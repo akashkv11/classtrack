@@ -10,6 +10,7 @@ import {
   mapEntryToJson,
 } from "@/lib/queries/teaching-diary";
 import { validateSyllabusHierarchy } from "@/lib/teaching-diary/access";
+import { validateTimetableEntryForClass } from "@/lib/timetable/access";
 import {
   parseInput,
   teachingDiaryCreateSchema,
@@ -83,9 +84,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: hierarchyCheck.error }, { status: 400 });
   }
 
+  if (parsed.data.timetable_entry_id) {
+    const timetableCheck = await validateTimetableEntryForClass(
+      classId,
+      parsed.data.timetable_entry_id,
+    );
+    if (!timetableCheck.ok) {
+      return NextResponse.json({ error: timetableCheck.error }, { status: 400 });
+    }
+  }
+
   const entry = await prisma.teachingDiaryEntry.create({
     data: {
       classId,
+      timetableEntryId: parsed.data.timetable_entry_id ?? null,
       syllabusSubjectId: parsed.data.syllabus_subject_id ?? null,
       syllabusChapterId: parsed.data.syllabus_chapter_id ?? null,
       syllabusTopicId: parsed.data.syllabus_topic_id ?? null,

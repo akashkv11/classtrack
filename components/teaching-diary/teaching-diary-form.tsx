@@ -41,6 +41,14 @@ type TeachingDiaryFormProps = {
   classId: string;
   subjects: SyllabusSubjectSummary[];
   entry?: TeachingDiaryEntrySummary | null;
+  timetablePrefill?: {
+    timetable_entry_id?: string;
+    entry_date: string;
+    syllabus_subject_id?: string | null;
+    subject_name?: string;
+    start_time?: string;
+    end_time?: string;
+  } | null;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -57,13 +65,18 @@ function TeachingDiaryFormDialog({
   classId,
   subjects,
   entry,
+  timetablePrefill,
   onClose,
   onSaved,
 }: TeachingDiaryFormDialogProps) {
   const isEdit = Boolean(entry);
 
-  const [entryDate, setEntryDate] = useState(() => entry?.entry_date ?? todayISO());
-  const [subjectId, setSubjectId] = useState(() => entry?.subject?.id ?? "");
+  const [entryDate, setEntryDate] = useState(
+    () => entry?.entry_date ?? timetablePrefill?.entry_date ?? todayISO(),
+  );
+  const [subjectId, setSubjectId] = useState(
+    () => entry?.subject?.id ?? timetablePrefill?.syllabus_subject_id ?? "",
+  );
   const [chapterId, setChapterId] = useState(() => entry?.chapter?.id ?? "");
   const [topicId, setTopicId] = useState(() => entry?.topic?.id ?? "");
   const [subjectDetail, setSubjectDetail] = useState<SyllabusSubjectDetail | null>(null);
@@ -220,6 +233,7 @@ function TeachingDiaryFormDialog({
 
     const payload = {
       entry_date: entryDate,
+      timetable_entry_id: !isEdit ? timetablePrefill?.timetable_entry_id ?? null : null,
       syllabus_subject_id: subjectId || null,
       syllabus_chapter_id: chapterId || null,
       syllabus_topic_id: topicId || null,
@@ -511,12 +525,13 @@ export default function TeachingDiaryForm({
   classId,
   subjects,
   entry,
+  timetablePrefill,
   onClose,
   onSaved,
 }: TeachingDiaryFormProps) {
   if (!open) return null;
 
-  const dialogKey = entry?.id ?? "new";
+  const dialogKey = entry?.id ?? timetablePrefill?.timetable_entry_id ?? "new";
 
   return (
     <TeachingDiaryFormDialog
@@ -524,6 +539,7 @@ export default function TeachingDiaryForm({
       classId={classId}
       subjects={subjects}
       entry={entry}
+      timetablePrefill={timetablePrefill}
       onClose={onClose}
       onSaved={onSaved}
     />

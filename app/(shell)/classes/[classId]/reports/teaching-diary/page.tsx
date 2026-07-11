@@ -4,6 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
+import { getReportSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,12 @@ type PageProps = { params: Promise<{ classId: string }> };
 
 export default async function TeachingDiaryReportPage({ params }: PageProps) {
   const { classId } = await params;
-  const cls = await getClassById(classId);
+  const [cls, subjects, reportSettings] = await Promise.all([
+    getClassById(classId),
+    getSyllabusSubjectsForClass(classId),
+    getReportSettings(),
+  ]);
   if (!cls) notFound();
-
-  const subjects = await getSyllabusSubjectsForClass(classId);
 
   return (
     <PageContainer>
@@ -24,7 +27,11 @@ export default async function TeachingDiaryReportPage({ params }: PageProps) {
         backHref={`/classes/${classId}/reports`}
         backLabel="← Back to Reports"
       />
-      <TeachingDiaryReportClient classId={classId} subjects={subjects} />
+      <TeachingDiaryReportClient
+        classId={classId}
+        subjects={subjects}
+        reportSettings={reportSettings}
+      />
     </PageContainer>
   );
 }

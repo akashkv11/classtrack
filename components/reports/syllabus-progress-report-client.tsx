@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import ReportPrintButton from "@/components/reports/report-print-button";
+import ReportHeader, { ReportFooter } from "@/components/reports/report-header";
+import ReportPrintActions from "@/components/reports/report-print-actions";
 import ReportSubjectFilter from "@/components/reports/report-subject-filter";
 import SyllabusProgressReportView from "@/components/reports/syllabus-progress-report-view";
 import Alert from "@/components/ui/alert";
@@ -9,16 +10,19 @@ import { Button } from "@/components/ui/button";
 import LoadingState from "@/components/ui/loading-state";
 import type { SyllabusProgressReport } from "@/lib/types/report";
 import type { SyllabusSubjectSummary } from "@/lib/types/syllabus";
+import type { ReportSettings } from "@/lib/types/settings";
 import { useClientEffect } from "@/lib/use-client-effect";
 
 type SyllabusProgressReportClientProps = {
   classId: string;
   subjects: SyllabusSubjectSummary[];
+  reportSettings: ReportSettings;
 };
 
 export default function SyllabusProgressReportClient({
   classId,
   subjects,
+  reportSettings,
 }: SyllabusProgressReportClientProps) {
   const defaultSubject = subjects.length === 1 ? subjects[0].id : "";
   const [subjectId, setSubjectId] = useState(defaultSubject);
@@ -65,7 +69,7 @@ export default function SyllabusProgressReportClient({
             Apply
           </Button>
         </div>
-        <ReportPrintButton />
+        <ReportPrintActions disabled={!report || loading} />
       </div>
 
       {error && (
@@ -78,7 +82,18 @@ export default function SyllabusProgressReportClient({
         <LoadingState />
       ) : report ? (
         <div id="report-content">
+          <ReportHeader
+            settings={reportSettings}
+            title="Syllabus Progress Report"
+            subtitle={[
+              report.class.display_name,
+              report.subject ? `Subject: ${report.subject.name}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
           <SyllabusProgressReportView report={report} />
+          <ReportFooter settings={reportSettings} />
         </div>
       ) : null}
     </>

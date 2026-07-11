@@ -1,11 +1,8 @@
-import Badge from "@/components/ui/badge";
 import Card from "@/components/ui/card";
+import { StatusBadgeFromConfig } from "@/components/ui/status-badge";
 import { formatDisplayDate } from "@/lib/dates";
-import {
-  NOTE_CATEGORY_LABELS,
-  NOTE_STATUS_LABELS,
-  noteStatusBadgeVariant,
-} from "@/lib/student-notes/status";
+import { NOTE_CATEGORY_LABELS } from "@/lib/student-notes/status";
+import { noteStatus } from "@/lib/ui/status-badges";
 import type { StudentNoteSummary } from "@/lib/types/student-note";
 
 type StudentNoteCardProps = {
@@ -21,8 +18,6 @@ export default function StudentNoteCard({
   onDelete,
   onToggleStatus,
 }: StudentNoteCardProps) {
-  const statusVariant = noteStatusBadgeVariant(note.status);
-
   return (
     <Card padding="sm" className="mb-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -31,7 +26,7 @@ export default function StudentNoteCard({
           {" · "}
           {NOTE_CATEGORY_LABELS[note.category]}
         </p>
-        <Badge variant={statusVariant}>{NOTE_STATUS_LABELS[note.status]}</Badge>
+        <StatusBadgeFromConfig status={noteStatus(note.status)} />
       </div>
 
       <p className="text-sm text-slate-800">{note.note_text}</p>

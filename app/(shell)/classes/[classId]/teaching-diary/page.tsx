@@ -8,10 +8,22 @@ import {
   computeDiarySummary,
   getTeachingDiaryEntriesForClass,
 } from "@/lib/queries/teaching-diary";
+import { matchSyllabusSubjectIdByName } from "@/lib/timetable/links";
+import { getTimetableEntryById } from "@/lib/queries/timetable";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = { params: Promise<{ classId: string }> };
+type PageProps = {
+  params: Promise<{ classId: string }>;
+  searchParams: Promise<{
+    timetable_entry_id?: string;
+    date?: string;
+    subject?: string;
+    start_time?: string;
+    end_time?: string;
+    open_form?: string;
+  }>;
+};
 
 function getThisMonthRange() {
   const now = new Date();
@@ -28,8 +40,9 @@ function getThisMonthRange() {
   return { dateFrom: fmt(from), dateTo: fmt(to) };
 }
 
-export default async function TeachingDiaryPage({ params }: PageProps) {
+export default async function TeachingDiaryPage({ params, searchParams }: PageProps) {
   const { classId } = await params;
+  const query = await searchParams;
   const cls = await getClassById(classId);
   if (!cls) notFound();
 
@@ -40,13 +53,49 @@ export default async function TeachingDiaryPage({ params }: PageProps) {
     dateTo,
   });
 
+  let timetablePrefill: {
+    timetable_entry_id?: string;
+    entry_date: string;
+    subject_name?: string;
+    start_time?: string;
+    end_time?: string;
+    open_form?: boolean;
+  } | null = null;
+
+  if (query.timetable_entry_id) {
+    const entry = await getTimetableEntryById(query.timetable_entry_id);
+    if (entry && entry.class_id === classId) {
+      timetablePrefill = {
+        timetable_entry_id: entry.id,
+        entry_date: query.date ?? entry.entry_date ?? new Date().toISOString().slice(0, 10),
+        subject_name: query.subject ?? entry.subject,
+        start_time: query.start_time ?? entry.start_time,
+        end_time: query.end_time ?? entry.end_time,
+        open_form: true,
+      };
+    }
+  } else if (query.open_form === "1") {
+    timetablePrefill = {
+      entry_date: query.date ?? new Date().toISOString().slice(0, 10),
+      subject_name: query.subject,
+      start_time: query.start_time,
+      end_time: query.end_time,
+      open_form: true,
+    };
+  }
+
+  const prefillSubjectId =
+    timetablePrefill?.subject_name
+      ? matchSyllabusSubjectIdByName(subjects, timetablePrefill.subject_name)
+      : null;
+
   return (
     <PageContainer>
       <PageHeader
         title="Teaching Diary"
         subtitle={cls.displayName}
-        backHref="/teaching-diary"
-        backLabel="← Back to Teaching Diary"
+        backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
       <TeachingDiaryPageClient
@@ -57,6 +106,14 @@ export default async function TeachingDiaryPage({ params }: PageProps) {
           entries,
           summary: computeDiarySummary(entries),
         }}
+        timetablePrefill={
+          timetablePrefill
+            ? {
+                ...timetablePrefill,
+                syllabus_subject_id: prefillSubjectId,
+              }
+            : null
+        }
       />
     </PageContainer>
   );

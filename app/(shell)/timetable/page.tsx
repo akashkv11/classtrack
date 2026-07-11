@@ -3,7 +3,9 @@ import TimetableContent from "@/components/timetable/timetable-content";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getActiveClasses } from "@/lib/queries/classes";
+import { getTodayScheduleItems } from "@/lib/queries/dashboard";
 import { getTimetableEntries } from "@/lib/queries/timetable";
+import { todayISO } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ export default async function TimetablePage() {
     );
   }
 
-  const [entries, classOptions] = await Promise.all([
+  const [entries, classOptions, todayItems] = await Promise.all([
     getTimetableEntries(),
     Promise.resolve(
       classes.map((cls) => ({
@@ -31,11 +33,17 @@ export default async function TimetablePage() {
         stream: cls.stream,
       })),
     ),
+    getTodayScheduleItems(todayISO()),
   ]);
 
   return (
     <PageContainer>
-      <TimetableContent classes={classOptions} initialEntries={entries} />
+      <TimetableContent
+        classes={classOptions}
+        initialEntries={entries}
+        todayItems={todayItems}
+        today={todayISO()}
+      />
     </PageContainer>
   );
 }

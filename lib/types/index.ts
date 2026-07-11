@@ -15,8 +15,10 @@ export type {
   TeachingDiaryReportEntry,
   MonthlyAcademicWorkReport,
   PendingContinuationItem,
+  AssessmentsReport,
+  AssessmentsReportRow,
 } from "./report";
-export type { SettingsData } from "./settings";
+export type { SettingsData, ReportSettings, AttendanceAlertThresholds } from "./settings";
 export type {
   ScheduleType,
   TimetableEntrySummary,
@@ -83,3 +85,17 @@ export type {
   StudentNoteOption,
   LinkedStudentNoteRef,
 } from "./parent-communication";
+export type {
+  AlertType,
+  AlertStatus,
+  AttendanceAlertSummary,
+  AttendanceAlertsListResponse,
+  AttendanceAlertsClassOverview,
+  AttendanceAlertStatusUpdateResponse,
+} from "./attendance-alert";
+export type {
+  DashboardTodayItem,
+  DashboardClassCard,
+  DashboardFollowUpSummary,
+  DashboardData,
+} from "./dashboard";

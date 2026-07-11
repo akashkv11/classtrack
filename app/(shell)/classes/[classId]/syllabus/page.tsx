@@ -28,8 +28,8 @@ export default async function SyllabusPage({ params }: PageProps) {
       <PageHeader
         title="Syllabus Progress"
         subtitle={`${cls.displayName}${subjectDetail ? ` · ${subjectDetail.subject_name}` : ""}`}
-        backHref="/syllabus-progress"
-        backLabel="← Back to Syllabus Progress"
+        backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
       <SyllabusPageClient

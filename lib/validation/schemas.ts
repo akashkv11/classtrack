@@ -161,23 +161,13 @@ export const settingsFormSchema = z.object({
   late_counts_as_present: z.boolean(),
 });
 
-export const settingsPatchSchema = z
-  .object({
-    active_academic_year_id: uuidSchema.optional(),
-    message_signature: z
-      .string()
-      .trim()
-      .max(200, "Signature must be 200 characters or less")
-      .optional(),
-    late_counts_as_present: z.boolean().optional(),
-  })
-  .refine(
-    (data) =>
-      data.active_academic_year_id !== undefined ||
-      data.message_signature !== undefined ||
-      data.late_counts_as_present !== undefined,
-    { message: "At least one setting is required" },
-  );
+export {
+  settingsPatchSchema,
+  attendanceThresholdsSchema,
+  assessmentThresholdsSchema,
+  reportSettingsSchema,
+  academicSettingsSchema,
+} from "./settings-schemas";
 
 export const classSettingsFormSchema = z.object({
   display_name: z
@@ -235,6 +225,7 @@ export const attendanceDateQuerySchema = z.object({
 
 export const attendanceSaveSchema = z.object({
   attendance_date: isoDateSchema,
+  timetable_entry_id: uuidSchema.optional().nullable(),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
   records: z
     .array(

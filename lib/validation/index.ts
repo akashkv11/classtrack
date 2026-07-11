@@ -6,6 +6,7 @@ export * from "./reports-schemas";
 export * from "./assessment-schemas";
 export * from "./student-note-schemas";
 export * from "./parent-communication-schemas";
+export * from "./attendance-alert-schemas";
 export * from "./parse";
 
 // QUESTION: Why is this here?

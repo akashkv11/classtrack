@@ -15,6 +15,7 @@ import type { TopicStatus } from "@/lib/syllabus/progress";
 type DbEntry = {
   id: string;
   entryDate: Date;
+  timetableEntryId: string | null;
   topicTaught: string;
   teachingNotes: string | null;
   examplesCovered: string | null;
@@ -57,6 +58,7 @@ export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
   return {
     id: entry.id,
     entry_date: formatISODate(entry.entryDate),
+    timetable_entry_id: entry.timetableEntryId,
     subject: entry.syllabusSubject
       ? { id: entry.syllabusSubject.id, name: entry.syllabusSubject.subjectName }
       : null,

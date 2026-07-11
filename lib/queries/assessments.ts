@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatISODate, parseISODate } from "@/lib/dates";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
 import { getActiveClasses } from "@/lib/queries/classes";
+import { getLowMarksThresholdPercent } from "@/lib/settings";
 import type {
   AssessmentClassOverview,
   AssessmentDetail,
@@ -145,11 +146,13 @@ export async function getAssessmentById(
     where: { classId: assessment.classId, isActive: true },
   });
 
+  const lowMarksThreshold = await getLowMarksThresholdPercent();
   const summary = mapAssessmentToSummary(assessment, studentCount);
   const resultSummary = computeAssessmentSummary(
     assessment.marks,
     assessment.maxMarks,
     studentCount,
+    lowMarksThreshold,
   );
 
   return {
@@ -194,10 +197,12 @@ export async function getAssessmentMarksGrid(
     };
   });
 
+  const lowMarksThreshold = await getLowMarksThresholdPercent();
   const summary = computeAssessmentSummary(
     records.map((r) => ({ marksObtained: r.marks_obtained })),
     assessment.maxMarks,
     students.length,
+    lowMarksThreshold,
   );
 
   return {

@@ -32,6 +32,7 @@ export type TeachingDiaryTopicRef = {
 export type TeachingDiaryEntrySummary = {
   id: string;
   entry_date: string;
+  timetable_entry_id: string | null;
   subject: TeachingDiarySubjectRef | null;
   chapter: TeachingDiaryChapterRef | null;
   topic: TeachingDiaryTopicRef | null;

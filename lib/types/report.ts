@@ -88,3 +88,23 @@ export type MonthlyAcademicWorkReport = {
   pending_continuation: PendingContinuationItem[];
   diary_entries: TeachingDiaryReportEntry[];
 };
+
+export type AssessmentsReportRow = {
+  id: string;
+  name: string;
+  assessment_type: string;
+  assessment_date: string;
+  subject_name: string;
+  max_marks: number;
+  class_average: number | null;
+  marks_entered_count: number;
+  student_count: number;
+  below_threshold_count: number;
+};
+
+export type AssessmentsReport = {
+  class: { id: string; display_name: string };
+  month: string | null;
+  low_marks_threshold_percent: number;
+  assessments: AssessmentsReportRow[];
+};

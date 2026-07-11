@@ -1,18 +1,18 @@
-import ClassListCard from "@/components/classes/class-list-card";
+import DashboardClassCard from "@/components/dashboard/dashboard-class-card";
+import DashboardFollowUps from "@/components/dashboard/dashboard-follow-ups";
+import DashboardQuickActions from "@/components/dashboard/dashboard-quick-actions";
+import DashboardTodayComplianceBanner from "@/components/dashboard/dashboard-today-compliance";
+import DashboardTodaySchedule from "@/components/dashboard/dashboard-today-schedule";
 import NoAcademicYearAlert from "@/components/classes/no-academic-year-alert";
-import TodaySchedule from "@/components/today/today-schedule";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import { formatTodayHeading, todayISO } from "@/lib/dates";
-import { getActiveClasses } from "@/lib/queries/classes";
-import { getTodaySchedule } from "@/lib/queries/timetable";
+import { formatTodayHeading } from "@/lib/dates";
+import { getDashboardData } from "@/lib/queries/dashboard";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { activeYear, classes } = await getActiveClasses();
-  const today = todayISO();
-  const schedule = activeYear ? await getTodaySchedule(today) : [];
+  const data = await getDashboardData();
 
   return (
     <PageContainer>
@@ -21,35 +21,41 @@ export default async function DashboardPage() {
         subtitle="Your control center — today's work, classes, and what needs attention."
       />
 
-      {!activeYear ? (
+      {!data ? (
         <NoAcademicYearAlert />
       ) : (
         <>
           <section className="mb-10">
             <h2 className="text-lg font-semibold text-slate-900">
-              Today · {formatTodayHeading(today)}
+              Today · {formatTodayHeading(data.today)}
             </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Academic Year: {data.active_year_name}
+            </p>
+
             <div className="mt-4">
-              <TodaySchedule items={schedule} />
+              <DashboardFollowUps summary={data.follow_ups} />
+              <DashboardTodayComplianceBanner compliance={data.today_compliance} />
+              <DashboardTodaySchedule items={data.today_items} date={data.today} />
             </div>
           </section>
 
-          {classes.length > 0 && (
+          <DashboardQuickActions />
+
+          {data.classes.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-slate-900">Your Classes</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {classes.map((cls) => {
-                  const todaySession = cls.attendanceSessions[0] ?? null;
-                  return (
-                    <ClassListCard
-                      key={cls.id}
-                      id={cls.id}
-                      displayName={cls.displayName}
-                      studentCount={cls._count.students}
-                      todayStatus={todaySession ? "marked" : "not_marked"}
-                    />
-                  );
-                })}
+              <h2 className="text-lg font-semibold text-slate-900">Class Overview</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Attendance, diary, syllabus progress, and follow-ups for each class.
+              </p>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {data.classes.map((card) => (
+                  <DashboardClassCard
+                    key={card.class_id}
+                    card={card}
+                    lowMarksThresholdPercent={data.low_marks_threshold_percent}
+                  />
+                ))}
               </div>
             </section>
           )}

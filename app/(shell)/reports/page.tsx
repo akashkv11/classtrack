@@ -1,3 +1,4 @@
+import Link from "next/link";
 import NoAcademicYearAlert from "@/components/classes/no-academic-year-alert";
 import ReportsClassCard from "@/components/reports/reports-class-card";
 import PageContainer from "@/components/ui/page-container";
@@ -23,6 +24,21 @@ export default async function ReportsPage() {
             : undefined
         }
       />
+
+      {activeYear && (
+        <p className="-mt-2 mb-6 text-sm">
+          <Link
+            href="/reports/export"
+            className="font-medium text-blue-700 hover:text-blue-800"
+          >
+            Export Reports →
+          </Link>
+          <span className="text-slate-600">
+            {" "}
+            Preview and print attendance, syllabus, diary, marks, and student reports.
+          </span>
+        </p>
+      )}
 
       {!activeYear ? (
         <NoAcademicYearAlert />

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import MonthlyReportTable from "@/components/reports/monthly-report-table";
-import ReportPrintButton from "@/components/reports/report-print-button";
+import ReportHeader, { ReportFooter } from "@/components/reports/report-header";
+import ReportPrintActions from "@/components/reports/report-print-actions";
 import Alert from "@/components/ui/alert";
 import FormField, { TextInput } from "@/components/ui/form-field";
 import LoadingState from "@/components/ui/loading-state";
 import type { MonthlyReport } from "@/lib/types";
+import type { ReportSettings } from "@/lib/types/settings";
 import { useClientEffect } from "@/lib/use-client-effect";
 import { monthSchema, parseInput } from "@/lib/validation";
 
@@ -17,9 +19,13 @@ function currentMonth(): string {
 
 type AttendanceReportClientProps = {
   classId: string;
+  reportSettings: ReportSettings;
 };
 
-export default function AttendanceReportClient({ classId }: AttendanceReportClientProps) {
+export default function AttendanceReportClient({
+  classId,
+  reportSettings,
+}: AttendanceReportClientProps) {
   const [month, setMonth] = useState(currentMonth());
   const [report, setReport] = useState<MonthlyReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +78,7 @@ export default function AttendanceReportClient({ classId }: AttendanceReportClie
             error={!!monthError}
           />
         </FormField>
-        <ReportPrintButton />
+        <ReportPrintActions disabled={!report || loading} />
       </div>
 
       {error && (
@@ -85,10 +91,16 @@ export default function AttendanceReportClient({ classId }: AttendanceReportClie
         <LoadingState />
       ) : report ? (
         <div id="report-content">
+          <ReportHeader
+            settings={reportSettings}
+            title="Monthly Attendance Report"
+            subtitle={`${report.class.display_name} · Month: ${month}`}
+          />
           <p className="mb-4 text-sm text-slate-600">
             Working days: <span className="font-medium">{report.working_days}</span>
           </p>
           <MonthlyReportTable students={report.students} />
+          <ReportFooter settings={reportSettings} />
         </div>
       ) : null}
     </>
