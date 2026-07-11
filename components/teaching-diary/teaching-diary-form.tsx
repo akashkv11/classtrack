@@ -80,6 +80,7 @@ function TeachingDiaryFormDialog({
   const [chapterId, setChapterId] = useState(() => entry?.chapter?.id ?? "");
   const [topicId, setTopicId] = useState(() => entry?.topic?.id ?? "");
   const [subjectDetail, setSubjectDetail] = useState<SyllabusSubjectDetail | null>(null);
+  const [loadedSubjectId, setLoadedSubjectId] = useState<string | null>(null);
   const [topicTaught, setTopicTaught] = useState(() => entry?.topic_taught ?? "");
   const [teachingNotes, setTeachingNotes] = useState(() => entry?.teaching_notes ?? "");
   const [examplesCovered, setExamplesCovered] = useState(() => entry?.examples_covered ?? "");
@@ -110,13 +111,12 @@ function TeachingDiaryFormDialog({
   const [topicTaughtAutoFilled, setTopicTaughtAutoFilled] = useState(false);
   const [syllabusStatusSuggested, setSyllabusStatusSuggested] = useState(false);
 
-  topicTaughtRef.current = topicTaught;
+  useEffect(() => {
+    topicTaughtRef.current = topicTaught;
+  }, [topicTaught]);
 
   useEffect(() => {
-    if (!subjectId) {
-      setSubjectDetail(null);
-      return;
-    }
+    if (!subjectId) return;
 
     let cancelled = false;
 
@@ -125,6 +125,7 @@ function TeachingDiaryFormDialog({
       if (!res.ok || cancelled) return;
       const data = await res.json();
       setSubjectDetail(data);
+      setLoadedSubjectId(subjectId);
     }
 
     loadSubject();
@@ -133,7 +134,7 @@ function TeachingDiaryFormDialog({
     };
   }, [classId, subjectId]);
 
-  const chapters = subjectDetail?.chapters ?? [];
+  const chapters = loadedSubjectId === subjectId ? (subjectDetail?.chapters ?? []) : [];
   const selectedChapter = chapters.find((ch) => ch.id === chapterId);
   const topics = selectedChapter?.topics ?? [];
   const selectedTopic = topics.find((t) => t.id === topicId);
@@ -208,6 +209,8 @@ function TeachingDiaryFormDialog({
     setSubjectId(value);
     setChapterId("");
     setTopicId("");
+    setSubjectDetail(null);
+    setLoadedSubjectId(null);
     clearTopicTaughtSuggestion();
     clearSyllabusStatusSuggestion();
   }

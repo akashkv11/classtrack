@@ -367,10 +367,7 @@ async function getLatestAssessmentByClass(classIds: string[]) {
   return new Map(results);
 }
 
-async function getDashboardTodayItems(
-  today: string,
-  classIds: string[],
-): Promise<DashboardTodayItem[]> {
+async function getDashboardTodayItems(today: string): Promise<DashboardTodayItem[]> {
   const month = currentMonthFromDate(today);
   const schedule = await getTodaySchedule(today);
 
@@ -423,7 +420,7 @@ export async function getTodayScheduleItems(today?: string): Promise<DashboardTo
   const isoDate = today ?? todayISO();
   const { activeYear } = await getActiveClasses();
   if (!activeYear) return [];
-  return getDashboardTodayItems(isoDate, []);
+  return getDashboardTodayItems(isoDate);
 }
 
 async function getDashboardClassCards(
@@ -520,7 +517,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
   const month = currentMonthFromDate(today);
 
   const [todayItems, classCards, followUps, lowMarksThreshold] = await Promise.all([
-    getDashboardTodayItems(today, classIds),
+    getDashboardTodayItems(today),
     getDashboardClassCards(classes, today),
     getDashboardFollowUpSummary(classIds, today, month),
     getLowMarksThresholdPercent(),

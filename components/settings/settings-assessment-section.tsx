@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import SettingsSection from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 import FormField, { TextInput } from "@/components/ui/form-field";
@@ -22,10 +22,6 @@ export default function SettingsAssessmentSection({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-
-  useEffect(() => {
-    setLowMarksThreshold(String(settings.low_marks_threshold_percent));
-  }, [settings]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

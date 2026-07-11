@@ -4,7 +4,7 @@ import {
 } from "@/lib/attendance";
 import type { AttendanceAlertThresholds } from "@/lib/types/settings";
 import { formatISODate } from "@/lib/dates";
-import type { AlertType, AttendanceAlertSummary } from "@/lib/types/attendance-alert";
+import type { AttendanceAlertSummary } from "@/lib/types/attendance-alert";
 
 type StudentInfo = {
   id: string;
@@ -66,7 +66,7 @@ function detectContinuousAbsenceAlerts(
         alert_type: "CONTINUOUS_ABSENCE",
         month,
         title: `Absent for ${dates.length} continuous classes`,
-        message: `${student.fullName} was absent for ${dates.length} continuous classes.`,
+        message: `${student.fullName} was absent for ${dates.length} continuous classes (${formattedDates}).`,
         detail_dates: [...dates],
         streak_length: dates.length,
       });

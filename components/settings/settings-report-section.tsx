@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import SettingsSection from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 import FormField, { TextInput } from "@/components/ui/form-field";
@@ -24,14 +24,6 @@ export default function SettingsReportSection({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-
-  useEffect(() => {
-    setTeacherName(settings.teacher_name);
-    setInstitutionName(settings.institution_name);
-    setReportTitle(settings.report_title);
-    setMessageSignature(settings.message_signature);
-    setReportFooter(settings.report_footer);
-  }, [settings]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

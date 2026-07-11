@@ -15,8 +15,9 @@ import { useClientEffect } from "@/lib/use-client-effect";
 export default function SettingsPageClient() {
   const [data, setData] = useState<SettingsData | null>(null);
   const [activeYearId, setActiveYearId] = useState("");
+  const [settingsVersion, setSettingsVersion] = useState(0);
 
-  async function reloadSettings(signal?: AbortSignal) {
+  async function reloadSettings(signal?: AbortSignal, bumpVersion = false) {
     const res = await fetch("/api/settings", { signal });
     if (!res.ok) return;
 
@@ -24,6 +25,9 @@ export default function SettingsPageClient() {
     setData(payload);
     const active = payload.academic_years.find((year) => year.is_active);
     setActiveYearId(active?.id ?? payload.academic_years[0]?.id ?? "");
+    if (bumpVersion) {
+      setSettingsVersion((version) => version + 1);
+    }
   }
 
   useClientEffect((signal) => reloadSettings(signal), []);
@@ -46,16 +50,22 @@ export default function SettingsPageClient() {
       />
 
       <SettingsAttendanceSection
+        key={`attendance-${settingsVersion}`}
         settings={data.settings}
-        onSaved={() => reloadSettings()}
+        onSaved={() => reloadSettings(undefined, true)}
       />
 
       <SettingsAssessmentSection
+        key={`assessment-${settingsVersion}`}
         settings={data.settings}
-        onSaved={() => reloadSettings()}
+        onSaved={() => reloadSettings(undefined, true)}
       />
 
-      <SettingsReportSection settings={data.settings} onSaved={() => reloadSettings()} />
+      <SettingsReportSection
+        key={`report-${settingsVersion}`}
+        settings={data.settings}
+        onSaved={() => reloadSettings(undefined, true)}
+      />
 
       <SettingsCommunicationSection communication={data.communication} />
 

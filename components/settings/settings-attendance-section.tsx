@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import SettingsSection from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 import FormField, { CheckboxField, TextInput } from "@/components/ui/form-field";
@@ -31,13 +31,6 @@ export default function SettingsAttendanceSection({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-
-  useEffect(() => {
-    setLowAttendanceThreshold(String(settings.low_attendance_threshold));
-    setContinuousAbsenceThreshold(String(settings.continuous_absence_threshold));
-    setMonthlyAbsenceThreshold(String(settings.monthly_absence_threshold));
-    setLateCountsAsPresent(settings.late_counts_as_present);
-  }, [settings]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

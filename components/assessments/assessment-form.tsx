@@ -48,6 +48,7 @@ export default function AssessmentForm({
     () => assessment?.topics.map((t) => t.id) ?? [],
   );
   const [subjectDetail, setSubjectDetail] = useState<SyllabusSubjectDetail | null>(null);
+  const [loadedSubjectId, setLoadedSubjectId] = useState<string | null>(null);
   const [assessmentType, setAssessmentType] = useState<AssessmentType>(
     () => assessment?.assessment_type ?? "CLASS_TEST",
   );
@@ -63,11 +64,7 @@ export default function AssessmentForm({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
-    if (!open) return;
-    if (!subjectId) {
-      setSubjectDetail(null);
-      return;
-    }
+    if (!open || !subjectId) return;
 
     let cancelled = false;
     async function loadSubject() {
@@ -75,6 +72,7 @@ export default function AssessmentForm({
       if (!res.ok || cancelled) return;
       const data = await res.json();
       setSubjectDetail(data.subject);
+      setLoadedSubjectId(subjectId);
     }
 
     loadSubject();
@@ -141,10 +139,11 @@ export default function AssessmentForm({
     }
   }
 
-  const chapters = subjectDetail?.chapters ?? [];
+  const chapters =
+    loadedSubjectId === subjectId ? (subjectDetail?.chapters ?? []) : [];
   const topics =
     chapters.find((ch) => ch.id === chapterId)?.topics ??
-  chapters.flatMap((ch) => ch.topics);
+    chapters.flatMap((ch) => ch.topics);
 
   return (
     <Modal
@@ -176,6 +175,8 @@ export default function AssessmentForm({
                 setSubjectId(e.target.value);
                 setChapterId("");
                 setTopicIds([]);
+                setSubjectDetail(null);
+                setLoadedSubjectId(null);
               }}
               error={!!fieldErrors.syllabus_subject_id}
             >

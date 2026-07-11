@@ -6,7 +6,6 @@ import ReportPrintActions from "@/components/reports/report-print-actions";
 import ReportSubjectFilter from "@/components/reports/report-subject-filter";
 import TeachingDiaryReportView from "@/components/reports/teaching-diary-report-view";
 import Alert from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import FormField, { TextInput } from "@/components/ui/form-field";
 import LoadingState from "@/components/ui/loading-state";
 import type { TeachingDiaryReport } from "@/lib/types/report";
