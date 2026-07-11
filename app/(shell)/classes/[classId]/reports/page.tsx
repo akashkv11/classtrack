@@ -1,99 +1,64 @@
-"use client";
-
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { useClass } from "@/components/classes/class-provider";
-import MonthlyReportTable from "@/components/reports/monthly-report-table";
-import Alert from "@/components/ui/alert";
-import FormField, { TextInput } from "@/components/ui/form-field";
-import LoadingState from "@/components/ui/loading-state";
+import { notFound } from "next/navigation";
+import ReportHubCard from "@/components/reports/report-hub-card";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import type { MonthlyReport } from "@/lib/types";
-import { useClientEffect } from "@/lib/use-client-effect";
-import { monthSchema, parseInput } from "@/lib/validation";
+import { getClassById } from "@/lib/queries/classes";
 
-function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
+export const dynamic = "force-dynamic";
 
-export default function MonthlyReportPage() {
-  const params = useParams<{ classId: string }>();
-  const classId = params.classId;
-  const { displayName } = useClass();
+type PageProps = { params: Promise<{ classId: string }> };
 
-  const [month, setMonth] = useState(currentMonth());
-  const [report, setReport] = useState<MonthlyReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [monthError, setMonthError] = useState("");
+const reports = [
+  {
+    slug: "attendance",
+    title: "Attendance Report",
+    description: "Monthly student attendance summary with present, absent, and late counts.",
+  },
+  {
+    slug: "syllabus-progress",
+    title: "Syllabus Progress Report",
+    description: "Topic completion status and chapter-wise syllabus progress.",
+  },
+  {
+    slug: "teaching-diary",
+    title: "Teaching Diary Report",
+    description: "Daily teaching records with topics taught, notes, and next class plans.",
+  },
+  {
+    slug: "academic-work",
+    title: "Monthly Academic Work Report",
+    description: "Combined monthly view of teaching activity and pending continuation topics.",
+  },
+] as const;
 
-  useClientEffect(async (signal) => {
-    const monthParsed = parseInput(monthSchema, month);
-    if (!monthParsed.success) {
-      setMonthError(monthParsed.error);
-      setLoading(false);
-      return;
-    }
-
-    setMonthError("");
-    setLoading(true);
-    setError("");
-
-    const reportRes = await fetch(`/api/reports/monthly?class_id=${classId}&month=${month}`, {
-      signal,
-    });
-
-    if (!reportRes.ok) {
-      const payload = await reportRes.json().catch(() => ({}));
-      setError(payload.error ?? "Failed to load report.");
-      setReport(null);
-      setLoading(false);
-      return;
-    }
-
-    setReport(await reportRes.json());
-    setLoading(false);
-  }, [classId, month]);
-
-  function handleMonthChange(value: string) {
-    setMonth(value);
-    const parsed = parseInput(monthSchema, value);
-    setMonthError(parsed.success ? "" : parsed.error);
-  }
+export default async function ClassReportsPage({ params }: PageProps) {
+  const { classId } = await params;
+  const cls = await getClassById(classId);
+  if (!cls) notFound();
 
   return (
     <PageContainer>
       <PageHeader
-        title="Monthly Report"
-        subtitle={displayName}
+        title="Reports"
+        subtitle={cls.displayName}
         backHref={`/classes/${classId}`}
+        backLabel="← Back to Class"
       />
 
-      <div className="mb-6">
-        <FormField label="Month" error={monthError}>
-          <TextInput
-            type="month"
-            value={month}
-            onChange={(e) => handleMonthChange(e.target.value)}
-            error={!!monthError}
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Available Reports
+      </h2>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {reports.map((report) => (
+          <ReportHubCard
+            key={report.slug}
+            href={`/classes/${classId}/reports/${report.slug}`}
+            title={report.title}
+            description={report.description}
           />
-        </FormField>
+        ))}
       </div>
-
-      {error && <Alert variant="error" className="mb-4">{error}</Alert>}
-
-      {loading ? (
-        <LoadingState />
-      ) : report ? (
-        <>
-          <p className="mb-4 text-sm text-slate-600">
-            Working days: <span className="font-medium">{report.working_days}</span>
-          </p>
-          <MonthlyReportTable students={report.students} />
-        </>
-      ) : null}
     </PageContainer>
   );
 }

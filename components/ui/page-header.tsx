@@ -18,7 +18,7 @@ export default function PageHeader({
       {backHref && (
         <Link
           href={backHref}
-          className="mb-2 inline-block text-sm text-blue-600 hover:underline break-words"
+          className="mb-2 inline-block text-sm text-blue-600 hover:underline break-words print:hidden"
         >
           <span className="sm:hidden">← Back</span>
           <span className="hidden sm:inline">{backLabel}</span>

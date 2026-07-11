@@ -5,7 +5,17 @@ export type {
   AttendanceSummary,
   WhatsAppMessageData,
 } from "./attendance";
-export type { ReportStudent, MonthlyReport } from "./report";
+export type {
+  ReportStudent,
+  MonthlyReport,
+  ReportsClassOverview,
+  SyllabusProgressReport,
+  SyllabusProgressChapterRow,
+  TeachingDiaryReport,
+  TeachingDiaryReportEntry,
+  MonthlyAcademicWorkReport,
+  PendingContinuationItem,
+} from "./report";
 export type { SettingsData } from "./settings";
 export type {
   ScheduleType,

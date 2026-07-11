@@ -10,6 +10,7 @@ const links = [
   { href: (id: string) => `/classes/${id}#students`, label: "Students", enabled: true },
   { href: (id: string) => `/classes/${id}/syllabus`, label: "Syllabus", enabled: true },
   { href: (id: string) => `/classes/${id}/teaching-diary`, label: "Teaching Diary", enabled: true },
+  { href: (id: string) => `/classes/${id}/reports`, label: "Reports", enabled: true },
   { href: () => "#", label: "Marks", enabled: false },
 ] as const;
 

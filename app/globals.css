@@ -36,3 +36,13 @@ textarea::placeholder {
 [data-nextjs-dev-tools-button] {
   display: none !important;
 }
+
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+}

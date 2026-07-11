@@ -20,7 +20,7 @@ export default function ClassActions({ classId }: ClassActionsProps) {
         variant="secondary"
         className={actionButtonClassName}
       >
-        View Monthly Report
+        View Reports
       </ButtonLink>
       <ButtonLink
         href={`/classes/${classId}/settings`}

@@ -12,6 +12,7 @@ function exactOrChild(href: string) {
 
 const classSyllabusPath = /^\/classes\/[^/]+\/syllabus(\/|$)/;
 const classTeachingDiaryPath = /^\/classes\/[^/]+\/teaching-diary(\/|$)/;
+const classReportsPath = /^\/classes\/[^/]+\/reports(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
@@ -19,6 +20,10 @@ function isClassSyllabusPath(path: string) {
 
 function isClassTeachingDiaryPath(path: string) {
   return classTeachingDiaryPath.test(path);
+}
+
+function isClassReportsPath(path: string) {
+  return classReportsPath.test(path);
 }
 
 export const appModules: AppModule[] = [
@@ -44,7 +49,8 @@ export const appModules: AppModule[] = [
     match: (path) =>
       (path === "/classes" || path.startsWith("/classes/")) &&
       !isClassSyllabusPath(path) &&
-      !isClassTeachingDiaryPath(path),
+      !isClassTeachingDiaryPath(path) &&
+      !isClassReportsPath(path),
   },
   {
     id: "teaching-diary",
@@ -106,7 +112,10 @@ export const appModules: AppModule[] = [
     href: "/reports",
     label: "Reports",
     description: "View school-wide and class-level reports and analytics.",
-    match: exactOrChild("/reports"),
+    match: (path) =>
+      path === "/reports" ||
+      path.startsWith("/reports/") ||
+      isClassReportsPath(path),
   },
   {
     id: "settings",
