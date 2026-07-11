@@ -46,3 +46,15 @@ export type {
   TeachingDiaryListResponse,
   TeachingDiaryClassOverview,
 } from "./teaching-diary";
+export type {
+  AssessmentType,
+  AssessmentSummary,
+  AssessmentDetail,
+  AssessmentResultSummary,
+  AssessmentMarkRow,
+  AssessmentMarksResponse,
+  AssessmentListResponse,
+  AssessmentClassOverview,
+  StudentAssessmentHistory,
+  StudentAssessmentHistoryEntry,
+} from "./assessment";

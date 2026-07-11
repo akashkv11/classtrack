@@ -211,6 +211,24 @@ export const classSettingsPatchSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
+export const classLevelSchema = z.enum(["plus_one", "plus_two"], {
+  error: "Select a valid class level",
+});
+
+export const classStreamSchema = z.enum(["science", "commerce", "humanities"], {
+  error: "Select a valid stream",
+});
+
+export const classCreateSchema = z.object({
+  level: classLevelSchema,
+  stream: classStreamSchema,
+  display_name: z
+    .string()
+    .trim()
+    .min(1, "Display name is required")
+    .max(100, "Display name must be 100 characters or less"),
+});
+
 export const attendanceDateQuerySchema = z.object({
   date: isoDateSchema,
 });

@@ -1,4 +1,4 @@
-import ClassListCard from "@/components/classes/class-list-card";
+import ClassesPageClient from "@/components/classes/classes-page-client";
 import NoAcademicYearAlert from "@/components/classes/no-academic-year-alert";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
@@ -20,23 +20,16 @@ export default async function ClassesPage() {
 
       {!activeYear ? (
         <NoAcademicYearAlert />
-      ) : classes.length === 0 ? (
-        <p className="text-slate-600">No classes found for this academic year.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {classes.map((cls) => {
-            const todaySession = cls.attendanceSessions[0] ?? null;
-            return (
-              <ClassListCard
-                key={cls.id}
-                id={cls.id}
-                displayName={cls.displayName}
-                studentCount={cls._count.students}
-                todayStatus={todaySession ? "marked" : "not_marked"}
-              />
-            );
-          })}
-        </div>
+        <ClassesPageClient
+          hasActiveYear
+          initialClasses={classes.map((cls) => ({
+            id: cls.id,
+            displayName: cls.displayName,
+            studentCount: cls._count.students,
+            todayStatus: cls.attendanceSessions.length > 0 ? "marked" : "not_marked",
+          }))}
+        />
       )}
     </PageContainer>
   );

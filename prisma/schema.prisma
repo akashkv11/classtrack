@@ -36,6 +36,7 @@ model Class {
   timetableEntries   TimetableEntry[]
   syllabusSubjects      SyllabusSubject[]
   teachingDiaryEntries  TeachingDiaryEntry[]
+  assessments           Assessment[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
@@ -58,6 +59,7 @@ model SyllabusSubject {
   class                Class                 @relation(fields: [classId], references: [id], onDelete: Cascade)
   chapters             SyllabusChapter[]
   teachingDiaryEntries TeachingDiaryEntry[]
+  assessments          Assessment[]
 
   @@map("syllabus_subjects")
 }
@@ -76,6 +78,7 @@ model SyllabusChapter {
   syllabusSubject      SyllabusSubject        @relation(fields: [syllabusSubjectId], references: [id], onDelete: Cascade)
   topics               SyllabusTopic[]
   teachingDiaryEntries TeachingDiaryEntry[]
+  assessments          Assessment[]
 
   @@map("syllabus_chapters")
 }
@@ -102,6 +105,7 @@ model SyllabusTopic {
 
   syllabusChapter      SyllabusChapter        @relation(fields: [syllabusChapterId], references: [id], onDelete: Cascade)
   teachingDiaryEntries TeachingDiaryEntry[]
+  assessmentTopics     AssessmentTopic[]
 
   @@map("syllabus_topics")
 }
@@ -169,6 +173,7 @@ model Student {
 
   class              Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
   attendanceRecords  AttendanceRecord[]
+  assessmentMarks    AssessmentMark[]
 
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
@@ -204,6 +209,57 @@ model AttendanceRecord {
 
   @@unique([sessionId, studentId])
   @@map("attendance_records")
+}
+
+model Assessment {
+  id                String   @id @default(uuid()) @db.Uuid
+  classId           String   @map("class_id") @db.Uuid
+  syllabusSubjectId String   @map("syllabus_subject_id") @db.Uuid
+  syllabusChapterId String?  @map("syllabus_chapter_id") @db.Uuid
+  name              String
+  assessmentType    String   @map("assessment_type")
+  assessmentDate    DateTime @map("assessment_date") @db.Date
+  maxMarks          Int      @map("max_marks")
+  remarks           String?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class           Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  syllabusSubject SyllabusSubject   @relation(fields: [syllabusSubjectId], references: [id], onDelete: Restrict)
+  syllabusChapter SyllabusChapter?  @relation(fields: [syllabusChapterId], references: [id], onDelete: SetNull)
+  topics          AssessmentTopic[]
+  marks           AssessmentMark[]
+
+  @@index([classId, assessmentDate])
+  @@map("assessments")
+}
+
+model AssessmentTopic {
+  id              String @id @default(uuid()) @db.Uuid
+  assessmentId    String @map("assessment_id") @db.Uuid
+  syllabusTopicId String @map("syllabus_topic_id") @db.Uuid
+
+  assessment    Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  syllabusTopic SyllabusTopic @relation(fields: [syllabusTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, syllabusTopicId])
+  @@map("assessment_topics")
+}
+
+model AssessmentMark {
+  id            String   @id @default(uuid()) @db.Uuid
+  assessmentId  String   @map("assessment_id") @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  marksObtained Int?     @map("marks_obtained")
+  remarks       String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, studentId])
+  @@map("assessment_marks")
 }
 
 model AppSetting {

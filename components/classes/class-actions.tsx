@@ -23,6 +23,13 @@ export default function ClassActions({ classId }: ClassActionsProps) {
         View Reports
       </ButtonLink>
       <ButtonLink
+        href={`/classes/${classId}/assessments`}
+        variant="secondary"
+        className={actionButtonClassName}
+      >
+        Assessments
+      </ButtonLink>
+      <ButtonLink
         href={`/classes/${classId}/settings`}
         variant="secondary"
         className={actionButtonClassName}

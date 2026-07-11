@@ -3,6 +3,7 @@ export * from "./schemas";
 export * from "./syllabus-schemas";
 export * from "./teaching-diary-schemas";
 export * from "./reports-schemas";
+export * from "./assessment-schemas";
 export * from "./parse";
 
 // QUESTION: Why is this here?
