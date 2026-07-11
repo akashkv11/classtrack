@@ -13,20 +13,37 @@ function decodePrismaDevDatabaseUrl(
   }
 }
 
+export function getDatabaseUrl(): string {
+  const configured = process.env.DATABASE_URL;
+  if (!configured) {
+    throw new Error("DATABASE_URL is not configured");
+  }
+
+  if (configured.startsWith("prisma+postgres://")) {
+    const databaseUrl = decodePrismaDevDatabaseUrl(configured, "databaseUrl");
+    if (!databaseUrl) {
+      throw new Error(
+        "DATABASE_URL uses prisma+postgres:// but no database URL was found. Start `npx prisma dev` or set a standard DATABASE_URL.",
+      );
+    }
+    return databaseUrl;
+  }
+
+  return configured;
+}
+
 export function getDirectDatabaseUrl(): string {
   const configured =
-    process.env.DIRECT_DATABASE_URL ??
-    process.env.DIRECT_URL ??
-    process.env.DATABASE_URL;
+    process.env.DIRECT_DATABASE_URL ?? process.env.DIRECT_URL;
   if (!configured) {
-    throw new Error("DATABASE_URL is not set");
+    throw new Error("DIRECT_URL is not configured");
   }
 
   if (configured.startsWith("prisma+postgres://")) {
     const directUrl = decodePrismaDevDatabaseUrl(configured, "databaseUrl");
     if (!directUrl) {
       throw new Error(
-        "DATABASE_URL uses prisma+postgres:// but no direct database URL was found. Start `npx prisma dev` or set DIRECT_DATABASE_URL.",
+        "DIRECT_URL uses prisma+postgres:// but no direct database URL was found. Start `npx prisma dev` or set DIRECT_DATABASE_URL.",
       );
     }
     return directUrl;
