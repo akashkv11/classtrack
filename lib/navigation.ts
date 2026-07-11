@@ -16,6 +16,7 @@ const classReportsPath = /^\/classes\/[^/]+\/reports(\/|$)/;
 const classAssessmentsPath = /^\/classes\/[^/]+\/assessments(\/|$)/;
 const classStudentsPath = /^\/classes\/[^/]+\/students(\/|$)/;
 const classStudentNotesPath = /^\/classes\/[^/]+\/student-notes(\/|$)/;
+const classParentCommunicationPath = /^\/classes\/[^/]+\/parent-communication(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
@@ -39,6 +40,10 @@ function isClassStudentsPath(path: string) {
 
 function isClassStudentNotesPath(path: string) {
   return classStudentNotesPath.test(path);
+}
+
+function isClassParentCommunicationPath(path: string) {
+  return classParentCommunicationPath.test(path);
 }
 
 export const appModules: AppModule[] = [
@@ -68,7 +73,8 @@ export const appModules: AppModule[] = [
       !isClassReportsPath(path) &&
       !isClassAssessmentsPath(path) &&
       !isClassStudentsPath(path) &&
-      !isClassStudentNotesPath(path),
+      !isClassStudentNotesPath(path) &&
+      !isClassParentCommunicationPath(path),
   },
   {
     id: "teaching-diary",
@@ -122,7 +128,10 @@ export const appModules: AppModule[] = [
     href: "/parent-communication",
     label: "Parent Communication",
     description: "Message parents and track communication history.",
-    match: exactOrChild("/parent-communication"),
+    match: (path) =>
+      path === "/parent-communication" ||
+      path.startsWith("/parent-communication/") ||
+      isClassParentCommunicationPath(path),
   },
   {
     id: "syllabus-progress",
@@ -163,6 +172,7 @@ const primaryNavIds = [
   "marks",
   "student-profile",
   "student-notes",
+  "parent-communication",
   "settings",
 ] as const;
 

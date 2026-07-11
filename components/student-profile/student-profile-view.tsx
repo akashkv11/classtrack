@@ -166,16 +166,6 @@ export default function StudentProfileView({ profile }: StudentProfileViewProps)
           </Table>
         )}
       </Card>
-
-      <Card>
-        <h3 className="mb-2 text-lg font-semibold text-slate-900">
-          Parent Communication
-        </h3>
-        <p className="text-sm text-slate-600">
-          No communication recorded yet. Parent Communication will be available in a
-          future update.
-        </p>
-      </Card>
     </>
   );
 }

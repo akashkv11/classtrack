@@ -73,3 +73,13 @@ export type {
   StudentNotesListResponse,
   StudentNotesClassOverview,
 } from "./student-note";
+export type {
+  CommunicationType,
+  CommunicationReason,
+  CommunicationStatus,
+  ParentCommunicationSummary,
+  ParentCommunicationsListResponse,
+  ParentCommunicationClassOverview,
+  StudentNoteOption,
+  LinkedStudentNoteRef,
+} from "./parent-communication";

@@ -38,6 +38,7 @@ model Class {
   teachingDiaryEntries  TeachingDiaryEntry[]
   assessments           Assessment[]
   studentNotes          StudentNote[]
+  parentCommunications  ParentCommunication[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
@@ -174,8 +175,9 @@ model Student {
 
   class              Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
   attendanceRecords  AttendanceRecord[]
-  assessmentMarks    AssessmentMark[]
-  studentNotes       StudentNote[]
+  assessmentMarks       AssessmentMark[]
+  studentNotes          StudentNote[]
+  parentCommunications  ParentCommunication[]
 
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
@@ -277,11 +279,35 @@ model StudentNote {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class                Class                 @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student              Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parentCommunications ParentCommunication[]
 
   @@index([studentId, noteDate])
   @@map("student_notes")
+}
+
+model ParentCommunication {
+  id                String    @id @default(uuid()) @db.Uuid
+  classId           String    @map("class_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  studentNoteId     String?   @map("student_note_id") @db.Uuid
+  communicationDate DateTime  @map("communication_date") @db.Date
+  communicationType String    @map("communication_type")
+  reason            String
+  summary           String
+  followUpNeeded    Boolean   @default(false) @map("follow_up_needed")
+  followUpDate      DateTime? @map("follow_up_date") @db.Date
+  status            String    @default("OPEN")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentNote StudentNote? @relation(fields: [studentNoteId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, communicationDate])
+  @@map("parent_communications")
 }
 
 model AppSetting {
