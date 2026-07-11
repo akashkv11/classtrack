@@ -19,7 +19,16 @@ import {
   SYLLABUS_STATUS_UPDATE_LABELS,
   suggestSyllabusStatusUpdate,
 } from "@/lib/teaching-diary/status";
-import { buildTopicTaughtSuggestion } from "@/lib/teaching-diary/suggestions";
+import {
+  buildTopicTaughtFromSubtopics,
+  buildTopicTaughtSuggestion,
+  suggestDiaryStatusFromSubtopics,
+} from "@/lib/teaching-diary/suggestions";
+import {
+  filterChaptersForDiaryForm,
+  filterTopicsForDiaryForm,
+} from "@/lib/teaching-diary/availability";
+import { flattenSubtopicLabels } from "@/lib/syllabus/subtopics";
 import { STATUS_LABELS } from "@/lib/syllabus/progress";
 import type { TopicStatus } from "@/lib/syllabus/progress";
 import type {
@@ -40,6 +49,7 @@ type TeachingDiaryFormProps = {
   open: boolean;
   classId: string;
   subjects: SyllabusSubjectSummary[];
+  fullyTaughtTopicIds: ReadonlySet<string>;
   entry?: TeachingDiaryEntrySummary | null;
   timetablePrefill?: {
     timetable_entry_id?: string;
@@ -64,6 +74,7 @@ function chapterLabel(ch: { chapter_number: number | null; chapter_title: string
 function TeachingDiaryFormDialog({
   classId,
   subjects,
+  fullyTaughtTopicIds,
   entry,
   timetablePrefill,
   onClose,
@@ -82,6 +93,9 @@ function TeachingDiaryFormDialog({
   const [subjectDetail, setSubjectDetail] = useState<SyllabusSubjectDetail | null>(null);
   const [loadedSubjectId, setLoadedSubjectId] = useState<string | null>(null);
   const [topicTaught, setTopicTaught] = useState(() => entry?.topic_taught ?? "");
+  const [subtopicsCovered, setSubtopicsCovered] = useState<string[]>(
+    () => entry?.subtopics_covered ?? [],
+  );
   const [teachingNotes, setTeachingNotes] = useState(() => entry?.teaching_notes ?? "");
   const [examplesCovered, setExamplesCovered] = useState(() => entry?.examples_covered ?? "");
   const [studentResponse, setStudentResponse] = useState<StudentResponse>(
@@ -134,11 +148,51 @@ function TeachingDiaryFormDialog({
     };
   }, [classId, subjectId]);
 
-  const chapters = loadedSubjectId === subjectId ? (subjectDetail?.chapters ?? []) : [];
+  const chapters = loadedSubjectId === subjectId
+    ? filterChaptersForDiaryForm(
+        subjectDetail?.chapters ?? [],
+        fullyTaughtTopicIds,
+        chapterId || entry?.chapter?.id,
+        topicId || entry?.topic?.id,
+      )
+    : [];
   const selectedChapter = chapters.find((ch) => ch.id === chapterId);
-  const topics = selectedChapter?.topics ?? [];
+  const topics = selectedChapter
+    ? filterTopicsForDiaryForm(
+        selectedChapter.topics,
+        fullyTaughtTopicIds,
+        topicId || entry?.topic?.id,
+      )
+    : [];
   const selectedTopic = topics.find((t) => t.id === topicId);
   const currentTopicStatus = selectedTopic?.status as TopicStatus | undefined;
+  const allSubtopicLabels = selectedTopic
+    ? flattenSubtopicLabels(selectedTopic.subtopics)
+    : [];
+
+  function applySubtopicSelection(selected: string[]) {
+    setSubtopicsCovered(selected);
+
+    const statusSuggestion = suggestDiaryStatusFromSubtopics(
+      allSubtopicLabels,
+      selected,
+    );
+    if (statusSuggestion) {
+      setDiaryStatus(statusSuggestion);
+      applySyllabusStatusSuggestion(statusSuggestion);
+    }
+
+    if (selected.length > 0) {
+      applyTopicTaughtSuggestion(buildTopicTaughtFromSubtopics(selected));
+    }
+  }
+
+  function toggleSubtopic(label: string) {
+    const next = subtopicsCovered.includes(label)
+      ? subtopicsCovered.filter((item) => item !== label)
+      : [...subtopicsCovered, label];
+    applySubtopicSelection(next);
+  }
 
   function applySyllabusStatusSuggestion(status: DiaryStatus, force = false) {
     const suggestion = suggestSyllabusStatusUpdate(status);
@@ -191,6 +245,7 @@ function TeachingDiaryFormDialog({
 
   function handleTopicChange(value: string) {
     setTopicId(value);
+    setSubtopicsCovered([]);
 
     if (!value) {
       clearTopicTaughtSuggestion();
@@ -241,6 +296,7 @@ function TeachingDiaryFormDialog({
       syllabus_chapter_id: chapterId || null,
       syllabus_topic_id: topicId || null,
       topic_taught: topicTaught,
+      subtopics_covered: subtopicsCovered,
       teaching_notes: teachingNotes.trim() || null,
       examples_covered: examplesCovered.trim() || null,
       student_response: studentResponse,
@@ -374,26 +430,47 @@ function TeachingDiaryFormDialog({
             </p>
             {selectedTopic.subtopics.length > 0 && (
               <div className="mt-2">
-                <p className="text-slate-600">Subtopics:</p>
-                <ul className="mt-1 list-inside list-disc text-slate-600">
-                  {selectedTopic.subtopics.map((st) => (
-                    <li key={st.subtopic_title}>{st.subtopic_title}</li>
+                <p className="text-slate-600">Subtopics covered today:</p>
+                <ul className="mt-2 space-y-2">
+                  {allSubtopicLabels.map((label) => (
+                    <li key={label}>
+                      <label className="flex cursor-pointer items-start gap-2 text-slate-700">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={subtopicsCovered.includes(label)}
+                          onChange={() => toggleSubtopic(label)}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    </li>
                   ))}
                 </ul>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() =>
-                    applyTopicTaughtSuggestion(
-                      buildTopicTaughtSuggestion(selectedTopic),
-                      true,
-                    )
-                  }
-                >
-                  Use subtopics as topic taught
-                </Button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => applySubtopicSelection([...allSubtopicLabels])}
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => applySubtopicSelection([])}
+                  >
+                    Clear selection
+                  </Button>
+                </div>
+                {subtopicsCovered.length > 0 &&
+                  subtopicsCovered.length < allSubtopicLabels.length && (
+                    <p className="mt-2 text-xs text-amber-700">
+                      Partial coverage — you can add another diary entry later for
+                      the remaining subtopics.
+                    </p>
+                  )}
               </div>
             )}
           </div>
@@ -527,6 +604,7 @@ export default function TeachingDiaryForm({
   open,
   classId,
   subjects,
+  fullyTaughtTopicIds,
   entry,
   timetablePrefill,
   onClose,
@@ -541,6 +619,7 @@ export default function TeachingDiaryForm({
       key={dialogKey}
       classId={classId}
       subjects={subjects}
+      fullyTaughtTopicIds={fullyTaughtTopicIds}
       entry={entry}
       timetablePrefill={timetablePrefill}
       onClose={onClose}

@@ -2,10 +2,61 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { countAbsentDaysByStudent } from "@/lib/attendance";
-import { endOfMonth, startOfMonth } from "@/lib/dates";
-import { buildAbsenteeMessage, buildWhatsAppUrl, subjectForStream } from "@/lib/whatsapp";
+import { endOfMonth, formatISODate, startOfMonth } from "@/lib/dates";
+import { serializeTimetableEntry } from "@/lib/queries/timetable";
+import { getScheduleForDate } from "@/lib/timetable";
+import {
+  buildClassUpdateMessage,
+  buildTopicTakenFromDiary,
+  buildWhatsAppUrl,
+  formatClassTimeRange,
+  subjectForStream,
+} from "@/lib/whatsapp";
+import { getWhatsAppMissingItems } from "@/lib/whatsapp-readiness";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
+
+const diaryInclude = {
+  syllabusSubject: {
+    select: { subjectName: true },
+  },
+  syllabusTopic: {
+    select: { topicTitle: true, subtopics: true },
+  },
+  timetableEntry: {
+    include: {
+      class: { select: { displayName: true } },
+    },
+  },
+} as const;
+
+async function findDiaryEntryForSession(options: {
+  classId: string;
+  attendanceDate: Date;
+  timetableEntryId: string | null;
+}) {
+  if (options.timetableEntryId) {
+    const linkedEntry = await prisma.teachingDiaryEntry.findFirst({
+      where: {
+        classId: options.classId,
+        entryDate: options.attendanceDate,
+        timetableEntryId: options.timetableEntryId,
+      },
+      include: diaryInclude,
+      orderBy: { createdAt: "desc" },
+    });
+    if (linkedEntry) return linkedEntry;
+  }
+
+  return prisma.teachingDiaryEntry.findFirst({
+    where: {
+      classId: options.classId,
+      entryDate: options.attendanceDate,
+    },
+    include: diaryInclude,
+    orderBy: { createdAt: "desc" },
+  });
+}
 
 export async function GET(request: NextRequest, context: RouteContext) {
   if (!(await isRequestAuthenticated(request))) {
@@ -18,6 +69,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     where: { id: sessionId },
     include: {
       class: true,
+      timetableEntry: {
+        include: {
+          class: { select: { displayName: true } },
+        },
+      },
       records: {
         include: { student: true },
         orderBy: { student: { rollNo: "asc" } },
@@ -44,23 +100,31 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const month = attendanceDate.getUTCMonth() + 1;
   const rangeStart = startOfMonth(year, month);
   const rangeEnd = endOfMonth(year, month);
+  const isoDate = formatISODate(attendanceDate);
 
-  const monthSessions = absentStudentIds.length
-    ? await prisma.attendanceSession.findMany({
-        where: {
-          classId: session.classId,
-          attendanceDate: { gte: rangeStart, lte: rangeEnd },
-        },
-        include: {
-          records: {
-            where: {
-              status: "absent",
-              studentId: { in: absentStudentIds },
+  const [monthSessions, diaryEntry] = await Promise.all([
+    absentStudentIds.length
+      ? prisma.attendanceSession.findMany({
+          where: {
+            classId: session.classId,
+            attendanceDate: { gte: rangeStart, lte: rangeEnd },
+          },
+          include: {
+            records: {
+              where: {
+                status: "absent",
+                studentId: { in: absentStudentIds },
+              },
             },
           },
-        },
-      })
-    : [];
+        })
+      : Promise.resolve([]),
+    findDiaryEntryForSession({
+      classId: session.classId,
+      attendanceDate,
+      timetableEntryId: session.timetableEntryId,
+    }),
+  ]);
 
   const monthlyAbsentCounts = countAbsentDaysByStudent(monthSessions);
 
@@ -70,16 +134,49 @@ export async function GET(request: NextRequest, context: RouteContext) {
     monthlyAbsentCount: monthlyAbsentCounts.get(r.studentId) ?? 1,
   }));
 
-  const message = buildAbsenteeMessage({
+  const timetableRecord =
+    session.timetableEntry ?? diaryEntry?.timetableEntry ?? null;
+
+  let subject =
+    diaryEntry?.syllabusSubject?.subjectName ??
+    subjectForStream(session.class.stream);
+  let classTime: string | null = null;
+
+  if (timetableRecord) {
+    const timetableEntry = serializeTimetableEntry(timetableRecord);
+    subject = timetableEntry.subject;
+    const schedule = getScheduleForDate(timetableEntry, isoDate);
+    if (schedule) {
+      classTime = formatClassTimeRange(schedule.start_time, schedule.end_time);
+    }
+  }
+
+  const topicTaken = diaryEntry ? buildTopicTakenFromDiary(diaryEntry) : null;
+
+  const missingItems = getWhatsAppMissingItems({
+    classId: session.classId,
+    attendanceDate: isoDate,
+    whatsappChannelUrl: session.class.whatsappChannelUrl,
+    diaryEntry,
+  });
+
+  const message = buildClassUpdateMessage({
     className: session.class.displayName,
-    subject: subjectForStream(session.class.stream),
+    subject,
     date: session.attendanceDate,
+    classTime,
     absentees,
+    topicTaken,
+    whatsappChannelUrl: session.class.whatsappChannelUrl,
   });
 
   return NextResponse.json({
     phone_number: session.class.whatsappNumber,
     message,
     whatsapp_url: buildWhatsAppUrl(session.class.whatsappNumber, message),
+    class_id: session.classId,
+    attendance_date: isoDate,
+    class_time: classTime,
+    missing_items: missingItems,
   });
 }

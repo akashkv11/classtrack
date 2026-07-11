@@ -34,7 +34,12 @@ export default async function ClassDetailsPage({ params }: PageProps) {
         backLabel="← Back to Classes"
       />
 
-      <ClassWorkspace classId={classId} overview={overview} sessions={sessions} />
+      <ClassWorkspace
+        classId={classId}
+        overview={overview}
+        sessions={sessions}
+        whatsappChannelUrl={cls.whatsappChannelUrl}
+      />
     </PageContainer>
   );
 }

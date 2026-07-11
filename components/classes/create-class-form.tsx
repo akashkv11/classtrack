@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import Card from "@/components/ui/card";
 import FormField, { SelectInput, TextInput } from "@/components/ui/form-field";
 import {
   buildClassDisplayName,
@@ -15,10 +15,15 @@ import {
 import { classCreateSchema, FieldErrors, parseInput } from "@/lib/validation";
 
 type CreateClassFormProps = {
+  open: boolean;
+  onClose: () => void;
   onCreated?: () => void | Promise<void>;
 };
 
-export default function CreateClassForm({ onCreated }: CreateClassFormProps) {
+function CreateClassFormDialog({
+  onClose,
+  onCreated,
+}: Omit<CreateClassFormProps, "open">) {
   const router = useRouter();
   const [level, setLevel] = useState<ClassLevel>("plus_one");
   const [stream, setStream] = useState<ClassStream>("science");
@@ -34,6 +39,15 @@ export default function CreateClassForm({ onCreated }: CreateClassFormProps) {
     if (displayNameTouchedRef.current) return;
     setDisplayName(buildClassDisplayName(level, stream));
   }, [level, stream]);
+
+  function resetForm() {
+    displayNameTouchedRef.current = false;
+    setLevel("plus_one");
+    setStream("science");
+    setDisplayName(buildClassDisplayName("plus_one", "science"));
+    setMessage("");
+    setFieldErrors({});
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -71,24 +85,45 @@ export default function CreateClassForm({ onCreated }: CreateClassFormProps) {
       return;
     }
 
-    setMessage("Class created.");
-    displayNameTouchedRef.current = false;
-    setLevel("plus_one");
-    setStream("science");
-    setDisplayName(buildClassDisplayName("plus_one", "science"));
+    resetForm();
     await onCreated?.();
     router.refresh();
+    onClose();
   }
 
   return (
-    <Card padding="lg" className="mb-8">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Create Class</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Add a new class for the active academic year.
-          </p>
+    <Modal
+      open
+      title="Create Class"
+      onClose={onClose}
+      maxWidth="lg"
+      footer={
+        <div className={modalFooterClassName}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={creating}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-class-form"
+            variant="dark"
+            disabled={creating}
+            className="w-full sm:w-auto"
+          >
+            {creating ? "Creating..." : "Create Class"}
+          </Button>
         </div>
+      }
+    >
+      <form id="create-class-form" onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-slate-600">
+          Add a new class for the active academic year.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Level" error={fieldErrors.level}>
@@ -133,11 +168,13 @@ export default function CreateClassForm({ onCreated }: CreateClassFormProps) {
         </FormField>
 
         {message && <p className="text-sm text-slate-700">{message}</p>}
-
-        <Button type="submit" variant="dark" disabled={creating} className="w-full sm:w-auto">
-          {creating ? "Creating..." : "Create Class"}
-        </Button>
       </form>
-    </Card>
+    </Modal>
   );
+}
+
+export default function CreateClassForm({ open, onClose, onCreated }: CreateClassFormProps) {
+  if (!open) return null;
+
+  return <CreateClassFormDialog key="create-class" onClose={onClose} onCreated={onCreated} />;
 }

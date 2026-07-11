@@ -37,6 +37,7 @@ export type TeachingDiaryEntrySummary = {
   chapter: TeachingDiaryChapterRef | null;
   topic: TeachingDiaryTopicRef | null;
   topic_taught: string;
+  subtopics_covered: string[];
   teaching_notes: string | null;
   examples_covered: string | null;
   student_response: StudentResponse | null;
@@ -66,4 +67,5 @@ export type TeachingDiaryListResponse = {
   class_id: string;
   entries: TeachingDiaryEntrySummary[];
   summary: TeachingDiarySummary;
+  taught_topic_ids: string[];
 };

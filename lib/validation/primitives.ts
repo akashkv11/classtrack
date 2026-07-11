@@ -70,3 +70,37 @@ export function normalizeWhatsAppNumber(value: string): string | null {
   const digits = stripDigits(value);
   return digits || null;
 }
+
+const WHATSAPP_CHANNEL_URL_PATTERN =
+  /^https:\/\/whatsapp\.com\/channel\/[A-Za-z0-9_-]+$/;
+
+export function normalizeWhatsAppChannelUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(withProtocol);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== "whatsapp.com") return null;
+
+    const channelId = url.pathname.replace(/^\/channel\//, "").replace(/\/$/, "");
+    if (!channelId) return null;
+
+    const normalized = `https://whatsapp.com/channel/${channelId}`;
+    return WHATSAPP_CHANNEL_URL_PATTERN.test(normalized) ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+export const optionalWhatsAppChannelUrlSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || normalizeWhatsAppChannelUrl(value) !== null,
+    "Enter a valid WhatsApp channel link (https://whatsapp.com/channel/...)",
+  );

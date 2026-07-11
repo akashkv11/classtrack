@@ -9,6 +9,7 @@ import type {
   TeachingDiarySummary,
 } from "@/lib/types/teaching-diary";
 import { getActiveClasses } from "@/lib/queries/classes";
+import { parseSubtopicsCoveredFromDb } from "@/lib/syllabus/subtopics";
 import { applyStatusDates } from "@/lib/syllabus/status-dates";
 import type { TopicStatus } from "@/lib/syllabus/progress";
 
@@ -17,6 +18,7 @@ type DbEntry = {
   entryDate: Date;
   timetableEntryId: string | null;
   topicTaught: string;
+  subtopicsCovered: unknown;
   teachingNotes: string | null;
   examplesCovered: string | null;
   studentResponse: string | null;
@@ -77,6 +79,7 @@ export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
         }
       : null,
     topic_taught: entry.topicTaught,
+    subtopics_covered: parseSubtopicsCoveredFromDb(entry.subtopicsCovered),
     teaching_notes: entry.teachingNotes,
     examples_covered: entry.examplesCovered,
     student_response: (entry.studentResponse as StudentResponse) ?? null,
@@ -210,4 +213,96 @@ export async function getTeachingDiaryOverviewForActiveYear(): Promise<{
     activeYear: { id: activeYear.id, name: activeYear.name },
     classes: overviews,
   };
+}
+
+export async function getTaughtSyllabusTopicIds(
+  classId: string,
+  excludeEntryId?: string,
+): Promise<string[]> {
+  const entries = await prisma.teachingDiaryEntry.findMany({
+    where: {
+      classId,
+      syllabusTopicId: { not: null },
+      diaryStatus: "TAUGHT",
+      ...(excludeEntryId ? { id: { not: excludeEntryId } } : {}),
+    },
+    select: { syllabusTopicId: true },
+    distinct: ["syllabusTopicId"],
+  });
+
+  return entries
+    .map((entry) => entry.syllabusTopicId)
+    .filter((topicId): topicId is string => Boolean(topicId));
+}
+
+export async function findTeachingDiaryDuplicate(options: {
+  classId: string;
+  entryDate: string;
+  syllabusTopicId: string | null;
+  timetableEntryId: string | null;
+  diaryStatus: DiaryStatus;
+  excludeEntryId?: string;
+}): Promise<string | null> {
+  const exclude = options.excludeEntryId
+    ? { id: { not: options.excludeEntryId } }
+    : {};
+
+  if (options.syllabusTopicId) {
+    const byDateAndTopic = await prisma.teachingDiaryEntry.findFirst({
+      where: {
+        classId: options.classId,
+        entryDate: parseISODate(options.entryDate),
+        syllabusTopicId: options.syllabusTopicId,
+        ...exclude,
+      },
+      select: { id: true },
+    });
+
+    if (byDateAndTopic) {
+      return "A diary entry for this topic on this date already exists.";
+    }
+
+    if (options.diaryStatus === "TAUGHT") {
+      const fullyTaught = await prisma.teachingDiaryEntry.findFirst({
+        where: {
+          classId: options.classId,
+          syllabusTopicId: options.syllabusTopicId,
+          diaryStatus: "TAUGHT",
+          ...exclude,
+        },
+        select: { id: true },
+      });
+
+      if (fullyTaught) {
+        return "This topic is already marked as fully taught.";
+      }
+
+      const topic = await prisma.syllabusTopic.findUnique({
+        where: { id: options.syllabusTopicId },
+        select: { status: true },
+      });
+
+      if (topic && (topic.status === "COMPLETED" || topic.status === "REVISED")) {
+        return "This syllabus topic is already completed.";
+      }
+    }
+  }
+
+  if (options.timetableEntryId) {
+    const byTimetable = await prisma.teachingDiaryEntry.findFirst({
+      where: {
+        classId: options.classId,
+        entryDate: parseISODate(options.entryDate),
+        timetableEntryId: options.timetableEntryId,
+        ...exclude,
+      },
+      select: { id: true },
+    });
+
+    if (byTimetable) {
+      return "A diary entry for this class slot on this date already exists.";
+    }
+  }
+
+  return null;
 }

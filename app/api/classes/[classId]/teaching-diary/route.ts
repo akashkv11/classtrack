@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
+import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
 import {
   applySyllabusStatusUpdate,
   computeDiarySummary,
+  findTeachingDiaryDuplicate,
+  getTaughtSyllabusTopicIds,
   getTeachingDiaryEntriesForClass,
   getTeachingDiaryEntryById,
   mapEntryToJson,
@@ -48,10 +51,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     status: parsed.data.status,
   });
 
+  const taughtTopicIds = await getTaughtSyllabusTopicIds(classId);
+
   return NextResponse.json({
     class_id: classId,
     entries,
     summary: computeDiarySummary(entries),
+    taught_topic_ids: taughtTopicIds,
   });
 }
 
@@ -94,6 +100,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
   }
 
+  const duplicateError = await findTeachingDiaryDuplicate({
+    classId,
+    entryDate: parsed.data.entry_date,
+    syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
+    timetableEntryId: parsed.data.timetable_entry_id ?? null,
+    diaryStatus: parsed.data.diary_status,
+  });
+
+  if (duplicateError) {
+    return NextResponse.json({ error: duplicateError }, { status: 409 });
+  }
+
   const entry = await prisma.teachingDiaryEntry.create({
     data: {
       classId,
@@ -103,6 +121,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
       entryDate: parseISODate(parsed.data.entry_date),
       topicTaught: parsed.data.topic_taught,
+      subtopicsCovered: serializeSubtopicsCoveredForDb(
+        parsed.data.subtopics_covered ?? [],
+      ),
       teachingNotes: parsed.data.teaching_notes ?? null,
       examplesCovered: parsed.data.examples_covered ?? null,
       studentResponse: parsed.data.student_response,

@@ -24,6 +24,9 @@ export default function ClassSettingsForm({
 }: ClassSettingsFormProps) {
   const [displayName, setDisplayName] = useState(initialData.display_name);
   const [whatsappNumber, setWhatsappNumber] = useState(initialData.whatsapp_number ?? "");
+  const [whatsappChannelUrl, setWhatsappChannelUrl] = useState(
+    initialData.whatsapp_channel_url ?? "",
+  );
   const [isActive, setIsActive] = useState(initialData.is_active);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -38,6 +41,7 @@ export default function ClassSettingsForm({
     const parsed = parseInput(classSettingsFormSchema, {
       display_name: displayName,
       whatsapp_number: whatsappNumber,
+      whatsapp_channel_url: whatsappChannelUrl,
       is_active: isActive,
     });
 
@@ -82,13 +86,25 @@ export default function ClassSettingsForm({
         <FormField
           label="WhatsApp Number"
           error={fieldErrors.whatsapp_number}
-          hint="Format: country code + number, no + or spaces"
+          hint="Group number for sending daily class update messages. Format: country code + number, no + or spaces."
         >
           <TextInput
             value={whatsappNumber}
             onChange={(e) => setWhatsappNumber(e.target.value)}
             placeholder="91XXXXXXXXXX"
             error={!!fieldErrors.whatsapp_number}
+          />
+        </FormField>
+        <FormField
+          label="WhatsApp Channel Link"
+          error={fieldErrors.whatsapp_channel_url}
+          hint="Channel invite link for sharing notes and study materials with students."
+        >
+          <TextInput
+            value={whatsappChannelUrl}
+            onChange={(e) => setWhatsappChannelUrl(e.target.value)}
+            placeholder="https://whatsapp.com/channel/..."
+            error={!!fieldErrors.whatsapp_channel_url}
           />
         </FormField>
         <CheckboxField label="Active" checked={isActive} onChange={setIsActive} />

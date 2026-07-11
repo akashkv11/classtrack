@@ -5,9 +5,11 @@ import {
   normalizeOptionalEmail,
   normalizeOptionalPhone,
   normalizeWhatsAppNumber,
+  normalizeWhatsAppChannelUrl,
   optionalEmailSchema,
   optionalPhoneSchema,
   optionalWhatsAppSchema,
+  optionalWhatsAppChannelUrlSchema,
   uuidSchema,
 } from "./primitives";
 
@@ -176,6 +178,7 @@ export const classSettingsFormSchema = z.object({
     .min(1, "Display name is required")
     .max(100, "Display name must be 100 characters or less"),
   whatsapp_number: optionalWhatsAppSchema,
+  whatsapp_channel_url: optionalWhatsAppChannelUrlSchema,
   is_active: z.boolean(),
 });
 
@@ -195,6 +198,21 @@ export const classSettingsPatchSchema = z.object({
       z
         .string()
         .regex(/^\d{10,15}$/, "WhatsApp number must be 10–15 digits")
+        .nullable(),
+    )
+    .optional(),
+  whatsapp_channel_url: z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((value) =>
+      typeof value === "string" ? normalizeWhatsAppChannelUrl(value) : null,
+    )
+    .pipe(
+      z
+        .string()
+        .regex(
+          /^https:\/\/whatsapp\.com\/channel\/[A-Za-z0-9_-]+$/,
+          "Enter a valid WhatsApp channel link",
+        )
         .nullable(),
     )
     .optional(),
@@ -256,6 +274,7 @@ const repeatDaySchema = z.enum([
   "thursday",
   "friday",
   "saturday",
+  "sunday",
 ]);
 
 const scheduleExceptionSchema = z.object({

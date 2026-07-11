@@ -19,6 +19,7 @@ export default async function ClassLayout({ children, params }: LayoutProps) {
         classId,
         displayName: cls.displayName,
         whatsappNumber: cls.whatsappNumber,
+        whatsappChannelUrl: cls.whatsappChannelUrl,
       }}
     >
       {children}

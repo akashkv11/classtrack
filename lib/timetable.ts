@@ -11,6 +11,7 @@ export const WEEKDAYS = [
   { value: "thursday", label: "Thursday" },
   { value: "friday", label: "Friday" },
   { value: "saturday", label: "Saturday" },
+  { value: "sunday", label: "Sunday" },
 ] as const;
 
 export const REPEAT_DAY_VALUES = WEEKDAYS.map((day) => day.value);

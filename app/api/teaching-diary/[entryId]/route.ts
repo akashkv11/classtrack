@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
-import { parseISODate } from "@/lib/dates";
+import { parseISODate, formatISODate } from "@/lib/dates";
+import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
+import type { DiaryStatus } from "@/lib/types/teaching-diary";
 import {
   applySyllabusStatusUpdate,
+  findTeachingDiaryDuplicate,
   getTeachingDiaryEntryById,
   mapEntryToJson,
 } from "@/lib/queries/teaching-diary";
@@ -103,6 +106,29 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: hierarchyCheck.error }, { status: 400 });
   }
 
+  const entryDate =
+    parsed.data.entry_date !== undefined
+      ? parsed.data.entry_date
+      : formatISODate(existing.entryDate);
+  const diaryStatus = (
+    parsed.data.diary_status !== undefined
+      ? parsed.data.diary_status
+      : existing.diaryStatus
+  ) as DiaryStatus;
+
+  const duplicateError = await findTeachingDiaryDuplicate({
+    classId: classIdResult.classId,
+    entryDate,
+    syllabusTopicId: topicId ?? null,
+    timetableEntryId: existing.timetableEntryId,
+    diaryStatus,
+    excludeEntryId: entryId,
+  });
+
+  if (duplicateError) {
+    return NextResponse.json({ error: duplicateError }, { status: 409 });
+  }
+
   const entry = await prisma.teachingDiaryEntry.update({
     where: { id: entryId },
     data: {
@@ -120,6 +146,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }),
       ...(parsed.data.topic_taught !== undefined && {
         topicTaught: parsed.data.topic_taught,
+      }),
+      ...(parsed.data.subtopics_covered !== undefined && {
+        subtopicsCovered: serializeSubtopicsCoveredForDb(
+          parsed.data.subtopics_covered,
+        ),
       }),
       ...(parsed.data.teaching_notes !== undefined && {
         teachingNotes: parsed.data.teaching_notes,

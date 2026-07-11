@@ -29,6 +29,7 @@ export const teachingDiaryCreateSchema = z.object({
   syllabus_chapter_id: uuidSchema.optional().nullable(),
   syllabus_topic_id: uuidSchema.optional().nullable(),
   topic_taught: z.string().trim().min(3, "Topic taught is required"),
+  subtopics_covered: z.array(z.string().trim().min(1)).optional().default([]),
   teaching_notes: z.string().trim().optional().nullable(),
   examples_covered: z.string().trim().optional().nullable(),
   student_response: studentResponseSchema.default("NOT_RECORDED"),

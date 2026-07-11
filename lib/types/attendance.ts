@@ -1,4 +1,5 @@
 import type { AttendanceStatus } from "@/lib/attendance";
+import type { WhatsAppMissingItem } from "@/lib/whatsapp-readiness";
 
 export type AttendanceRecordRow = {
   student_id: string;
@@ -24,4 +25,8 @@ export type WhatsAppMessageData = {
   phone_number: string;
   message: string;
   whatsapp_url: string;
+  class_id: string;
+  attendance_date: string;
+  class_time: string | null;
+  missing_items: WhatsAppMissingItem[];
 };

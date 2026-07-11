@@ -1,4 +1,5 @@
 import type { SyllabusSubtopic } from "@/lib/types/syllabus";
+import type { DiaryStatus } from "@/lib/types/teaching-diary";
 
 function formatEnglishList(items: string[]): string {
   if (items.length === 0) return "";
@@ -20,4 +21,20 @@ export function buildTopicTaughtSuggestion(topic: {
   }
 
   return topic.topic_title.trim();
+}
+
+export function buildTopicTaughtFromSubtopics(selectedLabels: string[]): string {
+  const labels = selectedLabels.map((label) => label.trim()).filter(Boolean);
+  if (labels.length === 0) return "";
+  return `Taught ${formatEnglishList(labels)}.`;
+}
+
+export function suggestDiaryStatusFromSubtopics(
+  allLabels: string[],
+  selectedLabels: string[],
+): DiaryStatus | null {
+  if (allLabels.length === 0) return null;
+  if (selectedLabels.length === 0) return "PARTIALLY_TAUGHT";
+  if (selectedLabels.length >= allLabels.length) return "TAUGHT";
+  return "PARTIALLY_TAUGHT";
 }

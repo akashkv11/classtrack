@@ -6,6 +6,7 @@ import { getClassById } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
 import {
   computeDiarySummary,
+  getTaughtSyllabusTopicIds,
   getTeachingDiaryEntriesForClass,
 } from "@/lib/queries/teaching-diary";
 import { matchSyllabusSubjectIdByName } from "@/lib/timetable/links";
@@ -52,6 +53,7 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
     dateFrom,
     dateTo,
   });
+  const taughtTopicIds = await getTaughtSyllabusTopicIds(classId);
 
   let timetablePrefill: {
     timetable_entry_id?: string;
@@ -105,6 +107,7 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
           class_id: classId,
           entries,
           summary: computeDiarySummary(entries),
+          taught_topic_ids: taughtTopicIds,
         }}
         timetablePrefill={
           timetablePrefill

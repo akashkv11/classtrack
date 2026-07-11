@@ -10,6 +10,7 @@ import type {
   SyllabusTopic,
 } from "@/lib/types/syllabus";
 import { countSubtopics, getSyllabusSummary, mapSummaryToJson } from "@/lib/syllabus/progress";
+import { mapSubtopicsFromDb } from "@/lib/syllabus/subtopics";
 
 type DbTopic = {
   id: string;
@@ -27,18 +28,7 @@ type DbTopic = {
   displayOrder: number;
 };
 
-export function mapSubtopicsFromDb(subtopics: unknown) {
-  if (!Array.isArray(subtopics)) return [];
-  return subtopics.map((st) => {
-    const item = st as Record<string, unknown>;
-    return {
-      subtopic_title: String(item.subtopicTitle ?? item.subtopic_title ?? ""),
-      nested_subtopics: Array.isArray(item.nestedSubtopics ?? item.nested_subtopics)
-        ? ((item.nestedSubtopics ?? item.nested_subtopics) as string[])
-        : [],
-    };
-  });
-}
+export { mapSubtopicsFromDb } from "@/lib/syllabus/subtopics";
 
 export function mapTopicToJson(topic: DbTopic): SyllabusTopic {
   return {

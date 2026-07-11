@@ -15,7 +15,7 @@ export default function LinkGrid({ items }: LinkGridProps) {
     <div className="grid gap-2 sm:grid-cols-2">
       {items.map((item) => (
         <Link
-          key={item.href}
+          key={`${item.href}-${item.label}`}
           href={item.href}
           className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-colors hover:border-blue-200 hover:bg-blue-50/50"
         >

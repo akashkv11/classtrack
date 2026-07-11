@@ -12,6 +12,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import WhatsAppNumberForm from "@/components/whatsapp/whatsapp-number-form";
 import WhatsAppPreview from "@/components/whatsapp/whatsapp-preview";
+import WhatsAppMissingItemsDialog from "@/components/whatsapp/whatsapp-missing-items-dialog";
 import { useWhatsAppMessage } from "@/components/whatsapp/use-whatsapp-message";
 import type { AttendanceSummary } from "@/lib/types";
 import { useClientEffect } from "@/lib/use-client-effect";
@@ -22,8 +23,17 @@ export default function AttendanceSummaryPage() {
   const { displayName } = useClass();
 
   const [data, setData] = useState<AttendanceSummary | null>(null);
-  const { open, loading, error, data: whatsappData, openPreview, closePreview } =
-    useWhatsAppMessage();
+  const {
+    open,
+    missingOpen,
+    loading,
+    error,
+    data: whatsappData,
+    openPreview,
+    closePreview,
+    confirmDespiteMissing,
+    cancelMissingPrompt,
+  } = useWhatsAppMessage();
 
   async function loadSummary(signal?: AbortSignal) {
     const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`, { signal });
@@ -129,11 +139,19 @@ export default function AttendanceSummaryPage() {
         </ButtonLink>
       </ActionBar>
 
+      <WhatsAppMissingItemsDialog
+        open={missingOpen}
+        items={whatsappData.missing_items}
+        onSendAnyway={confirmDespiteMissing}
+        onClose={cancelMissingPrompt}
+      />
       <WhatsAppPreview
+        key={`${whatsappData.message}-${whatsappData.class_time ?? ""}`}
         open={open}
         phoneNumber={whatsappData.phone_number}
         message={whatsappData.message}
         whatsappUrl={whatsappData.whatsapp_url}
+        classTime={whatsappData.class_time}
         onClose={closePreview}
       />
     </PageContainer>

@@ -25,12 +25,21 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <div
         className={`flex max-h-[90vh] w-full flex-col ${maxWidthClasses[maxWidth]} rounded-t-xl bg-white shadow-xl sm:rounded-xl`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
       >
         <div className="overflow-y-auto p-4 sm:p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">{title}</h2>
+          <h2 id="modal-title" className="mb-4 text-lg font-semibold text-slate-900">
+            {title}
+          </h2>
           {children}
         </div>
         {footer ? (

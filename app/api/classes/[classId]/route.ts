@@ -45,6 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     stream: cls.stream,
     academic_year: cls.academicYear.name,
     whatsapp_number: cls.whatsappNumber,
+    whatsapp_channel_url: cls.whatsappChannelUrl,
     student_count: cls._count.students,
     is_active: cls.isActive,
     today_status: todaySession ? "marked" : "not_marked",
@@ -70,6 +71,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const data: {
     displayName?: string;
     whatsappNumber?: string | null;
+    whatsappChannelUrl?: string | null;
     isActive?: boolean;
   } = {};
 
@@ -78,6 +80,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
   if (parsed.data.whatsapp_number !== undefined) {
     data.whatsappNumber = parsed.data.whatsapp_number;
+  }
+  if (parsed.data.whatsapp_channel_url !== undefined) {
+    data.whatsappChannelUrl = parsed.data.whatsapp_channel_url;
   }
   if (parsed.data.is_active !== undefined) {
     data.isActive = parsed.data.is_active;

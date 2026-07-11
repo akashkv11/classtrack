@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     level: cls.level,
     stream: cls.stream,
     whatsapp_number: cls.whatsappNumber,
+    whatsapp_channel_url: cls.whatsappChannelUrl,
     student_count: cls._count.students,
     today_status: cls.attendanceSessions.length > 0 ? "marked" : "not_marked",
   }));
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       level: cls.level,
       stream: cls.stream,
       whatsapp_number: cls.whatsappNumber,
+      whatsapp_channel_url: cls.whatsappChannelUrl,
       student_count: 0,
       today_status: "not_marked",
     });

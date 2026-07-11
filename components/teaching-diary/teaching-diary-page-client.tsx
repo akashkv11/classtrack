@@ -84,6 +84,9 @@ export default function TeachingDiaryPageClient({
   const router = useRouter();
   const [entries, setEntries] = useState(initialData.entries);
   const [summary, setSummary] = useState(initialData.summary);
+  const [fullyTaughtTopicIds, setFullyTaughtTopicIds] = useState(
+    () => new Set(initialData.taught_topic_ids),
+  );
   const [subjectFilter, setSubjectFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRangePreset>("this_month");
   const [statusFilter, setStatusFilter] = useState("");
@@ -110,6 +113,7 @@ export default function TeachingDiaryPageClient({
     const data: TeachingDiaryListResponse = await res.json();
     setEntries(data.entries);
     setSummary(data.summary);
+    setFullyTaughtTopicIds(new Set(data.taught_topic_ids));
   }, [classId, subjectFilter, dateRange, statusFilter]);
 
   const hasSyllabus = initialSubjects.length > 0;
@@ -297,6 +301,7 @@ export default function TeachingDiaryPageClient({
         open={showForm}
         classId={classId}
         subjects={initialSubjects}
+        fullyTaughtTopicIds={fullyTaughtTopicIds}
         entry={editingEntry}
         timetablePrefill={!editingEntry ? timetablePrefill : null}
         onClose={() => {

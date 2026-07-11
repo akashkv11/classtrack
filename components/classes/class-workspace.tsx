@@ -7,6 +7,7 @@ import SectionCard from "@/components/ui/section-card";
 import { StatusBadgeFromConfig } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/card";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
+import OpenWhatsAppChannelButton from "@/components/whatsapp/open-whatsapp-channel-button";
 import type { ClassWorkspaceOverview } from "@/lib/queries/class-overview";
 import {
   attendanceMarkedStatus,
@@ -23,12 +24,14 @@ type ClassWorkspaceProps = {
   classId: string;
   overview: ClassWorkspaceOverview;
   sessions: Session[];
+  whatsappChannelUrl: string | null;
 };
 
 export default function ClassWorkspace({
   classId,
   overview,
   sessions,
+  whatsappChannelUrl,
 }: ClassWorkspaceProps) {
   const base = `/classes/${classId}`;
 
@@ -50,13 +53,8 @@ export default function ClassWorkspace({
   const studentLinks = [
     {
       href: `${base}/students`,
-      label: "Student List",
-      description: `${overview.student_count} active students`,
-    },
-    {
-      href: `${base}/students`,
-      label: "Student Profiles",
-      description: "Attendance, marks, and history",
+      label: "Students",
+      description: `${overview.student_count} active students · list, profiles, attendance, and marks`,
     },
   ];
 
@@ -181,6 +179,12 @@ export default function ClassWorkspace({
             >
               View Alerts
             </ButtonLink>
+          )}
+          {whatsappChannelUrl && (
+            <OpenWhatsAppChannelButton
+              channelUrl={whatsappChannelUrl}
+              className={actionButtonClassName}
+            />
           )}
         </ActionBar>
       </SectionCard>

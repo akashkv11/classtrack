@@ -3,6 +3,8 @@
 import { useState } from "react";
 import ClassListCard from "@/components/classes/class-list-card";
 import CreateClassForm from "@/components/classes/create-class-form";
+import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/loading-state";
 
 type ClassListItem = {
@@ -22,6 +24,7 @@ export default function ClassesPageClient({
   initialClasses,
 }: ClassesPageClientProps) {
   const [classes, setClasses] = useState(initialClasses);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   async function refreshClasses() {
     const res = await fetch("/api/classes");
@@ -48,10 +51,19 @@ export default function ClassesPageClient({
 
   return (
     <>
-      <CreateClassForm onCreated={refreshClasses} />
+      <ActionBar className="mb-6">
+        <Button
+          type="button"
+          variant="dark"
+          className={actionButtonClassName}
+          onClick={() => setShowCreateForm(true)}
+        >
+          Create Class
+        </Button>
+      </ActionBar>
 
       {classes.length === 0 ? (
-        <EmptyState message="No classes yet. Create your first class above." />
+        <EmptyState message="No classes yet. Create your first class to get started." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {classes.map((cls) => (
@@ -65,6 +77,12 @@ export default function ClassesPageClient({
           ))}
         </div>
       )}
+
+      <CreateClassForm
+        open={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        onCreated={refreshClasses}
+      />
     </>
   );
 }

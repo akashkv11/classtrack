@@ -90,7 +90,7 @@ export default function WhatsAppNumberForm({
   return (
     <WarningPanel
       title="Set up WhatsApp"
-      description="Add the class WhatsApp group number to send the absentee message."
+      description="Add the class WhatsApp group number to send the daily class update message."
       className="mb-6"
     >
       {form}
