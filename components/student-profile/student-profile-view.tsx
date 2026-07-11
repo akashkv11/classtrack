@@ -167,24 +167,15 @@ export default function StudentProfileView({ profile }: StudentProfileViewProps)
         )}
       </Card>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Card>
-          <h3 className="mb-2 text-lg font-semibold text-slate-900">Notes</h3>
-          <p className="text-sm text-slate-600">
-            No notes yet. Student Notes will be available in a future update.
-          </p>
-        </Card>
-
-        <Card>
-          <h3 className="mb-2 text-lg font-semibold text-slate-900">
-            Parent Communication
-          </h3>
-          <p className="text-sm text-slate-600">
-            No communication recorded yet. Parent Communication will be available in a
-            future update.
-          </p>
-        </Card>
-      </div>
+      <Card>
+        <h3 className="mb-2 text-lg font-semibold text-slate-900">
+          Parent Communication
+        </h3>
+        <p className="text-sm text-slate-600">
+          No communication recorded yet. Parent Communication will be available in a
+          future update.
+        </p>
+      </Card>
     </>
   );
 }

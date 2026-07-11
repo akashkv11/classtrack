@@ -17,7 +17,7 @@ function createPrismaClient(): PrismaClient {
 function getPrismaClient(): PrismaClient {
   const cached = globalForPrisma.prisma;
   // Dev hot reload can keep a Prisma client from before schema changes.
-  if (cached && "assessment" in cached) {
+  if (cached && "assessment" in cached && "studentNote" in cached) {
     return cached;
   }
 

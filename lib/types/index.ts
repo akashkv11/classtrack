@@ -66,3 +66,10 @@ export type {
   StudentProfileClassOverview,
   StudentProfileListItem,
 } from "./student-profile";
+export type {
+  NoteCategory,
+  NoteStatus,
+  StudentNoteSummary,
+  StudentNotesListResponse,
+  StudentNotesClassOverview,
+} from "./student-note";

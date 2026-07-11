@@ -37,6 +37,7 @@ model Class {
   syllabusSubjects      SyllabusSubject[]
   teachingDiaryEntries  TeachingDiaryEntry[]
   assessments           Assessment[]
+  studentNotes          StudentNote[]
 
   @@unique([academicYearId, level, stream])
   @@map("classes")
@@ -174,6 +175,7 @@ model Student {
   class              Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
   attendanceRecords  AttendanceRecord[]
   assessmentMarks    AssessmentMark[]
+  studentNotes       StudentNote[]
 
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
@@ -260,6 +262,26 @@ model AssessmentMark {
 
   @@unique([assessmentId, studentId])
   @@map("assessment_marks")
+}
+
+model StudentNote {
+  id             String    @id @default(uuid()) @db.Uuid
+  classId        String    @map("class_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  noteDate       DateTime  @map("note_date") @db.Date
+  category       String
+  noteText       String    @map("note_text")
+  followUpNeeded Boolean   @default(false) @map("follow_up_needed")
+  followUpDate   DateTime? @map("follow_up_date") @db.Date
+  status         String    @default("OPEN")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, noteDate])
+  @@map("student_notes")
 }
 
 model AppSetting {

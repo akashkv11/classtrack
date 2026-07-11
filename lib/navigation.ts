@@ -15,6 +15,7 @@ const classTeachingDiaryPath = /^\/classes\/[^/]+\/teaching-diary(\/|$)/;
 const classReportsPath = /^\/classes\/[^/]+\/reports(\/|$)/;
 const classAssessmentsPath = /^\/classes\/[^/]+\/assessments(\/|$)/;
 const classStudentsPath = /^\/classes\/[^/]+\/students(\/|$)/;
+const classStudentNotesPath = /^\/classes\/[^/]+\/student-notes(\/|$)/;
 
 function isClassSyllabusPath(path: string) {
   return classSyllabusPath.test(path);
@@ -34,6 +35,10 @@ function isClassAssessmentsPath(path: string) {
 
 function isClassStudentsPath(path: string) {
   return classStudentsPath.test(path);
+}
+
+function isClassStudentNotesPath(path: string) {
+  return classStudentNotesPath.test(path);
 }
 
 export const appModules: AppModule[] = [
@@ -62,7 +67,8 @@ export const appModules: AppModule[] = [
       !isClassTeachingDiaryPath(path) &&
       !isClassReportsPath(path) &&
       !isClassAssessmentsPath(path) &&
-      !isClassStudentsPath(path),
+      !isClassStudentsPath(path) &&
+      !isClassStudentNotesPath(path),
   },
   {
     id: "teaching-diary",
@@ -106,7 +112,10 @@ export const appModules: AppModule[] = [
     href: "/student-notes",
     label: "Student Notes",
     description: "Keep private notes and observations about students.",
-    match: exactOrChild("/student-notes"),
+    match: (path) =>
+      path === "/student-notes" ||
+      path.startsWith("/student-notes/") ||
+      isClassStudentNotesPath(path),
   },
   {
     id: "parent-communication",
@@ -153,6 +162,7 @@ const primaryNavIds = [
   "reports",
   "marks",
   "student-profile",
+  "student-notes",
   "settings",
 ] as const;
 

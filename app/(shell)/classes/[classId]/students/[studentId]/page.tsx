@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import StudentNotesSection from "@/components/student-notes/student-notes-section";
 import StudentProfileView from "@/components/student-profile/student-profile-view";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
 import { getStudentProfile } from "@/lib/queries/student-profile";
+import { getStudentNotes } from "@/lib/queries/student-notes";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,10 @@ export default async function StudentProfilePage({ params }: PageProps) {
   const cls = await getClassById(classId);
   if (!cls) notFound();
 
-  const profile = await getStudentProfile(classId, studentId);
+  const [profile, notes] = await Promise.all([
+    getStudentProfile(classId, studentId),
+    getStudentNotes(classId, studentId),
+  ]);
   if (!profile) notFound();
 
   return (
@@ -29,6 +34,12 @@ export default async function StudentProfilePage({ params }: PageProps) {
       />
 
       <StudentProfileView profile={profile} />
+
+      <StudentNotesSection
+        classId={classId}
+        studentId={studentId}
+        initialNotes={notes}
+      />
     </PageContainer>
   );
 }
