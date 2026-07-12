@@ -1,5 +1,5 @@
 import { countSubtopics } from "./progress";
-import { normalizeImportPriority } from "./normalize";
+import { coerceNestedSubtopicLabels, normalizeImportPriority } from "./normalize";
 import {
   importChapterSchema,
   type SyllabusImportPayload,
@@ -9,6 +9,7 @@ type RichChapter = {
   chapter_number?: number;
   chapter_title?: string;
   chapter_summary?: string;
+  summary?: string;
   topics?: RichTopic[];
   key_terms?: unknown[];
   important_examples?: unknown[];
@@ -20,12 +21,15 @@ type RichChapter = {
 
 type RichTopic = {
   topic_title?: string;
+  title?: string;
   subtopics?: RichSubtopic[];
 };
 
 type RichSubtopic = {
   subtopic_title?: string;
-  nested_subtopics?: string[];
+  title?: string;
+  nested_subtopics?: unknown;
+  nested?: unknown;
 };
 
 export type ImportPreviewChapter = {
@@ -99,10 +103,13 @@ function getStructureChapters(payload: SyllabusImportPayload) {
     chapter_title: ch.chapter_title ?? "Untitled Chapter",
     chapter_summary: ch.chapter_summary,
     topics: (ch.topics ?? []).map((t) => ({
-      topic_title: t.topic_title ?? "Untitled Topic",
+      topic_title: t.topic_title ?? t.title ?? "Untitled Topic",
       subtopics: (t.subtopics ?? []).map((st) => ({
-        subtopic_title: st.subtopic_title ?? "",
-        nested_subtopics: st.nested_subtopics ?? [],
+        subtopic_title: st.subtopic_title ?? st.title ?? "",
+        nested_subtopics: [
+          ...coerceNestedSubtopicLabels(st.nested_subtopics),
+          ...coerceNestedSubtopicLabels(st.nested),
+        ],
       })),
     })),
   }));
@@ -123,9 +130,10 @@ function findRichChapter(
 }
 
 function findRichTopic(richChapter: RichChapter | undefined, topicTitle: string) {
-  return richChapter?.topics?.find(
-    (t) => t.topic_title?.toLowerCase() === topicTitle.toLowerCase(),
-  );
+  return richChapter?.topics?.find((t) => {
+    const title = t.topic_title ?? t.title;
+    return title?.toLowerCase() === topicTitle.toLowerCase();
+  });
 }
 
 function mergeSubtopics(
@@ -137,11 +145,20 @@ function mergeSubtopics(
 
   if (richSubtopics?.length) {
     return richSubtopics
-      .filter((st) => st.subtopic_title)
-      .map((st) => ({
-        subtopicTitle: st.subtopic_title!,
-        nestedSubtopics: st.nested_subtopics ?? [],
-      }));
+      .map((st) => {
+        const subtopicTitle = (st.subtopic_title ?? st.title ?? "").trim();
+        if (!subtopicTitle) return null;
+        return {
+          subtopicTitle,
+          nestedSubtopics: [
+            ...coerceNestedSubtopicLabels(st.nested_subtopics),
+            ...coerceNestedSubtopicLabels(st.nested),
+          ],
+        };
+      })
+      .filter((item): item is { subtopicTitle: string; nestedSubtopics: string[] } =>
+        Boolean(item),
+      );
   }
 
   return appSubtopics
@@ -180,21 +197,22 @@ export function parseSyllabusImportPreview(
   payload: SyllabusImportPayload,
   existingSubject?: { id: string; subject_name: string } | null,
 ): ImportPreviewResult {
-  const basic = payload.basic_information ?? {};
+  const basic = payload.basic_information;
   const appReady = payload.app_ready_syllabus;
   const structureChapters = getStructureChapters(payload);
   const richChapters = getRichChapters(payload);
 
   const detected = {
-    classGrade: basic.class_grade ?? appReady?.class ?? null,
-    stream: basic.stream ?? appReady?.stream ?? null,
-    subject: basic.subject_name ?? appReady?.subject ?? null,
-    textbookName: basic.textbook_document_name ?? null,
-    board: basic.board_curriculum ?? null,
+    classGrade: basic?.class_grade ?? appReady?.class ?? null,
+    stream: basic?.stream ?? appReady?.stream ?? null,
+    subject: basic?.subject_name ?? appReady?.subject ?? null,
+    textbookName: basic?.textbook_document_name ?? null,
+    board: basic?.board_curriculum ?? null,
   };
 
   const warnings = [
     ...(payload.exhaustiveness_check?.manual_review_required ?? []),
+    ...(payload.exhaustiveness_check?.potential_issues ?? []),
   ];
 
   let totalTopics = 0;
@@ -269,16 +287,17 @@ export function buildNormalizedImportData(
   } = {},
 ): NormalizedImportData {
   const { importSubtopics = true, setInitialStatus = "NOT_STARTED" } = options;
-  const basic = payload.basic_information ?? {};
+  const basic = payload.basic_information;
   const appReady = payload.app_ready_syllabus;
   const structureChapters = getStructureChapters(payload);
   const richChapters = getRichChapters(payload);
 
   const subjectName =
-    basic.subject_name ?? appReady?.subject ?? "Imported Subject";
+    basic?.subject_name ?? appReady?.subject ?? "Imported Subject";
 
   const warnings = [
     ...(payload.exhaustiveness_check?.manual_review_required ?? []),
+    ...(payload.exhaustiveness_check?.potential_issues ?? []),
   ];
 
   const chapters: NormalizedImportChapter[] = structureChapters.map(
@@ -314,7 +333,10 @@ export function buildNormalizedImportData(
         chapterNumber: parsed.chapter_number ?? null,
         chapterTitle: parsed.chapter_title,
         chapterSummary:
-          richChapter?.chapter_summary ?? parsed.chapter_summary ?? null,
+          richChapter?.chapter_summary ??
+          richChapter?.summary ??
+          parsed.chapter_summary ??
+          null,
         displayOrder: parsed.chapter_number ?? chapterIndex,
         metadata: buildChapterMetadata(richChapter),
         topics,
@@ -324,11 +346,11 @@ export function buildNormalizedImportData(
 
   return {
     subjectName,
-    stream: basic.stream ?? appReady?.stream ?? null,
-    textbookName: basic.textbook_document_name ?? null,
-    board: basic.board_curriculum ?? null,
-    academicYear: basic.academic_year_version ?? null,
-    sourceUrl: basic.source_url ?? null,
+    stream: basic?.stream ?? appReady?.stream ?? null,
+    textbookName: basic?.textbook_document_name ?? null,
+    board: basic?.board_curriculum ?? null,
+    academicYear: basic?.academic_year_version ?? null,
+    sourceUrl: basic?.source_url ?? null,
     importMeta: {
       basic_information: basic,
       exhaustiveness_check: payload.exhaustiveness_check ?? null,

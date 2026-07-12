@@ -39,3 +39,26 @@ export function parseMultilineSubtopics(text: string) {
     .filter(Boolean)
     .map((subtopic_title) => ({ subtopic_title, nested_subtopics: [] as string[] }));
 }
+
+export function coerceNestedSubtopicLabels(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const labels: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string") {
+      const label = item.trim();
+      if (label) labels.push(label);
+      continue;
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const title = record.subtopic_title ?? record.title;
+      if (typeof title === "string" && title.trim()) {
+        labels.push(title.trim());
+      }
+    }
+  }
+
+  return labels;
+}
