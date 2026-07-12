@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ClassProvider } from "@/components/classes/class-provider";
-import ClassSubnav from "@/components/layout/class-subnav";
-import { getClassById } from "@/lib/queries/classes";
+import ClassSubnavLoader from "@/components/layout/class-subnav-loader";
+import { ClassSubnavFallback } from "@/components/ui/page-loading";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -10,20 +10,12 @@ type LayoutProps = {
 
 export default async function ClassLayout({ children, params }: LayoutProps) {
   const { classId } = await params;
-  const cls = await getClassById(classId);
-
-  if (!cls) notFound();
 
   return (
-    <ClassProvider
-      value={{
-        classId,
-        displayName: cls.displayName,
-        whatsappNumber: cls.whatsappNumber,
-        whatsappChannelUrl: cls.whatsappChannelUrl,
-      }}
-    >
-      <ClassSubnav />
+    <ClassProvider classId={classId}>
+      <Suspense fallback={<ClassSubnavFallback />}>
+        <ClassSubnavLoader classId={classId} />
+      </Suspense>
       {children}
     </ClassProvider>
   );

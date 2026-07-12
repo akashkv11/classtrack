@@ -3,15 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOptionalClass } from "@/components/classes/class-provider";
+import { useNavigation } from "@/components/layout/navigation-provider";
 import { classNavItems, classSubnavClassName } from "@/lib/class-navigation";
 
-export default function ClassSubnav() {
+type ClassSubnavProps = {
+  displayName?: string;
+};
+
+function normalizeHref(href: string) {
+  try {
+    const url = new URL(href, "http://local");
+    return url.pathname + url.search;
+  } catch {
+    return href;
+  }
+}
+
+export default function ClassSubnav({ displayName }: ClassSubnavProps) {
   const pathname = usePathname();
   const classContext = useOptionalClass();
+  const { pendingHref } = useNavigation();
 
   if (!classContext) return null;
 
-  const { classId, displayName } = classContext;
+  const { classId } = classContext;
+  const label = displayName ?? classContext.displayName;
 
   return (
     <div
@@ -23,7 +39,7 @@ export default function ClassSubnav() {
           href={`/classes/${classId}`}
           className="text-sm font-semibold text-slate-900 hover:text-blue-700"
         >
-          {displayName}
+          {label}
         </Link>
       </div>
       <nav
@@ -31,12 +47,18 @@ export default function ClassSubnav() {
         className="flex gap-1 overflow-x-auto px-4 py-2 sm:px-6"
       >
         {classNavItems.map((item) => {
+          const href = item.href(classId);
           const active = item.match(pathname, classId);
+          const pending = pendingHref === normalizeHref(href);
+
           return (
             <Link
               key={item.id}
-              href={item.href(classId)}
-              className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${classSubnavClassName(active)}`}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${classSubnavClassName(active)} ${
+                pending ? "opacity-70" : ""
+              }`}
             >
               {item.label}
             </Link>

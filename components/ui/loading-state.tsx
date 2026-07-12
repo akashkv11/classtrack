@@ -18,7 +18,15 @@ export function EmptyState({ title, message, action, className = "" }: EmptyStat
 }
 
 export default function LoadingState({ message = "Loading..." }: { message?: string }) {
-  return <p className="text-slate-600">{message}</p>;
+  return (
+    <div className="flex items-center gap-3 text-slate-600" role="status" aria-live="polite">
+      <span
+        aria-hidden
+        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"
+      />
+      <span>{message}</span>
+    </div>
+  );
 }
 
 // Alias for dashboard/report summary tiles

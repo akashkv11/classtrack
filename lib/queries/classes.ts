@@ -1,11 +1,12 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { parseISODate, todayISO } from "@/lib/dates";
 
-export async function getActiveAcademicYear() {
+export const getActiveAcademicYear = cache(async () => {
   return prisma.academicYear.findFirst({
     where: { isActive: true },
   });
-}
+});
 
 export async function getActiveClasses() {
   const activeYear = await getActiveAcademicYear();
@@ -27,7 +28,19 @@ export async function getActiveClasses() {
   return { activeYear, classes };
 }
 
-export async function getClassById(classId: string) {
+export const getClassNavContext = cache(async (classId: string) => {
+  return prisma.class.findUnique({
+    where: { id: classId },
+    select: {
+      id: true,
+      displayName: true,
+      whatsappNumber: true,
+      whatsappChannelUrl: true,
+    },
+  });
+});
+
+export const getClassById = cache(async (classId: string) => {
   return prisma.class.findUnique({
     where: { id: classId },
     include: {
@@ -35,9 +48,9 @@ export async function getClassById(classId: string) {
       _count: { select: { students: { where: { isActive: true } } } },
     },
   });
-}
+});
 
-export async function getClassDetail(classId: string) {
+export const getClassDetail = cache(async (classId: string) => {
   return prisma.class.findUnique({
     where: { id: classId },
     include: {
@@ -49,4 +62,4 @@ export async function getClassDetail(classId: string) {
       },
     },
   });
-}
+});
