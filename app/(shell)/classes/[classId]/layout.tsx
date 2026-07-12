@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ClassProvider } from "@/components/classes/class-provider";
+import ClassSubnav from "@/components/layout/class-subnav";
 import { getClassById } from "@/lib/queries/classes";
 
 type LayoutProps = {
@@ -22,6 +23,7 @@ export default async function ClassLayout({ children, params }: LayoutProps) {
         whatsappChannelUrl: cls.whatsappChannelUrl,
       }}
     >
+      <ClassSubnav />
       {children}
     </ClassProvider>
   );

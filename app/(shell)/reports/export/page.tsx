@@ -6,7 +6,6 @@ import { REPORT_TYPES } from "@/lib/reports/constants";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import SectionCard from "@/components/ui/section-card";
-import LinkGrid from "@/components/ui/link-grid";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getReportsOverviewForActiveYear } from "@/lib/queries/reports";
 
@@ -43,13 +42,17 @@ export default async function ReportsExportPage() {
           <ReportsExportClient classes={classOptions} />
 
           <SectionCard title="Available Report Types" className="mt-6">
-            <LinkGrid
-              items={REPORT_TYPES.map((type) => ({
-                href: "/reports/export",
-                label: type.label,
-                description: type.description,
-              }))}
-            />
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {REPORT_TYPES.map((type) => (
+                <li
+                  key={type.id}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 p-4"
+                >
+                  <p className="font-medium text-slate-900">{type.label}</p>
+                  <p className="mt-1 text-sm text-slate-600">{type.description}</p>
+                </li>
+              ))}
+            </ul>
           </SectionCard>
 
           {overviews.length > 0 && (

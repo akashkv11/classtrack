@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import StudentsSection from "@/components/students/students-section";
 import StudentProfileList from "@/components/student-profile/student-profile-list";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
+import SectionCard from "@/components/ui/section-card";
 import { getClassById } from "@/lib/queries/classes";
 import { getStudentsForProfileList } from "@/lib/queries/student-profile";
 
@@ -25,11 +27,14 @@ export default async function ClassStudentsPage({ params }: PageProps) {
         backLabel="← Back to Class"
       />
 
-      <p className="mb-6 text-sm text-slate-600">
-        Select a student to view their profile.
-      </p>
+      <StudentsSection classId={classId} showTitle={false} />
 
-      <StudentProfileList classId={classId} students={students} />
+      <SectionCard title="Student Profiles" className="mt-8">
+        <p className="mb-4 text-sm text-slate-600">
+          Select a student to view their full profile.
+        </p>
+        <StudentProfileList classId={classId} students={students} />
+      </SectionCard>
     </PageContainer>
   );
 }

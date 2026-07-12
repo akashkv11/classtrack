@@ -10,10 +10,13 @@ export default function ParentCommunicationClassCard({
   overview,
 }: ParentCommunicationClassCardProps) {
   const hasStudents = overview.student_count > 0;
+  const href = hasStudents
+    ? `/classes/${overview.class_id}/parent-communication`
+    : `/classes/${overview.class_id}/students`;
 
   return (
     <Link
-      href={`/classes/${overview.class_id}/parent-communication`}
+      href={href}
       className="block rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50/30"
     >
       <h2 className="text-lg font-semibold text-slate-900">{overview.display_name}</h2>

@@ -21,7 +21,7 @@ export default function StudentProfileList({
       <Card>
         <p className="text-sm text-slate-600">
           {emptyMessage}{" "}
-          <Link href={`/classes/${classId}#students`} className="text-blue-700 hover:underline">
+          <Link href={`/classes/${classId}/students`} className="text-blue-700 hover:underline">
             Add students
           </Link>
         </p>

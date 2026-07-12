@@ -18,10 +18,9 @@ export default function PageHeader({
       {backHref && (
         <Link
           href={backHref}
-          className="mb-2 inline-block text-sm text-blue-600 hover:underline break-words print:hidden"
+          className="mb-2 inline-block max-w-full truncate text-sm text-blue-600 hover:underline print:hidden"
         >
-          <span className="sm:hidden">← Back</span>
-          <span className="hidden sm:inline">{backLabel}</span>
+          {backLabel}
         </Link>
       )}
       <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>

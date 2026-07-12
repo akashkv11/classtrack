@@ -181,6 +181,30 @@ export const mainNavItems = primaryNavIds
   .map((id) => appModules.find((module) => module.id === id))
   .filter((module): module is AppModule => module !== undefined);
 
+export type NavGroup = {
+  label: string;
+  moduleIds: (typeof primaryNavIds)[number][];
+};
+
+export const navGroups: NavGroup[] = [
+  { label: "Today", moduleIds: ["dashboard", "timetable"] },
+  { label: "Classes", moduleIds: ["classes"] },
+  {
+    label: "Teaching",
+    moduleIds: ["teaching-diary", "syllabus-progress", "marks"],
+  },
+  {
+    label: "Students",
+    moduleIds: [
+      "student-profile",
+      "student-notes",
+      "parent-communication",
+      "attendance-alerts",
+    ],
+  },
+  { label: "More", moduleIds: ["reports", "settings"] },
+];
+
 export function getModuleById(id: string): AppModule | undefined {
   return appModules.find((module) => module.id === id);
 }
