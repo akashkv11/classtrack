@@ -69,7 +69,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       ? `${normalized.subjectName} (Copy)`
       : normalized.subjectName;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(
+    async (tx) => {
     const subject = await tx.syllabusSubject.create({
       data: {
         classId,
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     let topicsCount = 0;
     let subtopicsCount = 0;
+    const needsManualReview = normalized.warnings.length > 0;
 
     for (const chapter of normalized.chapters) {
       const createdChapter = await tx.syllabusChapter.create({
@@ -98,29 +100,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
-      for (const topic of chapter.topics) {
-        await tx.syllabusTopic.create({
-          data: {
+      if (chapter.topics.length > 0) {
+        await tx.syllabusTopic.createMany({
+          data: chapter.topics.map((topic) => ({
             syllabusChapterId: createdChapter.id,
             topicTitle: topic.topicTitle,
             subtopics: topic.subtopics.map((st) => ({
               subtopicTitle: st.subtopicTitle,
               nestedSubtopics: st.nestedSubtopics,
-            })),
+            })) as Prisma.InputJsonValue,
             status: topic.status,
             priority: topic.priority,
             estimatedClasses: topic.estimatedClasses,
             displayOrder: topic.displayOrder,
-            needsManualReview: normalized.warnings.length > 0,
-          },
+            needsManualReview,
+          })),
         });
-
-        topicsCount += 1;
-        subtopicsCount += topic.subtopics.reduce(
-          (sum, st) => sum + 1 + st.nestedSubtopics.length,
-          0,
-        );
       }
+
+      topicsCount += chapter.topics.length;
+      subtopicsCount += chapter.topics.reduce(
+        (sum, topic) =>
+          sum +
+          topic.subtopics.reduce(
+            (topicSum, st) => topicSum + 1 + st.nestedSubtopics.length,
+            0,
+          ),
+        0,
+      );
     }
 
     return {
@@ -129,7 +136,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       topicsCount,
       subtopicsCount,
     };
-  });
+    },
+    {
+      maxWait: 10_000,
+      timeout: 120_000,
+    },
+  );
 
   return NextResponse.json({
     success: true,
