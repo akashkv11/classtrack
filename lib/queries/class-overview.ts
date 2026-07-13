@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { parseISODate, todayISO } from "@/lib/dates";
-import { getAttendanceAlertsForClass } from "@/lib/queries/attendance-alerts";
-import { getSyllabusSummary } from "@/lib/syllabus/progress";
+import {
+  getOpenAttendanceAlertCountForClass,
+  getSyllabusProgressPercentageForClass,
+} from "@/lib/queries/class-summaries";
 
 export type ClassWorkspaceOverview = {
   today: string;
@@ -24,46 +26,35 @@ export async function getClassWorkspaceOverview(
 
   const cls = await prisma.class.findUnique({
     where: { id: classId },
-    include: {
+    select: {
+      id: true,
       _count: { select: { students: { where: { isActive: true } } } },
       attendanceSessions: {
         where: { attendanceDate: parseISODate(today) },
         select: { id: true },
-      },
-      syllabusSubjects: {
-        include: { chapters: { include: { topics: true } } },
       },
     },
   });
 
   if (!cls) return null;
 
-  const [diaryToday, openNotes, openParentFollowUps, alertData] = await Promise.all([
-    prisma.teachingDiaryEntry.findFirst({
-      where: { classId, entryDate: parseISODate(today) },
-      select: { id: true },
-    }),
-    prisma.studentNote.count({ where: { classId, status: "OPEN" } }),
-    prisma.parentCommunication.count({
-      where: {
-        classId,
-        status: { in: ["OPEN", "FOLLOW_UP_NEEDED"] },
-        followUpNeeded: true,
-      },
-    }),
-    getAttendanceAlertsForClass(classId, month, { status: "ALL" }),
-  ]);
-
-  const topics = cls.syllabusSubjects.flatMap((subject) =>
-    subject.chapters.flatMap((chapter) => chapter.topics),
-  );
-  const syllabusProgress =
-    topics.length > 0 ? getSyllabusSummary(topics).progressPercentage : null;
-
-  const openAlerts =
-    alertData?.alerts.filter(
-      (alert) => alert.status === "OPEN" || alert.status === "IN_PROGRESS",
-    ).length ?? 0;
+  const [diaryToday, openNotes, openParentFollowUps, syllabusProgress, openAlerts] =
+    await Promise.all([
+      prisma.teachingDiaryEntry.findFirst({
+        where: { classId, entryDate: parseISODate(today) },
+        select: { id: true },
+      }),
+      prisma.studentNote.count({ where: { classId, status: "OPEN" } }),
+      prisma.parentCommunication.count({
+        where: {
+          classId,
+          status: { in: ["OPEN", "FOLLOW_UP_NEEDED"] },
+          followUpNeeded: true,
+        },
+      }),
+      getSyllabusProgressPercentageForClass(classId),
+      getOpenAttendanceAlertCountForClass(classId, month),
+    ]);
 
   const todaySessions = cls.attendanceSessions;
   const singleSession = todaySessions.length === 1 ? todaySessions[0] : null;

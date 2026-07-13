@@ -4,7 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getStudentNotesOverviewForActiveYear } from "@/lib/queries/student-notes";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function StudentNotesPage() {
   const { activeYear, classes } = await getStudentNotesOverviewForActiveYear();

@@ -3,10 +3,13 @@ import { summarizeRecords } from "@/lib/attendance";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
 import { getLowMarksThresholdPercent } from "@/lib/settings";
 import { parseISODate, todayISO } from "@/lib/dates";
-import { getAttendanceAlertsForClass } from "@/lib/queries/attendance-alerts";
+import {
+  getOpenAttendanceAlertCountsByClass,
+  getSyllabusMetricsByClassIds,
+  getTotalOpenAttendanceAlertCount,
+} from "@/lib/queries/class-summaries";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getTodaySchedule } from "@/lib/queries/timetable";
-import { getSyllabusSummary } from "@/lib/syllabus/progress";
 import { normalizeSubjectName } from "@/lib/timetable/links";
 import type {
   DashboardClassCard,
@@ -18,120 +21,6 @@ import type {
 
 function currentMonthFromDate(isoDate: string): string {
   return isoDate.slice(0, 7);
-}
-
-function formatSuggestedTopic(options: {
-  chapterNumber: number | null;
-  chapterTitle: string;
-  topicTitle: string;
-}): string {
-  const chapterLabel = options.chapterNumber
-    ? `Chapter ${options.chapterNumber}: ${options.chapterTitle}`
-    : options.chapterTitle;
-  return `${chapterLabel} · ${options.topicTitle}`;
-}
-
-async function getSuggestedTopicsByClass(
-  classIds: string[],
-): Promise<Map<string, string>> {
-  if (classIds.length === 0) return new Map();
-
-  const subjects = await prisma.syllabusSubject.findMany({
-    where: { classId: { in: classIds } },
-    include: {
-      chapters: {
-        orderBy: { displayOrder: "asc" },
-        include: {
-          topics: { orderBy: { displayOrder: "asc" } },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const result = new Map<string, string>();
-
-  for (const subject of subjects) {
-    if (result.has(subject.classId)) continue;
-
-    let fallback: string | null = null;
-
-    for (const chapter of subject.chapters) {
-      for (const topic of chapter.topics) {
-        const formatted = formatSuggestedTopic({
-          chapterNumber: chapter.chapterNumber,
-          chapterTitle: chapter.chapterTitle,
-          topicTitle: topic.topicTitle,
-        });
-
-        if (topic.status === "IN_PROGRESS") {
-          result.set(subject.classId, formatted);
-          break;
-        }
-
-        if (!fallback && topic.status === "NOT_STARTED") {
-          fallback = formatted;
-        }
-      }
-      if (result.has(subject.classId)) break;
-    }
-
-    if (!result.has(subject.classId) && fallback) {
-      result.set(subject.classId, fallback);
-    }
-  }
-
-  return result;
-}
-
-async function getSyllabusMetricsByClass(classIds: string[]) {
-  const subjects = await prisma.syllabusSubject.findMany({
-    where: { classId: { in: classIds } },
-    include: {
-      chapters: {
-        include: { topics: true },
-      },
-    },
-  });
-
-  const progress = new Map<string, number | null>();
-  const importantPending = new Map<string, number>();
-
-  for (const classId of classIds) {
-    progress.set(classId, null);
-    importantPending.set(classId, 0);
-  }
-
-  const topicsByClass = new Map<string, { status: string; priority: string }[]>();
-
-  for (const subject of subjects) {
-    const topics = subject.chapters.flatMap((chapter) => chapter.topics);
-    const existing = topicsByClass.get(subject.classId) ?? [];
-    topicsByClass.set(subject.classId, [
-      ...existing,
-      ...topics.map((topic) => ({
-        status: topic.status,
-        priority: topic.priority,
-      })),
-    ]);
-  }
-
-  for (const classId of classIds) {
-    const topics = topicsByClass.get(classId) ?? [];
-    if (topics.length === 0) continue;
-
-    const summary = getSyllabusSummary(topics);
-    progress.set(classId, summary.progressPercentage);
-
-    const pendingImportant = topics.filter(
-      (topic) =>
-        (topic.priority === "IMPORTANT" || topic.priority === "EXAM_IMPORTANT") &&
-        (topic.status === "NOT_STARTED" || topic.status === "IN_PROGRESS"),
-    ).length;
-    importantPending.set(classId, pendingImportant);
-  }
-
-  return { progress, importantPending };
 }
 
 async function getTodaySessionsByClass(classIds: string[], today: string) {
@@ -239,23 +128,10 @@ function resolveDiaryForScheduleItem(
 }
 
 async function getOpenAlertMetricsByClass(classIds: string[], month: string) {
-  const entries = await Promise.all(
-    classIds.map(async (classId) => {
-      const data = await getAttendanceAlertsForClass(classId, month, {
-        status: "ALL",
-      });
-      const openAlerts =
-        data?.alerts.filter(
-          (alert) => alert.status === "OPEN" || alert.status === "IN_PROGRESS",
-        ) ?? [];
-      const preview = openAlerts[0]
-        ? `${openAlerts[0].full_name}: ${openAlerts[0].title}`
-        : null;
-      return [classId, { count: openAlerts.length, preview }] as const;
-    }),
+  const counts = await getOpenAttendanceAlertCountsByClass(classIds, month);
+  return new Map(
+    classIds.map((classId) => [classId, { count: counts.get(classId) ?? 0, preview: null }] as const),
   );
-
-  return new Map(entries);
 }
 
 async function getFollowUpCounts(classIds: string[], today: string) {
@@ -384,10 +260,9 @@ async function getDashboardTodayItems(today: string): Promise<DashboardTodayItem
 
   const scheduledClassIds = [...new Set(schedule.map((item) => item.class_id))];
 
-  const [sessions, diaryContext, suggestedTopics, alertMetrics] = await Promise.all([
+  const [sessions, diaryContext, alertMetrics] = await Promise.all([
     getTodaySessionsByClass(scheduledClassIds, today),
     getDiaryContextByClass(scheduledClassIds, today),
-    getSuggestedTopicsByClass(scheduledClassIds),
     getOpenAlertMetricsByClass(scheduledClassIds, month),
   ]);
 
@@ -411,9 +286,9 @@ async function getDashboardTodayItems(today: string): Promise<DashboardTodayItem
       teaching_diary_entry_id: todayDiary?.id ?? null,
       last_topic_taught: diaryEntry?.topicTaught ?? null,
       next_class_plan: diaryEntry?.nextClassPlan ?? null,
-      suggested_next_topic: suggestedTopics.get(item.class_id) ?? null,
+      suggested_next_topic: null,
       open_alerts_count: alerts?.count ?? 0,
-      top_alert_preview: alerts?.preview ?? null,
+      top_alert_preview: null,
     };
   });
 }
@@ -451,7 +326,7 @@ async function getDashboardClassCards(
   ] = await Promise.all([
     getTodaySessionsByClass(classIds, today),
     getDiaryContextByClass(classIds, today),
-    getSyllabusMetricsByClass(classIds),
+    getSyllabusMetricsByClassIds(classIds),
     getOpenAlertMetricsByClass(classIds, month),
     getPerClassFollowUpCounts(classIds, today),
     getLatestAssessmentByClass(classIds),
@@ -494,22 +369,10 @@ async function getDashboardFollowUpSummary(
   today: string,
   month: string,
 ): Promise<DashboardFollowUpSummary> {
-  const [followUps, alertTotals] = await Promise.all([
+  const [followUps, openAttendanceAlerts] = await Promise.all([
     getFollowUpCounts(classIds, today),
-    Promise.all(
-      classIds.map((classId) =>
-        getAttendanceAlertsForClass(classId, month, { status: "ALL" }),
-      ),
-    ),
+    getTotalOpenAttendanceAlertCount(classIds, month),
   ]);
-
-  const openAttendanceAlerts = alertTotals.reduce((sum, data) => {
-    const open =
-      data?.alerts.filter(
-        (alert) => alert.status === "OPEN" || alert.status === "IN_PROGRESS",
-      ).length ?? 0;
-    return sum + open;
-  }, 0);
 
   return {
     open_student_notes: followUps.openStudentNotes,

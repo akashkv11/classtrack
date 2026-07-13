@@ -5,7 +5,7 @@ import PageHeader from "@/components/ui/page-header";
 import { REPORT_TYPES } from "@/lib/reports/constants";
 import { getClassById } from "@/lib/queries/classes";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = { params: Promise<{ classId: string }> };
 

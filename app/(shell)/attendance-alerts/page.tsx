@@ -4,7 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getAttendanceAlertsOverviewForActiveYear } from "@/lib/queries/attendance-alerts";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function AttendanceAlertsPage() {
   const { activeYear, classes } = await getAttendanceAlertsOverviewForActiveYear();

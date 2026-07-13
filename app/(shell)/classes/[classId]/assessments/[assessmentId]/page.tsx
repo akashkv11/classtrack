@@ -6,7 +6,7 @@ import { getClassById } from "@/lib/queries/classes";
 import { getAssessmentMarksGrid } from "@/lib/queries/assessments";
 import { getLowMarksThresholdPercent } from "@/lib/settings";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = {
   params: Promise<{ classId: string; assessmentId: string }>;

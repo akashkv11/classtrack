@@ -7,7 +7,7 @@ import { getTodayScheduleItems } from "@/lib/queries/dashboard";
 import { getTimetableEntries } from "@/lib/queries/timetable";
 import { todayISO } from "@/lib/dates";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function TimetablePage() {
   const { activeYear, classes } = await getActiveClasses();

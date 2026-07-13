@@ -8,7 +8,7 @@ import {
   getSyllabusSubjectsForClass,
 } from "@/lib/queries/syllabus";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = { params: Promise<{ classId: string }> };
 

@@ -6,7 +6,7 @@ import { getClassById } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
 import { getReportSettings } from "@/lib/settings";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = { params: Promise<{ classId: string }> };
 

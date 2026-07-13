@@ -5,7 +5,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getSyllabusOverviewForActiveYear } from "@/lib/queries/syllabus";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function SyllabusProgressPage() {
   const { activeYear, classes } = await getSyllabusOverviewForActiveYear();

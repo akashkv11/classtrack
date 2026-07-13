@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { detectAttendanceAlerts } from "@/lib/attendance-alerts/detect";
 import { endOfMonth, startOfMonth } from "@/lib/dates";
+import { getStoredAttendanceAlertCountsForClass } from "@/lib/queries/class-summaries";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getAttendanceAlertThresholds, lateCountsAsPresent } from "@/lib/settings";
 import type {
@@ -152,20 +153,17 @@ export async function getAttendanceAlertsOverviewForActiveYear(): Promise<{
 
   const overviews = await Promise.all(
     classes.map(async (cls) => {
-      const [studentCount, alertData] = await Promise.all([
+      const [studentCount, alertCounts] = await Promise.all([
         prisma.student.count({ where: { classId: cls.id, isActive: true } }),
-        getAttendanceAlertsForClass(cls.id, month, { status: "ALL" }),
+        getStoredAttendanceAlertCountsForClass(cls.id, month),
       ]);
-
-      const allAlerts = alertData?.alerts ?? [];
-      const openAlerts = allAlerts.filter((alert) => isOpenStatus(alert.status));
 
       return {
         class_id: cls.id,
         display_name: cls.displayName,
         student_count: studentCount,
-        open_alerts_count: openAlerts.length,
-        total_alerts_count: allAlerts.length,
+        open_alerts_count: alertCounts.openAlertsCount,
+        total_alerts_count: alertCounts.totalAlertsCount,
       };
     }),
   );

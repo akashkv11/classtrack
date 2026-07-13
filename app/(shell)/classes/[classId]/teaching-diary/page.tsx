@@ -12,7 +12,7 @@ import {
 import { matchSyllabusSubjectIdByName } from "@/lib/timetable/links";
 import { getTimetableEntryById } from "@/lib/queries/timetable";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = {
   params: Promise<{ classId: string }>;

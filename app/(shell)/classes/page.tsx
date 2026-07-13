@@ -4,7 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getActiveClasses } from "@/lib/queries/classes";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function ClassesPage() {
   const { activeYear, classes } = await getActiveClasses();

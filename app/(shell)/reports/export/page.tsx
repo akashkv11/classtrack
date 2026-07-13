@@ -9,7 +9,7 @@ import SectionCard from "@/components/ui/section-card";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getReportsOverviewForActiveYear } from "@/lib/queries/reports";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function ReportsExportPage() {
   const [{ activeYear, classes: overviews }, { classes }] = await Promise.all([

@@ -5,7 +5,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getReportsOverviewForActiveYear } from "@/lib/queries/reports";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function ReportsPage() {
   const { activeYear, classes } = await getReportsOverviewForActiveYear();

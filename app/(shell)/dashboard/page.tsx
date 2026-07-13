@@ -9,7 +9,7 @@ import PageHeader from "@/components/ui/page-header";
 import { formatTodayHeading } from "@/lib/dates";
 import { getDashboardData } from "@/lib/queries/dashboard";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export default async function DashboardPage() {
   const data = await getDashboardData();

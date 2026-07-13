@@ -4,7 +4,7 @@ import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = { params: Promise<{ classId: string }> };
 

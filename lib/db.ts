@@ -11,10 +11,10 @@ const globalForDatabase = globalThis as unknown as {
 function createPool(): Pool {
   return new Pool({
     connectionString: getDatabaseUrl(),
-    max: 1,
-    idleTimeoutMillis: 10_000,
+    max: 3,
+    idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
-    maxLifetimeSeconds: 60,
+    maxLifetimeSeconds: 300,
   });
 }
 

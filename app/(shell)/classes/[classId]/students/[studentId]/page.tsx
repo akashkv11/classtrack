@@ -12,7 +12,7 @@ import {
   getStudentNoteOptions,
 } from "@/lib/queries/parent-communications";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type PageProps = {
   params: Promise<{ classId: string; studentId: string }>;

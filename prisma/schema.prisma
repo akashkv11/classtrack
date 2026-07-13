@@ -42,6 +42,7 @@ model Class {
   parentCommunications  ParentCommunication[]
   attendanceAlertStatuses AttendanceAlertStatus[]
 
+  @@index([academicYearId])
   @@unique([academicYearId, level, stream])
   @@map("classes")
 }
@@ -65,6 +66,7 @@ model SyllabusSubject {
   teachingDiaryEntries TeachingDiaryEntry[]
   assessments          Assessment[]
 
+  @@index([classId])
   @@map("syllabus_subjects")
 }
 
@@ -84,6 +86,7 @@ model SyllabusChapter {
   teachingDiaryEntries TeachingDiaryEntry[]
   assessments          Assessment[]
 
+  @@index([syllabusSubjectId])
   @@map("syllabus_chapters")
 }
 
@@ -111,6 +114,8 @@ model SyllabusTopic {
   teachingDiaryEntries TeachingDiaryEntry[]
   assessmentTopics     AssessmentTopic[]
 
+  @@index([syllabusChapterId])
+  @@index([syllabusChapterId, status])
   @@map("syllabus_topics")
 }
 
@@ -168,6 +173,8 @@ model TimetableEntry {
   attendanceSessions AttendanceSession[]
   teachingDiaryEntries TeachingDiaryEntry[]
 
+  @@index([classId])
+  @@index([classId, entryDate])
   @@map("timetable_entries")
 }
 
@@ -189,6 +196,7 @@ model Student {
   parentCommunications  ParentCommunication[]
   attendanceAlertStatuses AttendanceAlertStatus[]
 
+  @@index([classId])
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
   @@map("students")
@@ -207,6 +215,8 @@ model AttendanceSession {
   timetableEntry  TimetableEntry?  @relation(fields: [timetableEntryId], references: [id], onDelete: SetNull)
   records AttendanceRecord[]
 
+  @@index([classId])
+  @@index([classId, attendanceDate])
   @@unique([classId, attendanceDate, timetableEntryId])
   @@index([timetableEntryId])
   @@map("attendance_sessions")
@@ -224,6 +234,9 @@ model AttendanceRecord {
   session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   student Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
 
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([status])
   @@unique([sessionId, studentId])
   @@map("attendance_records")
 }
@@ -247,7 +260,9 @@ model Assessment {
   topics          AssessmentTopic[]
   marks           AssessmentMark[]
 
+  @@index([classId])
   @@index([classId, assessmentDate])
+  @@index([syllabusSubjectId])
   @@map("assessments")
 }
 
@@ -275,6 +290,8 @@ model AssessmentMark {
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   student    Student    @relation(fields: [studentId], references: [id], onDelete: Restrict)
 
+  @@index([assessmentId])
+  @@index([studentId])
   @@unique([assessmentId, studentId])
   @@map("assessment_marks")
 }
@@ -296,6 +313,8 @@ model StudentNote {
   student              Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
   parentCommunications ParentCommunication[]
 
+  @@index([classId])
+  @@index([classId, status])
   @@index([studentId, noteDate])
   @@map("student_notes")
 }
@@ -319,6 +338,9 @@ model ParentCommunication {
   student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentNote StudentNote? @relation(fields: [studentNoteId], references: [id], onDelete: SetNull)
 
+  @@index([classId])
+  @@index([classId, status])
+  @@index([followUpDate])
   @@index([studentId, communicationDate])
   @@map("parent_communications")
 }
@@ -338,7 +360,10 @@ model AttendanceAlertStatus {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, alertKey])
+  @@index([classId])
   @@index([classId, month])
+  @@index([classId, status])
+  @@index([studentId])
   @@map("attendance_alert_statuses")
 }
 

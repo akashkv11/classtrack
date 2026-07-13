@@ -230,28 +230,103 @@ export async function getSyllabusOverviewForActiveYear(): Promise<{
     return { activeYear: null, classes: [] };
   }
 
-  const overviews = await Promise.all(
-    classes.map(async (cls) => {
-      const subjects = await getSyllabusSubjectsForClass(cls.id);
-      const topicsCount = subjects.reduce((sum, s) => sum + s.topics_count, 0);
-      const progressPercentage =
-        subjects.length === 0
+  const classIds = classes.map((cls) => cls.id);
+  if (classIds.length === 0) {
+    return { activeYear: { id: activeYear.id, name: activeYear.name }, classes: [] };
+  }
+
+  const [subjects, topicRows] = await Promise.all([
+    prisma.syllabusSubject.findMany({
+      where: { classId: { in: classIds } },
+      select: {
+        id: true,
+        classId: true,
+        subjectName: true,
+        stream: true,
+        textbookName: true,
+        board: true,
+        academicYear: true,
+        _count: { select: { chapters: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.syllabusTopic.findMany({
+      where: {
+        syllabusChapter: {
+          syllabusSubject: { classId: { in: classIds } },
+        },
+      },
+      select: {
+        status: true,
+        syllabusChapter: {
+          select: {
+            syllabusSubjectId: true,
+            syllabusSubject: { select: { classId: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const topicsBySubject = new Map<string, { status: string }[]>();
+  const topicsByClass = new Map<string, { status: string }[]>();
+
+  for (const row of topicRows) {
+    const subjectId = row.syllabusChapter.syllabusSubjectId;
+    const classId = row.syllabusChapter.syllabusSubject.classId;
+    const topic = { status: row.status };
+
+    const subjectTopics = topicsBySubject.get(subjectId) ?? [];
+    subjectTopics.push(topic);
+    topicsBySubject.set(subjectId, subjectTopics);
+
+    const classTopics = topicsByClass.get(classId) ?? [];
+    classTopics.push(topic);
+    topicsByClass.set(classId, classTopics);
+  }
+
+  const subjectsByClass = new Map<string, SyllabusSubjectSummary[]>();
+  for (const subject of subjects) {
+    const topics = topicsBySubject.get(subject.id) ?? [];
+    const summary = getSyllabusSummary(topics);
+    const item: SyllabusSubjectSummary = {
+      id: subject.id,
+      subject_name: subject.subjectName,
+      stream: subject.stream,
+      textbook_name: subject.textbookName,
+      board: subject.board,
+      academic_year: subject.academicYear,
+      chapters_count: subject._count.chapters,
+      topics_count: summary.total,
+      completed_topics_count: summary.completed + summary.revised,
+      progress_percentage: summary.progressPercentage,
+    };
+
+    const existing = subjectsByClass.get(subject.classId) ?? [];
+    existing.push(item);
+    subjectsByClass.set(subject.classId, existing);
+  }
+
+  const overviews = classes.map((cls) => {
+    const classSubjects = subjectsByClass.get(cls.id) ?? [];
+    const classTopics = topicsByClass.get(cls.id) ?? [];
+    const classSummary = getSyllabusSummary(classTopics);
+
+    return {
+      class_id: cls.id,
+      display_name: cls.displayName,
+      subjects_count: classSubjects.length,
+      topics_count: classSummary.total,
+      progress_percentage:
+        classSubjects.length === 0
           ? 0
           : Math.round(
-              subjects.reduce((sum, s) => sum + s.progress_percentage, 0) /
-                subjects.length,
-            );
-
-      return {
-        class_id: cls.id,
-        display_name: cls.displayName,
-        subjects_count: subjects.length,
-        topics_count: topicsCount,
-        progress_percentage: progressPercentage,
-        subjects,
-      };
-    }),
-  );
+              classSubjects.reduce((sum, subject) => sum + subject.progress_percentage, 0) /
+                classSubjects.length,
+            ),
+      subjects: classSubjects,
+    };
+  });
 
   return {
     activeYear: { id: activeYear.id, name: activeYear.name },
