@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
+import { toMarkNumber } from "@/lib/assessments/marks";
 import {
   classOwnershipMismatchResponse,
   getAssessmentClassId,
@@ -88,16 +89,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
     remarks: string | null;
   }[] = [];
 
+  const maxMarks = toMarkNumber(assessment.maxMarks) ?? 0;
+
   for (const record of parsed.data.records) {
     if (!studentIds.has(record.student_id)) continue;
 
     if (
       record.marks_obtained !== null &&
-      record.marks_obtained > assessment.maxMarks
+      record.marks_obtained > maxMarks
     ) {
       return NextResponse.json(
         {
-          error: `Marks cannot exceed max marks (${assessment.maxMarks})`,
+          error: `Marks cannot exceed max marks (${maxMarks})`,
         },
         { status: 400 },
       );

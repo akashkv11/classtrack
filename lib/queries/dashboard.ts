@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { summarizeRecords } from "@/lib/attendance";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
+import { toMarkNumber } from "@/lib/assessments/marks";
 import { getLowMarksThresholdPercent } from "@/lib/settings";
 import { parseISODate, todayISO } from "@/lib/dates";
 import {
@@ -230,9 +231,12 @@ async function getLatestAssessmentByClass(classIds: string[]) {
       });
 
       const lowMarksThreshold = await getLowMarksThresholdPercent();
+      const maxMarks = toMarkNumber(assessment.maxMarks) ?? 0;
       const summary = computeAssessmentSummary(
-        assessment.marks,
-        assessment.maxMarks,
+        assessment.marks.map((mark) => ({
+          marksObtained: toMarkNumber(mark.marksObtained),
+        })),
+        maxMarks,
         studentCount,
         lowMarksThreshold,
       );
@@ -242,7 +246,7 @@ async function getLatestAssessmentByClass(classIds: string[]) {
         {
           name: assessment.name,
           average: summary.class_average,
-          maxMarks: assessment.maxMarks,
+          maxMarks,
           below40Count: summary.below_40_percent_count,
         },
       ] as const;

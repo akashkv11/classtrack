@@ -256,8 +256,10 @@ export default function AssessmentForm({
           <FormField label="Max Marks" error={fieldErrors.max_marks}>
             <TextInput
               type="number"
-              min={1}
+              min={0.01}
               max={1000}
+              step="0.01"
+              inputMode="decimal"
               value={maxMarks}
               onChange={(e) => setMaxMarks(e.target.value)}
               error={!!fieldErrors.max_marks}

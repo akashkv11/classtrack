@@ -4,6 +4,7 @@ import {
   type AttendanceStatus,
 } from "@/lib/attendance";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
+import { toMarkNumber } from "@/lib/assessments/marks";
 import { endOfMonth, formatISODate, parseISODate, startOfMonth } from "@/lib/dates";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
@@ -344,13 +345,19 @@ export async function getAssessmentsReport(
     const withMarks = assessment.marks.filter((m) => m.marksObtained !== null);
     let classAverage: number | null = null;
     if (withMarks.length > 0) {
-      const sum = withMarks.reduce((a, m) => a + (m.marksObtained as number), 0);
+      const sum = withMarks.reduce(
+        (total, mark) => total + (toMarkNumber(mark.marksObtained) ?? 0),
+        0,
+      );
       classAverage = Math.round((sum / withMarks.length) * 10) / 10;
     }
 
+    const maxMarks = toMarkNumber(assessment.maxMarks) ?? 0;
     const summary = computeAssessmentSummary(
-      assessment.marks,
-      assessment.maxMarks,
+      assessment.marks.map((mark) => ({
+        marksObtained: toMarkNumber(mark.marksObtained),
+      })),
+      maxMarks,
       studentCount,
       lowMarksThreshold,
     );
@@ -361,7 +368,7 @@ export async function getAssessmentsReport(
       assessment_type: assessment.assessmentType,
       assessment_date: formatISODate(assessment.assessmentDate),
       subject_name: assessment.syllabusSubject.subjectName,
-      max_marks: assessment.maxMarks,
+      max_marks: maxMarks,
       class_average: classAverage,
       marks_entered_count: withMarks.length,
       student_count: studentCount,

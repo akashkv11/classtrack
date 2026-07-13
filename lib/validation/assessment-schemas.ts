@@ -11,6 +11,19 @@ export const assessmentTypeSchema = z.enum([
   "OTHER",
 ]);
 
+const decimalMarkSchema = (label: string) =>
+  z
+    .number({ error: `${label} is required` })
+    .min(0, `${label} cannot be negative`)
+    .refine(
+      (value) => Math.round(value * 100) === value * 100,
+      `${label} can have at most 2 decimal places`,
+    );
+
+const maxMarksSchema = decimalMarkSchema("Max marks")
+  .refine((value) => value >= 0.01, "Max marks must be at least 0.01")
+  .refine((value) => value <= 1000, "Max marks is too large");
+
 export const assessmentCreateSchema = z.object({
   name: z.string().trim().min(2, "Assessment name is required"),
   syllabus_subject_id: uuidSchema,
@@ -18,11 +31,7 @@ export const assessmentCreateSchema = z.object({
   syllabus_topic_ids: z.array(uuidSchema).optional().default([]),
   assessment_type: assessmentTypeSchema,
   assessment_date: isoDateSchema,
-  max_marks: z
-    .number({ error: "Max marks is required" })
-    .int("Max marks must be a whole number")
-    .min(1, "Max marks must be at least 1")
-    .max(1000, "Max marks is too large"),
+  max_marks: maxMarksSchema,
   remarks: z.string().trim().optional().nullable(),
 });
 
@@ -31,12 +40,7 @@ export const assessmentUpdateSchema = assessmentCreateSchema.partial().extend({
   syllabus_subject_id: uuidSchema.optional(),
   assessment_type: assessmentTypeSchema.optional(),
   assessment_date: isoDateSchema.optional(),
-  max_marks: z
-    .number()
-    .int("Max marks must be a whole number")
-    .min(1, "Max marks must be at least 1")
-    .max(1000, "Max marks is too large")
-    .optional(),
+  max_marks: maxMarksSchema.optional(),
 });
 
 export const assessmentListQuerySchema = z.object({
@@ -48,11 +52,9 @@ export const assessmentListQuerySchema = z.object({
 
 export const assessmentMarkRecordSchema = z.object({
   student_id: uuidSchema,
-  marks_obtained: z
-    .number()
-    .int("Marks must be a whole number")
-    .min(0, "Marks cannot be negative")
-    .nullable(),
+  marks_obtained: decimalMarkSchema("Marks")
+    .nullable()
+    .refine((value) => value === null || value >= 0, "Marks cannot be negative"),
   remarks: z.string().trim().optional().nullable(),
 });
 

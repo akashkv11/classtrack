@@ -11,6 +11,7 @@ import Table, {
   TableRow,
 } from "@/components/ui/table";
 import { inputClassName } from "@/lib/validation";
+import { formatMark, parseMarksInput } from "@/lib/assessments/marks";
 import type { AssessmentMarkRow } from "@/lib/types/assessment";
 
 type AssessmentMarksTableProps = {
@@ -19,13 +20,6 @@ type AssessmentMarksTableProps = {
   onChange: (records: AssessmentMarkRow[]) => void;
   readOnly?: boolean;
 };
-
-function parseMarksInput(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed === "") return null;
-  const num = Number(trimmed);
-  return Number.isFinite(num) ? Math.round(num) : null;
-}
 
 export default function AssessmentMarksTable({
   records,
@@ -84,7 +78,7 @@ export default function AssessmentMarksTable({
               <TableCell>
                 {readOnly ? (
                   record.marks_obtained !== null ? (
-                    record.marks_obtained
+                    formatMark(record.marks_obtained)
                   ) : (
                     <span className="text-slate-400">Absent</span>
                   )
@@ -93,6 +87,8 @@ export default function AssessmentMarksTable({
                     type="number"
                     min={0}
                     max={maxMarks}
+                    step="0.01"
+                    inputMode="decimal"
                     value={record.marks_obtained ?? ""}
                     onChange={(e) =>
                       handleMarksChange(record.student_id, e.target.value)

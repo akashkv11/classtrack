@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatISODate, parseISODate } from "@/lib/dates";
+import { toMarkNumber } from "@/lib/assessments/marks";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getLowMarksThresholdPercent } from "@/lib/settings";
@@ -36,7 +37,7 @@ type DbAssessment = {
   name: string;
   assessmentType: string;
   assessmentDate: Date;
-  maxMarks: number;
+  maxMarks: unknown;
   remarks: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -49,7 +50,7 @@ type DbAssessment = {
       syllabusChapter: { chapterTitle: string };
     };
   }[];
-  marks: { marksObtained: number | null }[];
+  marks: { marksObtained: unknown }[];
 };
 
 function mapAssessmentToSummary(
@@ -59,7 +60,10 @@ function mapAssessmentToSummary(
   const withMarks = assessment.marks.filter((m) => m.marksObtained !== null);
   let classAverage: number | null = null;
   if (withMarks.length > 0) {
-    const sum = withMarks.reduce((a, m) => a + (m.marksObtained as number), 0);
+    const sum = withMarks.reduce(
+      (total, mark) => total + (toMarkNumber(mark.marksObtained) ?? 0),
+      0,
+    );
     classAverage = Math.round((sum / withMarks.length) * 10) / 10;
   }
 
@@ -68,7 +72,7 @@ function mapAssessmentToSummary(
     name: assessment.name,
     assessment_type: assessment.assessmentType as AssessmentType,
     assessment_date: formatISODate(assessment.assessmentDate),
-    max_marks: assessment.maxMarks,
+    max_marks: toMarkNumber(assessment.maxMarks) ?? 0,
     subject: {
       id: assessment.syllabusSubject.id,
       name: assessment.syllabusSubject.subjectName,
@@ -149,8 +153,10 @@ export async function getAssessmentById(
   const lowMarksThreshold = await getLowMarksThresholdPercent();
   const summary = mapAssessmentToSummary(assessment, studentCount);
   const resultSummary = computeAssessmentSummary(
-    assessment.marks,
-    assessment.maxMarks,
+    assessment.marks.map((mark) => ({
+      marksObtained: toMarkNumber(mark.marksObtained),
+    })),
+    toMarkNumber(assessment.maxMarks) ?? 0,
     studentCount,
     lowMarksThreshold,
   );
@@ -192,15 +198,16 @@ export async function getAssessmentMarksGrid(
       student_id: student.id,
       roll_no: student.rollNo,
       full_name: student.fullName,
-      marks_obtained: mark?.marksObtained ?? null,
+      marks_obtained: toMarkNumber(mark?.marksObtained),
       remarks: mark?.remarks ?? null,
     };
   });
 
+  const maxMarks = toMarkNumber(assessment.maxMarks) ?? 0;
   const lowMarksThreshold = await getLowMarksThresholdPercent();
   const summary = computeAssessmentSummary(
     records.map((r) => ({ marksObtained: r.marks_obtained })),
-    assessment.maxMarks,
+    maxMarks,
     students.length,
     lowMarksThreshold,
   );
@@ -245,9 +252,11 @@ export async function getStudentAssessmentHistory(
   const entries: StudentAssessmentHistoryEntry[] = marks
     .filter((m) => classAssessmentIds.has(m.assessmentId))
     .map((m) => {
+      const marksObtained = toMarkNumber(m.marksObtained);
+      const maxMarks = toMarkNumber(m.assessment.maxMarks) ?? 0;
       const pct =
-        m.marksObtained !== null
-          ? Math.round((m.marksObtained / m.assessment.maxMarks) * 1000) / 10
+        marksObtained !== null && maxMarks > 0
+          ? Math.round((marksObtained / maxMarks) * 1000) / 10
           : null;
       return {
         assessment_id: m.assessmentId,
@@ -255,8 +264,8 @@ export async function getStudentAssessmentHistory(
         assessment_type: m.assessment.assessmentType as AssessmentType,
         assessment_date: formatISODate(m.assessment.assessmentDate),
         subject_name: m.assessment.syllabusSubject.subjectName,
-        max_marks: m.assessment.maxMarks,
-        marks_obtained: m.marksObtained,
+        max_marks: maxMarks,
+        marks_obtained: marksObtained,
         percentage: pct,
         remarks: m.remarks,
       };
