@@ -10,6 +10,7 @@ import { lateCountsAsPresent } from "@/lib/settings";
 import type {
   StudentProfile,
   StudentProfileClassOverview,
+  StudentDirectoryItem,
   StudentProfileListItem,
 } from "@/lib/types/student-profile";
 
@@ -157,5 +158,51 @@ export async function getStudentProfileOverviewForActiveYear(): Promise<{
   return {
     activeYear: { id: activeYear.id, name: activeYear.name },
     classes: overviews,
+  };
+}
+
+export async function getStudentsDirectoryForActiveYear(): Promise<{
+  activeYear: { id: string; name: string } | null;
+  classes: { id: string; display_name: string }[];
+  students: StudentDirectoryItem[];
+}> {
+  const { activeYear, classes } = await getActiveClasses();
+
+  if (!activeYear) {
+    return { activeYear: null, classes: [], students: [] };
+  }
+
+  const students = await prisma.student.findMany({
+    where: {
+      class: { academicYearId: activeYear.id, isActive: true },
+    },
+    orderBy: [{ class: { displayName: "asc" } }, { rollNo: "asc" }],
+    select: {
+      id: true,
+      rollNo: true,
+      fullName: true,
+      admissionNo: true,
+      isActive: true,
+      class: { select: { id: true, displayName: true } },
+    },
+  });
+
+  return {
+    activeYear: { id: activeYear.id, name: activeYear.name },
+    classes: classes.map((cls) => ({
+      id: cls.id,
+      display_name: cls.displayName,
+    })),
+    students: students.map((student) => ({
+      id: student.id,
+      roll_no: student.rollNo,
+      full_name: student.fullName,
+      admission_no: student.admissionNo,
+      is_active: student.isActive,
+      class: {
+        id: student.class.id,
+        display_name: student.class.displayName,
+      },
+    })),
   };
 }

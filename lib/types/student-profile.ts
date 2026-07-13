@@ -55,3 +55,15 @@ export type StudentProfileListItem = {
   full_name: string;
   is_active: boolean;
 };
+
+export type StudentDirectoryItem = {
+  id: string;
+  roll_no: number;
+  full_name: string;
+  admission_no: string | null;
+  is_active: boolean;
+  class: {
+    id: string;
+    display_name: string;
+  };
+};

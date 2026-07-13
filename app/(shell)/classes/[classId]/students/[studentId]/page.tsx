@@ -16,12 +16,16 @@ export const revalidate = 30;
 
 type PageProps = {
   params: Promise<{ classId: string; studentId: string }>;
+  searchParams: Promise<{ from?: string }>;
 };
 
-export default async function StudentProfilePage({ params }: PageProps) {
+export default async function StudentProfilePage({ params, searchParams }: PageProps) {
   const { classId, studentId } = await params;
+  const query = await searchParams;
   const cls = await getClassById(classId);
   if (!cls) notFound();
+
+  const backFromStudentProfile = query.from === "student-profile";
 
   const [profile, notes, communications, noteOptions] = await Promise.all([
     getStudentProfile(classId, studentId),
@@ -36,8 +40,8 @@ export default async function StudentProfilePage({ params }: PageProps) {
       <PageHeader
         title="Student Profile"
         subtitle={cls.displayName}
-        backHref={`/classes/${classId}/students`}
-        backLabel="← Back to Students"
+        backHref={backFromStudentProfile ? "/student-profile" : `/classes/${classId}/students`}
+        backLabel={backFromStudentProfile ? "← Back to Student Profile" : "← Back to Students"}
       />
 
       <StudentProfileView profile={profile} />
