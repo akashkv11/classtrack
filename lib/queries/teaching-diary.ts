@@ -101,6 +101,7 @@ export function computeDiarySummary(
     topics_in_progress: entries.filter((e) => e.diary_status === "PARTIALLY_TAUGHT")
       .length,
     revision_entries: entries.filter((e) => e.diary_status === "REVISION").length,
+    exam_entries: entries.filter((e) => e.diary_status === "EXAM").length,
   };
 }
 

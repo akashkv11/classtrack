@@ -20,11 +20,12 @@ export default function TeachingDiaryReportView({ report }: TeachingDiaryReportV
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Total Entries" value={report.summary.total_entries} />
         <StatCard label="Topics Taught" value={report.summary.topics_taught} />
         <StatCard label="Partial Topics" value={report.summary.partial_topics} />
-        <StatCard label="Revision" value={report.summary.revision_entries} />
+        <StatCard label="Chapter Revisions" value={report.summary.revision_entries} />
+        <StatCard label="Exams" value={report.summary.exam_entries} />
       </div>
 
       {report.entries.length === 0 ? (

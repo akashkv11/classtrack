@@ -169,6 +169,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     absentees,
     topicTaken,
     whatsappChannelUrl: session.class.whatsappChannelUrl,
+    diaryStatus: diaryEntry?.diaryStatus,
   });
 
   return NextResponse.json({

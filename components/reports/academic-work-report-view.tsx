@@ -18,6 +18,7 @@ export default function AcademicWorkReportView({ report }: AcademicWorkReportVie
       topics_taught: report.topics_completed_this_month,
       partial_topics: report.pending_continuation.length,
       revision_entries: report.revision_classes,
+      exam_entries: report.exam_classes,
     },
   };
 
@@ -32,10 +33,11 @@ export default function AcademicWorkReportView({ report }: AcademicWorkReportVie
         <p className="mt-1 text-sm text-slate-700">Month: {report.month}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Topics Taught" value={report.topics_taught_this_month} />
         <StatCard label="Completed" value={report.topics_completed_this_month} />
-        <StatCard label="Revision Classes" value={report.revision_classes} />
+        <StatCard label="Chapter Revisions" value={report.revision_classes} />
+        <StatCard label="Exams" value={report.exam_classes} />
         <StatCard label="Pending Continuation" value={report.pending_continuation.length} />
       </div>
 

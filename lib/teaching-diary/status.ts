@@ -3,7 +3,8 @@ import type { DiaryStatus, SyllabusStatusUpdate } from "@/lib/types/teaching-dia
 export const DIARY_STATUS_LABELS: Record<DiaryStatus, string> = {
   TAUGHT: "Taught",
   PARTIALLY_TAUGHT: "Partially Taught",
-  REVISION: "Revision",
+  REVISION: "Chapter Revision",
+  EXAM: "Exam",
   CANCELLED: "Cancelled",
 };
 
@@ -31,6 +32,8 @@ export function suggestSyllabusStatusUpdate(
       return "COMPLETED";
     case "REVISION":
       return "REVISED";
+    case "EXAM":
+      return "KEEP_CURRENT";
     default:
       return "KEEP_CURRENT";
   }
@@ -46,6 +49,8 @@ export function diaryStatusBadgeVariant(
       return "warning";
     case "REVISION":
       return "info";
+    case "EXAM":
+      return "warning";
     case "CANCELLED":
       return "danger";
     default:

@@ -371,6 +371,24 @@ function TeachingDiaryFormDialog({
           />
         </FormField>
 
+        <FormField
+          label="Session Type"
+          hint="Mark the day as Taught, Exam, Chapter Revision, or Cancelled."
+          error={fieldErrors.diary_status}
+        >
+          <SelectInput
+            value={diaryStatus}
+            onChange={(e) => handleDiaryStatusChange(e.target.value as DiaryStatus)}
+            error={!!fieldErrors.diary_status}
+          >
+            {DIARY_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {DIARY_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </SelectInput>
+        </FormField>
+
         {subjects.length > 0 && (
           <FormField label="Subject" error={fieldErrors.syllabus_subject_id}>
             <SelectInput
@@ -477,7 +495,13 @@ function TeachingDiaryFormDialog({
         )}
 
         <FormField
-          label="Topic Taught"
+          label={
+            diaryStatus === "EXAM"
+              ? "Exam Details"
+              : diaryStatus === "REVISION"
+                ? "Revision Focus"
+                : "Topic Taught"
+          }
           hint={
             topicTaughtAutoFilled
               ? "Auto-filled from syllabus topic. Edit as needed."
@@ -494,9 +518,13 @@ function TeachingDiaryFormDialog({
               setTopicTaughtAutoFilled(e.target.value === lastSuggestionRef.current);
             }}
             placeholder={
-              selectedTopic
-                ? "Edit the suggestion or keep as-is"
-                : "What did you teach today?"
+              diaryStatus === "EXAM"
+                ? "e.g. Unit Test — Chapters 1–3"
+                : diaryStatus === "REVISION"
+                  ? "e.g. Chapter 5 revision — key formulas"
+                  : selectedTopic
+                    ? "Edit the suggestion or keep as-is"
+                    : "What did you teach today?"
             }
           />
         </FormField>
@@ -540,20 +568,6 @@ function TeachingDiaryFormDialog({
             value={nextClassPlan}
             onChange={(e) => setNextClassPlan(e.target.value)}
           />
-        </FormField>
-
-        <FormField label="Diary Status" error={fieldErrors.diary_status}>
-          <SelectInput
-            value={diaryStatus}
-            onChange={(e) => handleDiaryStatusChange(e.target.value as DiaryStatus)}
-            error={!!fieldErrors.diary_status}
-          >
-            {DIARY_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {DIARY_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </SelectInput>
         </FormField>
 
         {topicId && (

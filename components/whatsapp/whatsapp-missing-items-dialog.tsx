@@ -36,7 +36,7 @@ export default function WhatsAppMissingItemsDialog({
       }
     >
       <p className="mb-4 text-sm text-slate-600">
-        Some required details for the class update message are missing. Fix them first,
+        Some required details for the WhatsApp update message are missing. Fix them first,
         or send the message with the incomplete sections.
       </p>
       <ul className="space-y-3">

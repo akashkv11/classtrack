@@ -249,6 +249,7 @@ export async function getTeachingDiaryReport(
       topics_taught: summary.topics_completed,
       partial_topics: summary.topics_in_progress,
       revision_entries: summary.revision_entries,
+      exam_entries: summary.exam_entries,
     },
   };
 }
@@ -302,6 +303,7 @@ export async function getMonthlyAcademicWorkReport(
     topics_completed_this_month: activeEntries.filter((e) => e.diary_status === "TAUGHT")
       .length,
     revision_classes: activeEntries.filter((e) => e.diary_status === "REVISION").length,
+    exam_classes: activeEntries.filter((e) => e.diary_status === "EXAM").length,
     pending_continuation: pendingContinuation,
     diary_entries: reportEntries,
   };

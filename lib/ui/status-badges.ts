@@ -42,7 +42,11 @@ export function diaryEntryStatus(status: string): StatusBadgeConfig {
     case "PARTIALLY_TAUGHT":
       return { label: "Partially Taught", variant: "info" };
     case "REVISION":
-      return { label: "Revision", variant: "warning" };
+      return { label: "Chapter Revision", variant: "warning" };
+    case "EXAM":
+      return { label: "Exam", variant: "warning" };
+    case "CANCELLED":
+      return { label: "Cancelled", variant: "neutral" };
     default:
       return { label: status, variant: "neutral" };
   }

@@ -68,6 +68,7 @@ export type TeachingDiaryReport = {
     topics_taught: number;
     partial_topics: number;
     revision_entries: number;
+    exam_entries: number;
   };
 };
 
@@ -85,6 +86,7 @@ export type MonthlyAcademicWorkReport = {
   topics_taught_this_month: number;
   topics_completed_this_month: number;
   revision_classes: number;
+  exam_classes: number;
   pending_continuation: PendingContinuationItem[];
   diary_entries: TeachingDiaryReportEntry[];
 };

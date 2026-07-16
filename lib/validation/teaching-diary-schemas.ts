@@ -5,6 +5,7 @@ export const diaryStatusSchema = z.enum([
   "TAUGHT",
   "PARTIALLY_TAUGHT",
   "REVISION",
+  "EXAM",
   "CANCELLED",
 ]);
 

@@ -37,7 +37,8 @@ export function getWhatsAppMissingItems(options: {
     missing.push({
       id: "teaching_diary",
       label: "Teaching diary entry",
-      description: "Add today's teaching diary entry with the topic taught.",
+      description:
+        "Add today's teaching diary entry and set the session type (Class, Exam, or Chapter Revision).",
       fix_href: diaryHref,
     });
   }

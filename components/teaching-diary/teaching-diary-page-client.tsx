@@ -225,7 +225,7 @@ export default function TeachingDiaryPageClient({
               <option value="all">All Time</option>
             </SelectInput>
           </FormField>
-          <FormField label="Status">
+          <FormField label="Session Type">
             <SelectInput
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}

@@ -1,4 +1,9 @@
-export type DiaryStatus = "TAUGHT" | "PARTIALLY_TAUGHT" | "REVISION" | "CANCELLED";
+export type DiaryStatus =
+  | "TAUGHT"
+  | "PARTIALLY_TAUGHT"
+  | "REVISION"
+  | "EXAM"
+  | "CANCELLED";
 
 export type StudentResponse =
   | "GOOD"
@@ -54,6 +59,7 @@ export type TeachingDiarySummary = {
   topics_completed: number;
   topics_in_progress: number;
   revision_entries: number;
+  exam_entries: number;
 };
 
 export type TeachingDiaryClassOverview = {

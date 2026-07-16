@@ -22,6 +22,19 @@ function chapterLabel(chapter: TeachingDiaryEntrySummary["chapter"]) {
     : chapter.chapter_title;
 }
 
+function topicTaughtLabel(status: TeachingDiaryEntrySummary["diary_status"]) {
+  switch (status) {
+    case "EXAM":
+      return "Exam: ";
+    case "REVISION":
+      return "Revision: ";
+    case "CANCELLED":
+      return "Session: ";
+    default:
+      return "Taught: ";
+  }
+}
+
 export default function TeachingDiaryCard({
   entry,
   onEdit,
@@ -58,7 +71,9 @@ export default function TeachingDiaryCard({
 
       <div className="space-y-2 text-sm text-slate-700">
         <div>
-          <span className="font-medium text-slate-800">Taught: </span>
+          <span className="font-medium text-slate-800">
+            {topicTaughtLabel(entry.diary_status)}
+          </span>
           {entry.topic_taught}
         </div>
         {entry.teaching_notes && (
