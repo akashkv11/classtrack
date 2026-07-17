@@ -23,6 +23,13 @@ const diaryInclude = {
   syllabusTopic: {
     select: { topicTitle: true, subtopics: true },
   },
+  topics: {
+    include: {
+      syllabusTopic: {
+        select: { topicTitle: true, subtopics: true },
+      },
+    },
+  },
   timetableEntry: {
     include: {
       class: { select: { displayName: true } },

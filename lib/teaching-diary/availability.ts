@@ -13,12 +13,12 @@ export function isSyllabusTopicTaught(
 export function filterTopicsForDiaryForm(
   topics: SyllabusTopic[],
   fullyTaughtTopicIds: ReadonlySet<string>,
-  currentTopicId?: string | null,
+  currentTopicIds: ReadonlyArray<string> = [],
 ): SyllabusTopic[] {
+  const keep = new Set(currentTopicIds.filter(Boolean));
   return topics.filter(
     (topic) =>
-      topic.id === currentTopicId ||
-      !isSyllabusTopicTaught(topic, fullyTaughtTopicIds),
+      keep.has(topic.id) || !isSyllabusTopicTaught(topic, fullyTaughtTopicIds),
   );
 }
 
@@ -26,14 +26,13 @@ export function filterChaptersForDiaryForm(
   chapters: SyllabusChapterSummary[],
   fullyTaughtTopicIds: ReadonlySet<string>,
   currentChapterId?: string | null,
-  currentTopicId?: string | null,
+  currentTopicIds: ReadonlyArray<string> = [],
 ): SyllabusChapterSummary[] {
   return chapters.filter((chapter) => {
     if (chapter.id === currentChapterId) return true;
-    return filterTopicsForDiaryForm(
-      chapter.topics,
-      fullyTaughtTopicIds,
-      currentTopicId,
-    ).length > 0;
+    return (
+      filterTopicsForDiaryForm(chapter.topics, fullyTaughtTopicIds, currentTopicIds)
+        .length > 0
+    );
   });
 }

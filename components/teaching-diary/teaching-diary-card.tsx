@@ -60,9 +60,14 @@ export default function TeachingDiaryCard({
           {entry.chapter && (
             <p className="mt-1 font-semibold text-slate-900">{chapterLabel(entry.chapter)}</p>
           )}
-          {entry.topic && (
+          {entry.topics?.length > 0 ? (
+            <p className="text-sm text-slate-700">
+              Topic{entry.topics.length === 1 ? "" : "s"}:{" "}
+              {entry.topics.map((topic) => topic.topic_title).join(", ")}
+            </p>
+          ) : entry.topic ? (
             <p className="text-sm text-slate-700">Topic: {entry.topic.topic_title}</p>
-          )}
+          ) : null}
         </div>
         <Badge variant={badgeMap[badgeVariant]}>
           {DIARY_STATUS_LABELS[entry.diary_status]}

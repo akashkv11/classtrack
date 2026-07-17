@@ -112,6 +112,7 @@ model SyllabusTopic {
 
   syllabusChapter      SyllabusChapter        @relation(fields: [syllabusChapterId], references: [id], onDelete: Cascade)
   teachingDiaryEntries TeachingDiaryEntry[]
+  teachingDiaryTopics  TeachingDiaryTopic[]
   assessmentTopics     AssessmentTopic[]
 
   @@index([syllabusChapterId])
@@ -144,11 +145,25 @@ model TeachingDiaryEntry {
   syllabusSubject SyllabusSubject? @relation(fields: [syllabusSubjectId], references: [id], onDelete: SetNull)
   syllabusChapter SyllabusChapter? @relation(fields: [syllabusChapterId], references: [id], onDelete: SetNull)
   syllabusTopic   SyllabusTopic?   @relation(fields: [syllabusTopicId], references: [id], onDelete: SetNull)
+  topics          TeachingDiaryTopic[]
 
   @@index([classId, entryDate])
   @@index([timetableEntryId])
   @@index([syllabusTopicId])
   @@map("teaching_diary_entries")
+}
+
+model TeachingDiaryTopic {
+  id                   String @id @default(uuid()) @db.Uuid
+  teachingDiaryEntryId String @map("teaching_diary_entry_id") @db.Uuid
+  syllabusTopicId      String @map("syllabus_topic_id") @db.Uuid
+
+  teachingDiaryEntry TeachingDiaryEntry @relation(fields: [teachingDiaryEntryId], references: [id], onDelete: Cascade)
+  syllabusTopic      SyllabusTopic      @relation(fields: [syllabusTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([teachingDiaryEntryId, syllabusTopicId])
+  @@index([syllabusTopicId])
+  @@map("teaching_diary_topics")
 }
 
 model TimetableEntry {

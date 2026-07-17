@@ -5,15 +5,15 @@ import { parseISODate, formatISODate } from "@/lib/dates";
 import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
 import type { DiaryStatus } from "@/lib/types/teaching-diary";
 import {
-  applySyllabusStatusUpdate,
+  applySyllabusStatusUpdateToTopics,
   findTeachingDiaryDuplicate,
   getTeachingDiaryEntryById,
-  mapEntryToJson,
+  replaceTeachingDiaryTopics,
 } from "@/lib/queries/teaching-diary";
 import {
   classOwnershipMismatchResponse,
   getEntryClassId,
-  validateSyllabusHierarchy,
+  validateSyllabusTopicsHierarchy,
   verifyClassOwnership,
 } from "@/lib/teaching-diary/access";
 import { parseRequiredClassIdQuery } from "@/lib/teaching-diary/api-helpers";
@@ -76,6 +76,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const existing = await prisma.teachingDiaryEntry.findUnique({
     where: { id: entryId },
+    include: {
+      topics: { select: { syllabusTopicId: true } },
+    },
   });
 
   if (!existing) {
@@ -90,16 +93,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     parsed.data.syllabus_chapter_id !== undefined
       ? parsed.data.syllabus_chapter_id
       : existing.syllabusChapterId;
-  const topicId =
-    parsed.data.syllabus_topic_id !== undefined
-      ? parsed.data.syllabus_topic_id
-      : existing.syllabusTopicId;
+  const existingTopicIds =
+    existing.topics.length > 0
+      ? existing.topics.map((link) => link.syllabusTopicId)
+      : existing.syllabusTopicId
+        ? [existing.syllabusTopicId]
+        : [];
+  const topicIds =
+    parsed.data.syllabus_topic_ids !== undefined
+      ? parsed.data.syllabus_topic_ids
+      : existingTopicIds;
 
-  const hierarchyCheck = await validateSyllabusHierarchy(
+  const hierarchyCheck = await validateSyllabusTopicsHierarchy(
     classIdResult.classId,
     subjectId,
     chapterId,
-    topicId,
+    topicIds,
   );
 
   if (!hierarchyCheck.ok) {
@@ -119,7 +128,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const duplicateError = await findTeachingDiaryDuplicate({
     classId: classIdResult.classId,
     entryDate,
-    syllabusTopicId: topicId ?? null,
+    syllabusTopicIds: topicIds,
     timetableEntryId: existing.timetableEntryId,
     diaryStatus,
     excludeEntryId: entryId,
@@ -129,7 +138,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: duplicateError }, { status: 409 });
   }
 
-  const entry = await prisma.teachingDiaryEntry.update({
+  await prisma.teachingDiaryEntry.update({
     where: { id: entryId },
     data: {
       ...(parsed.data.entry_date !== undefined && {
@@ -141,8 +150,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       ...(parsed.data.syllabus_chapter_id !== undefined && {
         syllabusChapterId: parsed.data.syllabus_chapter_id,
       }),
-      ...(parsed.data.syllabus_topic_id !== undefined && {
-        syllabusTopicId: parsed.data.syllabus_topic_id,
+      ...(parsed.data.syllabus_topic_ids !== undefined && {
+        syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
       }),
       ...(parsed.data.topic_taught !== undefined && {
         topicTaught: parsed.data.topic_taught,
@@ -172,27 +181,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }),
       ...(parsed.data.remarks !== undefined && { remarks: parsed.data.remarks }),
     },
-    include: {
-      syllabusSubject: { select: { id: true, subjectName: true } },
-      syllabusChapter: {
-        select: { id: true, chapterNumber: true, chapterTitle: true },
-      },
-      syllabusTopic: { select: { id: true, topicTitle: true, status: true } },
-    },
   });
 
-  const statusUpdate = parsed.data.syllabus_status_update;
-  const effectiveTopicId = entry.syllabusTopicId;
+  if (parsed.data.syllabus_topic_ids !== undefined) {
+    await replaceTeachingDiaryTopics(entryId, topicIds);
+  }
 
-  if (effectiveTopicId && statusUpdate && statusUpdate !== "KEEP_CURRENT") {
-    await applySyllabusStatusUpdate(effectiveTopicId, statusUpdate);
+  const statusUpdate = parsed.data.syllabus_status_update;
+  if (topicIds.length > 0 && statusUpdate && statusUpdate !== "KEEP_CURRENT") {
+    await applySyllabusStatusUpdateToTopics(topicIds, statusUpdate);
   }
 
   const freshEntry = await getTeachingDiaryEntryById(entryId);
 
   return NextResponse.json({
     success: true,
-    entry: freshEntry ?? mapEntryToJson(entry),
+    entry: freshEntry,
   });
 }
 

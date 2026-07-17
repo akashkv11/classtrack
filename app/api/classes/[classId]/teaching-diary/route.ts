@@ -4,15 +4,15 @@ import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
 import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
 import {
-  applySyllabusStatusUpdate,
+  applySyllabusStatusUpdateToTopics,
   computeDiarySummary,
   findTeachingDiaryDuplicate,
   getTaughtSyllabusTopicIds,
   getTeachingDiaryEntriesForClass,
   getTeachingDiaryEntryById,
-  mapEntryToJson,
+  replaceTeachingDiaryTopics,
 } from "@/lib/queries/teaching-diary";
-import { validateSyllabusHierarchy } from "@/lib/teaching-diary/access";
+import { validateSyllabusTopicsHierarchy } from "@/lib/teaching-diary/access";
 import { validateTimetableEntryForClass } from "@/lib/timetable/access";
 import {
   parseInput,
@@ -79,11 +79,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
 
-  const hierarchyCheck = await validateSyllabusHierarchy(
+  const topicIds = parsed.data.syllabus_topic_ids;
+
+  const hierarchyCheck = await validateSyllabusTopicsHierarchy(
     classId,
     parsed.data.syllabus_subject_id,
     parsed.data.syllabus_chapter_id,
-    parsed.data.syllabus_topic_id,
+    topicIds,
   );
 
   if (!hierarchyCheck.ok) {
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const duplicateError = await findTeachingDiaryDuplicate({
     classId,
     entryDate: parsed.data.entry_date,
-    syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
+    syllabusTopicIds: topicIds,
     timetableEntryId: parsed.data.timetable_entry_id ?? null,
     diaryStatus: parsed.data.diary_status,
   });
@@ -132,22 +134,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
       syllabusStatusUpdate: parsed.data.syllabus_status_update,
       remarks: parsed.data.remarks ?? null,
     },
-    include: {
-      syllabusSubject: { select: { id: true, subjectName: true } },
-      syllabusChapter: {
-        select: { id: true, chapterNumber: true, chapterTitle: true },
-      },
-      syllabusTopic: { select: { id: true, topicTitle: true, status: true } },
-    },
   });
 
+  await replaceTeachingDiaryTopics(entry.id, topicIds);
+
   if (
-    parsed.data.syllabus_topic_id &&
+    topicIds.length > 0 &&
     parsed.data.syllabus_status_update &&
     parsed.data.syllabus_status_update !== "KEEP_CURRENT"
   ) {
-    await applySyllabusStatusUpdate(
-      parsed.data.syllabus_topic_id,
+    await applySyllabusStatusUpdateToTopics(
+      topicIds,
       parsed.data.syllabus_status_update,
     );
   }
@@ -156,6 +153,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   return NextResponse.json({
     success: true,
-    entry: freshEntry ?? mapEntryToJson(entry),
+    entry: freshEntry,
   });
 }

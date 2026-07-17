@@ -29,9 +29,25 @@ export async function validateSyllabusHierarchy(
   chapterId: string | null | undefined,
   topicId: string | null | undefined,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (topicId) {
-    const topic = await prisma.syllabusTopic.findUnique({
-      where: { id: topicId },
+  return validateSyllabusTopicsHierarchy(
+    classId,
+    subjectId,
+    chapterId,
+    topicId ? [topicId] : [],
+  );
+}
+
+export async function validateSyllabusTopicsHierarchy(
+  classId: string,
+  subjectId: string | null | undefined,
+  chapterId: string | null | undefined,
+  topicIds: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const uniqueTopicIds = [...new Set(topicIds.filter(Boolean))];
+
+  if (uniqueTopicIds.length > 0) {
+    const topics = await prisma.syllabusTopic.findMany({
+      where: { id: { in: uniqueTopicIds } },
       include: {
         syllabusChapter: {
           include: { syllabusSubject: true },
@@ -39,20 +55,22 @@ export async function validateSyllabusHierarchy(
       },
     });
 
-    if (!topic) {
-      return { ok: false, error: "Syllabus topic not found" };
+    if (topics.length !== uniqueTopicIds.length) {
+      return { ok: false, error: "One or more syllabus topics were not found" };
     }
 
-    if (topic.syllabusChapter.syllabusSubject.classId !== classId) {
-      return { ok: false, error: "Syllabus topic does not belong to this class" };
-    }
+    for (const topic of topics) {
+      if (topic.syllabusChapter.syllabusSubject.classId !== classId) {
+        return { ok: false, error: "Syllabus topic does not belong to this class" };
+      }
 
-    if (chapterId && topic.syllabusChapterId !== chapterId) {
-      return { ok: false, error: "Chapter does not match the selected topic" };
-    }
+      if (chapterId && topic.syllabusChapterId !== chapterId) {
+        return { ok: false, error: "Chapter does not match the selected topic" };
+      }
 
-    if (subjectId && topic.syllabusChapter.syllabusSubjectId !== subjectId) {
-      return { ok: false, error: "Subject does not match the selected topic" };
+      if (subjectId && topic.syllabusChapter.syllabusSubjectId !== subjectId) {
+        return { ok: false, error: "Subject does not match the selected topic" };
+      }
     }
 
     return { ok: true };

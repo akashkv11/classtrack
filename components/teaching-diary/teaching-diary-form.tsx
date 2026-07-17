@@ -21,7 +21,7 @@ import {
 } from "@/lib/teaching-diary/status";
 import {
   buildTopicTaughtFromSubtopics,
-  buildTopicTaughtSuggestion,
+  buildTopicTaughtSuggestionFromTopics,
   suggestDiaryStatusFromSubtopics,
 } from "@/lib/teaching-diary/suggestions";
 import {
@@ -30,7 +30,6 @@ import {
 } from "@/lib/teaching-diary/availability";
 import { flattenSubtopicLabels } from "@/lib/syllabus/subtopics";
 import { STATUS_LABELS } from "@/lib/syllabus/progress";
-import type { TopicStatus } from "@/lib/syllabus/progress";
 import type {
   DiaryStatus,
   StudentResponse,
@@ -89,7 +88,11 @@ function TeachingDiaryFormDialog({
     () => entry?.subject?.id ?? timetablePrefill?.syllabus_subject_id ?? "",
   );
   const [chapterId, setChapterId] = useState(() => entry?.chapter?.id ?? "");
-  const [topicId, setTopicId] = useState(() => entry?.topic?.id ?? "");
+  const [topicIds, setTopicIds] = useState<string[]>(
+    () =>
+      entry?.topics?.map((topic) => topic.id) ??
+      (entry?.topic?.id ? [entry.topic.id] : []),
+  );
   const [subjectDetail, setSubjectDetail] = useState<SyllabusSubjectDetail | null>(null);
   const [loadedSubjectId, setLoadedSubjectId] = useState<string | null>(null);
   const [topicTaught, setTopicTaught] = useState(() => entry?.topic_taught ?? "");
@@ -148,12 +151,15 @@ function TeachingDiaryFormDialog({
     };
   }, [classId, subjectId]);
 
+  const initialTopicIds =
+    entry?.topics?.map((topic) => topic.id) ??
+    (entry?.topic?.id ? [entry.topic.id] : []);
   const chapters = loadedSubjectId === subjectId
     ? filterChaptersForDiaryForm(
         subjectDetail?.chapters ?? [],
         fullyTaughtTopicIds,
         chapterId || entry?.chapter?.id,
-        topicId || entry?.topic?.id,
+        topicIds.length > 0 ? topicIds : initialTopicIds,
       )
     : [];
   const selectedChapter = chapters.find((ch) => ch.id === chapterId);
@@ -161,14 +167,13 @@ function TeachingDiaryFormDialog({
     ? filterTopicsForDiaryForm(
         selectedChapter.topics,
         fullyTaughtTopicIds,
-        topicId || entry?.topic?.id,
+        topicIds.length > 0 ? topicIds : initialTopicIds,
       )
     : [];
-  const selectedTopic = topics.find((t) => t.id === topicId);
-  const currentTopicStatus = selectedTopic?.status as TopicStatus | undefined;
-  const allSubtopicLabels = selectedTopic
-    ? flattenSubtopicLabels(selectedTopic.subtopics)
-    : [];
+  const selectedTopics = topics.filter((t) => topicIds.includes(t.id));
+  const allSubtopicLabels = selectedTopics.flatMap((topic) =>
+    flattenSubtopicLabels(topic.subtopics),
+  );
 
   function applySubtopicSelection(selected: string[]) {
     setSubtopicsCovered(selected);
@@ -243,27 +248,36 @@ function TeachingDiaryFormDialog({
     lastSuggestionRef.current = "";
   }
 
-  function handleTopicChange(value: string) {
-    setTopicId(value);
-    setSubtopicsCovered([]);
+  function handleTopicToggle(value: string) {
+    const nextIds = topicIds.includes(value)
+      ? topicIds.filter((id) => id !== value)
+      : [...topicIds, value];
+    setTopicIds(nextIds);
+    setSubtopicsCovered((prev) => {
+      if (nextIds.length === 0) return [];
+      const nextTopics = topics.filter((t) => nextIds.includes(t.id));
+      const allowed = new Set(
+        nextTopics.flatMap((topic) => flattenSubtopicLabels(topic.subtopics)),
+      );
+      return prev.filter((label) => allowed.has(label));
+    });
 
-    if (!value) {
+    if (nextIds.length === 0) {
       clearTopicTaughtSuggestion();
       clearSyllabusStatusSuggestion();
       return;
     }
 
-    const topic = topics.find((t) => t.id === value);
-    if (topic) {
-      applyTopicTaughtSuggestion(buildTopicTaughtSuggestion(topic));
-      applySyllabusStatusSuggestion(diaryStatus);
-    }
+    const nextTopics = topics.filter((t) => nextIds.includes(t.id));
+    applyTopicTaughtSuggestion(buildTopicTaughtSuggestionFromTopics(nextTopics));
+    applySyllabusStatusSuggestion(diaryStatus);
   }
 
   function handleSubjectChange(value: string) {
     setSubjectId(value);
     setChapterId("");
-    setTopicId("");
+    setTopicIds([]);
+    setSubtopicsCovered([]);
     setSubjectDetail(null);
     setLoadedSubjectId(null);
     clearTopicTaughtSuggestion();
@@ -272,14 +286,15 @@ function TeachingDiaryFormDialog({
 
   function handleChapterChange(value: string) {
     setChapterId(value);
-    setTopicId("");
+    setTopicIds([]);
+    setSubtopicsCovered([]);
     clearTopicTaughtSuggestion();
     clearSyllabusStatusSuggestion();
   }
 
   function handleDiaryStatusChange(value: DiaryStatus) {
     setDiaryStatus(value);
-    if (topicId) {
+    if (topicIds.length > 0) {
       applySyllabusStatusSuggestion(value);
     }
   }
@@ -294,7 +309,7 @@ function TeachingDiaryFormDialog({
       timetable_entry_id: !isEdit ? timetablePrefill?.timetable_entry_id ?? null : null,
       syllabus_subject_id: subjectId || null,
       syllabus_chapter_id: chapterId || null,
-      syllabus_topic_id: topicId || null,
+      syllabus_topic_ids: topicIds,
       topic_taught: topicTaught,
       subtopics_covered: subtopicsCovered,
       teaching_notes: teachingNotes.trim() || null,
@@ -424,29 +439,43 @@ function TeachingDiaryFormDialog({
         )}
 
         {chapterId && topics.length > 0 && (
-          <FormField label="Syllabus Topic" error={fieldErrors.syllabus_topic_id}>
-            <SelectInput
-              value={topicId}
-              onChange={(e) => handleTopicChange(e.target.value)}
-              error={!!fieldErrors.syllabus_topic_id}
-            >
-              <option value="">No topic linked</option>
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.topic_title}
-                </option>
+          <FormField
+            label="Syllabus Topics"
+            hint="Select one or more topics taught today."
+            error={fieldErrors.syllabus_topic_ids ?? fieldErrors.syllabus_topic_id}
+          >
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+              {topics.map((topic) => (
+                <label
+                  key={topic.id}
+                  className="flex cursor-pointer items-start gap-2 text-sm text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={topicIds.includes(topic.id)}
+                    onChange={() => handleTopicToggle(topic.id)}
+                  />
+                  <span>{topic.topic_title}</span>
+                </label>
               ))}
-            </SelectInput>
+            </div>
           </FormField>
         )}
 
-        {selectedTopic && (
+        {selectedTopics.length > 0 && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
             <p className="font-medium text-slate-700">
-              Current Syllabus Status:{" "}
-              {STATUS_LABELS[currentTopicStatus ?? "NOT_STARTED"]}
+              Selected: {selectedTopics.map((topic) => topic.topic_title).join(", ")}
             </p>
-            {selectedTopic.subtopics.length > 0 && (
+            {selectedTopics.length === 1 && (
+              <p className="mt-1 text-slate-600">
+                Current syllabus status:{" "}
+                {STATUS_LABELS[selectedTopics[0].status as keyof typeof STATUS_LABELS] ??
+                  selectedTopics[0].status}
+              </p>
+            )}
+            {allSubtopicLabels.length > 0 && (
               <div className="mt-2">
                 <p className="text-slate-600">Subtopics covered today:</p>
                 <ul className="mt-2 space-y-2">
@@ -522,7 +551,7 @@ function TeachingDiaryFormDialog({
                 ? "e.g. Unit Test — Chapters 1–3"
                 : diaryStatus === "REVISION"
                   ? "e.g. Chapter 5 revision — key formulas"
-                  : selectedTopic
+                  : selectedTopics.length > 0
                     ? "Edit the suggestion or keep as-is"
                     : "What did you teach today?"
             }
@@ -570,13 +599,17 @@ function TeachingDiaryFormDialog({
           />
         </FormField>
 
-        {topicId && (
+        {topicIds.length > 0 && (
           <FormField
             label="Update Syllabus Progress"
             hint={
               syllabusStatusSuggested
-                ? "Suggested based on diary status. Change to keep current if needed."
-                : undefined
+                ? topicIds.length > 1
+                  ? "Suggested based on diary status. Applies to all selected topics."
+                  : "Suggested based on diary status. Change to keep current if needed."
+                : topicIds.length > 1
+                  ? "Applies to all selected topics."
+                  : undefined
             }
             error={fieldErrors.syllabus_status_update}
           >

@@ -42,7 +42,10 @@ function mapDiaryEntryToReportEntry(
     entry_date: entry.entry_date,
     subject: entry.subject?.name ?? null,
     chapter,
-    topic: entry.topic?.topic_title ?? null,
+    topic:
+      entry.topics.length > 0
+        ? entry.topics.map((topic) => topic.topic_title).join(", ")
+        : (entry.topic?.topic_title ?? null),
     topic_taught: entry.topic_taught,
     teaching_notes: entry.teaching_notes,
     next_class_plan: entry.next_class_plan,
@@ -281,7 +284,10 @@ export async function getMonthlyAcademicWorkReport(
     )
     .map((e) => ({
       entry_date: e.entry_date,
-      topic_title: e.topic?.topic_title ?? null,
+      topic_title:
+        e.topics.length > 0
+          ? e.topics.map((topic) => topic.topic_title).join(", ")
+          : (e.topic?.topic_title ?? null),
       topic_taught: e.topic_taught,
       next_class_plan: e.next_class_plan,
     }));

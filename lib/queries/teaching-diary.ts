@@ -7,11 +7,20 @@ import type {
   TeachingDiaryClassOverview,
   TeachingDiaryEntrySummary,
   TeachingDiarySummary,
+  TeachingDiaryTopicRef,
 } from "@/lib/types/teaching-diary";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { parseSubtopicsCoveredFromDb } from "@/lib/syllabus/subtopics";
 import { applyStatusDates } from "@/lib/syllabus/status-dates";
 import type { TopicStatus } from "@/lib/syllabus/progress";
+
+type DbTopicLink = {
+  syllabusTopic: {
+    id: string;
+    topicTitle: string;
+    status: string;
+  };
+};
 
 type DbEntry = {
   id: string;
@@ -42,6 +51,7 @@ type DbEntry = {
     topicTitle: string;
     status: string;
   } | null;
+  topics: DbTopicLink[];
 };
 
 const entryInclude = {
@@ -54,9 +64,38 @@ const entryInclude = {
   syllabusTopic: {
     select: { id: true, topicTitle: true, status: true },
   },
+  topics: {
+    include: {
+      syllabusTopic: {
+        select: { id: true, topicTitle: true, status: true },
+      },
+    },
+    orderBy: { syllabusTopic: { displayOrder: "asc" as const } },
+  },
 } as const;
 
+function mapTopicRef(topic: {
+  id: string;
+  topicTitle: string;
+  status: string;
+}): TeachingDiaryTopicRef {
+  return {
+    id: topic.id,
+    topic_title: topic.topicTitle,
+    status: topic.status,
+  };
+}
+
+function resolveEntryTopics(entry: DbEntry): TeachingDiaryTopicRef[] {
+  if (entry.topics.length > 0) {
+    return entry.topics.map((link) => mapTopicRef(link.syllabusTopic));
+  }
+  return entry.syllabusTopic ? [mapTopicRef(entry.syllabusTopic)] : [];
+}
+
 export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
+  const topics = resolveEntryTopics(entry);
+
   return {
     id: entry.id,
     entry_date: formatISODate(entry.entryDate),
@@ -71,13 +110,8 @@ export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
           chapter_title: entry.syllabusChapter.chapterTitle,
         }
       : null,
-    topic: entry.syllabusTopic
-      ? {
-          id: entry.syllabusTopic.id,
-          topic_title: entry.syllabusTopic.topicTitle,
-          status: entry.syllabusTopic.status,
-        }
-      : null,
+    topic: topics[0] ?? null,
+    topics,
     topic_taught: entry.topicTaught,
     subtopics_covered: parseSubtopicsCoveredFromDb(entry.subtopicsCovered),
     teaching_notes: entry.teachingNotes,
@@ -122,14 +156,19 @@ export async function getTeachingDiaryEntriesForClass(
     classId: string;
     syllabusSubjectId?: string;
     syllabusChapterId?: string;
-    syllabusTopicId?: string;
     diaryStatus?: string;
     entryDate?: { gte?: Date; lte?: Date };
+    OR?: Array<Record<string, unknown>>;
   } = { classId };
 
   if (filters.subjectId) where.syllabusSubjectId = filters.subjectId;
   if (filters.chapterId) where.syllabusChapterId = filters.chapterId;
-  if (filters.topicId) where.syllabusTopicId = filters.topicId;
+  if (filters.topicId) {
+    where.OR = [
+      { syllabusTopicId: filters.topicId },
+      { topics: { some: { syllabusTopicId: filters.topicId } } },
+    ];
+  }
   if (filters.status) where.diaryStatus = filters.status;
   if (filters.dateFrom || filters.dateTo) {
     where.entryDate = {};
@@ -180,6 +219,36 @@ export async function applySyllabusStatusUpdate(
   });
 }
 
+export async function applySyllabusStatusUpdateToTopics(
+  topicIds: string[],
+  statusUpdate: SyllabusStatusUpdate,
+): Promise<void> {
+  for (const topicId of topicIds) {
+    await applySyllabusStatusUpdate(topicId, statusUpdate);
+  }
+}
+
+export async function replaceTeachingDiaryTopics(
+  entryId: string,
+  topicIds: string[],
+): Promise<void> {
+  const uniqueTopicIds = [...new Set(topicIds.filter(Boolean))];
+
+  await prisma.$transaction([
+    prisma.teachingDiaryTopic.deleteMany({ where: { teachingDiaryEntryId: entryId } }),
+    ...(uniqueTopicIds.length > 0
+      ? [
+          prisma.teachingDiaryTopic.createMany({
+            data: uniqueTopicIds.map((syllabusTopicId) => ({
+              teachingDiaryEntryId: entryId,
+              syllabusTopicId,
+            })),
+          }),
+        ]
+      : []),
+  ]);
+}
+
 export async function getTeachingDiaryOverviewForActiveYear(): Promise<{
   activeYear: { id: string; name: string } | null;
   classes: TeachingDiaryClassOverview[];
@@ -223,23 +292,31 @@ export async function getTaughtSyllabusTopicIds(
   const entries = await prisma.teachingDiaryEntry.findMany({
     where: {
       classId,
-      syllabusTopicId: { not: null },
       diaryStatus: "TAUGHT",
       ...(excludeEntryId ? { id: { not: excludeEntryId } } : {}),
+      OR: [
+        { syllabusTopicId: { not: null } },
+        { topics: { some: {} } },
+      ],
     },
-    select: { syllabusTopicId: true },
-    distinct: ["syllabusTopicId"],
+    select: {
+      syllabusTopicId: true,
+      topics: { select: { syllabusTopicId: true } },
+    },
   });
 
-  return entries
-    .map((entry) => entry.syllabusTopicId)
-    .filter((topicId): topicId is string => Boolean(topicId));
+  const ids = new Set<string>();
+  for (const entry of entries) {
+    if (entry.syllabusTopicId) ids.add(entry.syllabusTopicId);
+    for (const link of entry.topics) ids.add(link.syllabusTopicId);
+  }
+  return [...ids];
 }
 
 export async function findTeachingDiaryDuplicate(options: {
   classId: string;
   entryDate: string;
-  syllabusTopicId: string | null;
+  syllabusTopicIds: string[];
   timetableEntryId: string | null;
   diaryStatus: DiaryStatus;
   excludeEntryId?: string;
@@ -247,14 +324,18 @@ export async function findTeachingDiaryDuplicate(options: {
   const exclude = options.excludeEntryId
     ? { id: { not: options.excludeEntryId } }
     : {};
+  const topicIds = [...new Set(options.syllabusTopicIds.filter(Boolean))];
 
-  if (options.syllabusTopicId) {
+  for (const syllabusTopicId of topicIds) {
     const byDateTopicAndSlot = await prisma.teachingDiaryEntry.findFirst({
       where: {
         classId: options.classId,
         entryDate: parseISODate(options.entryDate),
-        syllabusTopicId: options.syllabusTopicId,
         timetableEntryId: options.timetableEntryId ?? null,
+        OR: [
+          { syllabusTopicId },
+          { topics: { some: { syllabusTopicId } } },
+        ],
         ...exclude,
       },
       select: { id: true },
@@ -268,24 +349,27 @@ export async function findTeachingDiaryDuplicate(options: {
       const fullyTaught = await prisma.teachingDiaryEntry.findFirst({
         where: {
           classId: options.classId,
-          syllabusTopicId: options.syllabusTopicId,
           diaryStatus: "TAUGHT",
+          OR: [
+            { syllabusTopicId },
+            { topics: { some: { syllabusTopicId } } },
+          ],
           ...exclude,
         },
         select: { id: true },
       });
 
       if (fullyTaught) {
-        return "This topic is already marked as fully taught.";
+        return "One of the selected topics is already marked as fully taught.";
       }
 
       const topic = await prisma.syllabusTopic.findUnique({
-        where: { id: options.syllabusTopicId },
+        where: { id: syllabusTopicId },
         select: { status: true },
       });
 
       if (topic && (topic.status === "COMPLETED" || topic.status === "REVISED")) {
-        return "This syllabus topic is already completed.";
+        return "One of the selected syllabus topics is already completed.";
       }
     }
   }

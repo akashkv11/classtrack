@@ -121,21 +121,47 @@ export function buildTopicTakenFromDiary(entry: {
     topicTitle: string;
     subtopics: unknown;
   } | null;
+  topics?: Array<{
+    syllabusTopic: {
+      topicTitle: string;
+      subtopics: unknown;
+    };
+  }>;
 }): { title: string; bullets: string[] } | null {
-  if (entry.syllabusTopic) {
-    const title = entry.syllabusTopic.topicTitle.trim();
-    if (!title) return null;
+  const linkedTopics =
+    entry.topics && entry.topics.length > 0
+      ? entry.topics.map((link) => link.syllabusTopic)
+      : entry.syllabusTopic
+        ? [entry.syllabusTopic]
+        : [];
 
-    const covered = parseSubtopicsCoveredFromDb(entry.subtopicsCovered);
+  const covered = parseSubtopicsCoveredFromDb(entry.subtopicsCovered);
+
+  if (linkedTopics.length > 0) {
+    const titles = linkedTopics
+      .map((topic) => topic.topicTitle.trim())
+      .filter(Boolean);
+    if (titles.length === 0) return null;
+
     if (covered.length > 0) {
-      return { title, bullets: labelsToTopicBullets(covered) };
+      return {
+        title: titles.join("; "),
+        bullets: labelsToTopicBullets(covered),
+      };
+    }
+
+    if (linkedTopics.length === 1) {
+      return {
+        title: titles[0],
+        bullets: labelsToTopicBullets(
+          flattenSubtopicLabels(mapSubtopicsFromDb(linkedTopics[0].subtopics)),
+        ),
+      };
     }
 
     return {
-      title,
-      bullets: labelsToTopicBullets(
-        flattenSubtopicLabels(mapSubtopicsFromDb(entry.syllabusTopic.subtopics)),
-      ),
+      title: titles.join("; "),
+      bullets: labelsToTopicBullets(titles),
     };
   }
 

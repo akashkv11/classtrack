@@ -23,6 +23,14 @@ export function buildTopicTaughtSuggestion(topic: {
   return topic.topic_title.trim();
 }
 
+export function buildTopicTaughtSuggestionFromTopics(
+  topics: Array<{ topic_title: string; subtopics: SyllabusSubtopic[] }>,
+): string {
+  if (topics.length === 0) return "";
+  if (topics.length === 1) return buildTopicTaughtSuggestion(topics[0]);
+  return topics.map((topic) => topic.topic_title.trim()).filter(Boolean).join("; ");
+}
+
 export function buildTopicTaughtFromSubtopics(selectedLabels: string[]): string {
   const labels = selectedLabels.map((label) => label.trim()).filter(Boolean);
   if (labels.length === 0) return "";

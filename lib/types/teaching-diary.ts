@@ -40,7 +40,9 @@ export type TeachingDiaryEntrySummary = {
   timetable_entry_id: string | null;
   subject: TeachingDiarySubjectRef | null;
   chapter: TeachingDiaryChapterRef | null;
+  /** @deprecated Prefer `topics`. Primary/first linked topic for compatibility. */
   topic: TeachingDiaryTopicRef | null;
+  topics: TeachingDiaryTopicRef[];
   topic_taught: string;
   subtopics_covered: string[];
   teaching_notes: string | null;
