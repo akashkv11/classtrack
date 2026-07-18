@@ -9,6 +9,19 @@ export type StudentProfileAttendance = {
   attendance_percentage: number;
 };
 
+export type StudentAttendanceDetailRow = {
+  session_id: string;
+  attendance_date: string;
+  subject: string | null;
+  class_time: string | null;
+  status: "present" | "absent" | "late" | "not_marked";
+  remarks: string | null;
+};
+
+export type StudentMonthlyAttendance = StudentProfileAttendance & {
+  records: StudentAttendanceDetailRow[];
+};
+
 export type StudentProfileLatestAssessment = {
   assessment_id: string;
   assessment_name: string;
@@ -39,7 +52,7 @@ export type StudentProfile = {
     display_name: string;
   };
   summary: StudentProfileSummary;
-  attendance: StudentProfileAttendance;
+  attendance: StudentMonthlyAttendance;
   assessments: StudentAssessmentHistoryEntry[];
 };
 

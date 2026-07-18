@@ -10,6 +10,7 @@ import Table, {
   TableRow,
 } from "@/components/ui/table";
 import { ButtonLink } from "@/components/ui/button";
+import StudentAttendanceSection from "@/components/student-profile/student-attendance-section";
 import { formatDisplayDate } from "@/lib/dates";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
 import type { StudentProfile } from "@/lib/types/student-profile";
@@ -84,31 +85,11 @@ export default function StudentProfileView({ profile }: StudentProfileViewProps)
         />
       </div>
 
-      <Card className="mb-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Attendance ({monthLabel})
-          </h3>
-          <ButtonLink
-            href={`/classes/${cls.id}/attendance`}
-            variant="secondary"
-            size="sm"
-          >
-            View Attendance
-          </ButtonLink>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Present" value={attendance.present_days} />
-          <StatCard label="Absent" value={attendance.absent_days} />
-          <StatCard label="Late" value={attendance.late_days} />
-          <StatCard label="Working Days" value={attendance.working_days} />
-        </div>
-        {attendance.working_days === 0 && (
-          <p className="mt-4 text-sm text-slate-600">
-            No attendance recorded for this month yet.
-          </p>
-        )}
-      </Card>
+      <StudentAttendanceSection
+        classId={cls.id}
+        studentId={student.id}
+        initialAttendance={attendance}
+      />
 
       <Card className="mb-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

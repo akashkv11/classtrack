@@ -1,4 +1,5 @@
 export type ReportStudent = {
+  student_id: string;
   roll_no: number;
   full_name: string;
   present_days: number;

@@ -99,7 +99,7 @@ export default function AttendanceReportClient({
           <p className="mb-4 text-sm text-slate-600">
             Working days: <span className="font-medium">{report.working_days}</span>
           </p>
-          <MonthlyReportTable students={report.students} />
+          <MonthlyReportTable classId={classId} students={report.students} />
           <ReportFooter settings={reportSettings} />
         </div>
       ) : null}

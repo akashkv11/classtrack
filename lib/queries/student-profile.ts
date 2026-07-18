@@ -3,15 +3,19 @@ import {
   calculateAttendancePercentage,
   type AttendanceStatus,
 } from "@/lib/attendance";
-import { endOfMonth, startOfMonth } from "@/lib/dates";
+import { endOfMonth, formatISODate, startOfMonth } from "@/lib/dates";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getStudentAssessmentHistory } from "@/lib/queries/assessments";
+import { serializeTimetableEntry } from "@/lib/queries/timetable";
 import { lateCountsAsPresent } from "@/lib/settings";
+import { formatTime12h, getScheduleForDate } from "@/lib/timetable";
 import type {
   StudentProfile,
   StudentProfileClassOverview,
   StudentDirectoryItem,
   StudentProfileListItem,
+  StudentAttendanceDetailRow,
+  StudentMonthlyAttendance,
 } from "@/lib/types/student-profile";
 
 function currentMonth(): string {
@@ -20,9 +24,108 @@ function currentMonth(): string {
   return `${now.getFullYear()}-${month}`;
 }
 
+function parseMonth(month: string): { year: number; monthNum: number } | null {
+  const [yearStr, monthStr] = month.split("-");
+  const year = Number(yearStr);
+  const monthNum = Number(monthStr);
+  if (!Number.isInteger(year) || !Number.isInteger(monthNum)) return null;
+  if (monthNum < 1 || monthNum > 12) return null;
+  return { year, monthNum };
+}
+
+export async function getStudentMonthlyAttendance(
+  classId: string,
+  studentId: string,
+  month: string,
+): Promise<StudentMonthlyAttendance | null> {
+  const parsedMonth = parseMonth(month);
+  if (!parsedMonth) return null;
+
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, classId },
+    select: { id: true },
+  });
+  if (!student) return null;
+
+  const rangeStart = startOfMonth(parsedMonth.year, parsedMonth.monthNum);
+  const rangeEnd = endOfMonth(parsedMonth.year, parsedMonth.monthNum);
+
+  const sessions = await prisma.attendanceSession.findMany({
+    where: {
+      classId,
+      attendanceDate: { gte: rangeStart, lte: rangeEnd },
+    },
+    include: {
+      records: {
+        where: { studentId },
+      },
+      timetableEntry: {
+        include: {
+          class: { select: { displayName: true } },
+        },
+      },
+    },
+    orderBy: [{ attendanceDate: "asc" }, { createdAt: "asc" }],
+  });
+
+  const lateAsPresent = await lateCountsAsPresent();
+  const workingDays = sessions.length;
+  let presentDays = 0;
+  let absentDays = 0;
+  let lateDays = 0;
+
+  const records: StudentAttendanceDetailRow[] = sessions.map((session) => {
+    const record = session.records[0] ?? null;
+    const status = (record?.status as AttendanceStatus | undefined) ?? null;
+    if (status === "present") presentDays += 1;
+    if (status === "absent") absentDays += 1;
+    if (status === "late") lateDays += 1;
+
+    const isoDate = formatISODate(session.attendanceDate);
+    let subject: string | null = null;
+    let classTime: string | null = null;
+
+    if (session.timetableEntry) {
+      const timetableEntry = serializeTimetableEntry(session.timetableEntry);
+      subject = timetableEntry.subject;
+      const schedule = getScheduleForDate(timetableEntry, isoDate);
+      if (schedule) {
+        classTime = `${formatTime12h(schedule.start_time)} - ${formatTime12h(schedule.end_time)}`;
+      }
+    }
+
+    return {
+      session_id: session.id,
+      attendance_date: isoDate,
+      subject,
+      class_time: classTime,
+      status: status ?? "not_marked",
+      remarks: record?.remarks ?? null,
+    };
+  });
+
+  const attendancePercentage = calculateAttendancePercentage({
+    presentDays,
+    lateDays,
+    workingDays,
+    lateCountsAsPresent: lateAsPresent,
+  });
+
+  return {
+    month,
+    present_days: presentDays,
+    absent_days: absentDays,
+    late_days: lateDays,
+    working_days: workingDays,
+    attendance_percentage: attendancePercentage,
+    records,
+  };
+}
+
 export async function getStudentProfile(
   classId: string,
   studentId: string,
+  month?: string,
 ): Promise<StudentProfile | null> {
   const student = await prisma.student.findFirst({
     where: { id: studentId, classId },
@@ -33,45 +136,14 @@ export async function getStudentProfile(
 
   if (!student) return null;
 
-  const month = currentMonth();
-  const [yearStr, monthStr] = month.split("-");
-  const year = Number(yearStr);
-  const monthNum = Number(monthStr);
-  const rangeStart = startOfMonth(year, monthNum);
-  const rangeEnd = endOfMonth(year, monthNum);
+  const attendanceMonth = month ?? currentMonth();
+  const [attendance, assessmentHistory] = await Promise.all([
+    getStudentMonthlyAttendance(classId, studentId, attendanceMonth),
+    getStudentAssessmentHistory(classId, studentId),
+  ]);
 
-  const sessions = await prisma.attendanceSession.findMany({
-    where: {
-      classId,
-      attendanceDate: { gte: rangeStart, lte: rangeEnd },
-    },
-    include: { records: true },
-    orderBy: { attendanceDate: "asc" },
-  });
+  if (!attendance) return null;
 
-  const lateAsPresent = await lateCountsAsPresent();
-  const workingDays = sessions.length;
-  let presentDays = 0;
-  let absentDays = 0;
-  let lateDays = 0;
-
-  for (const session of sessions) {
-    const record = session.records.find((r) => r.studentId === studentId);
-    if (!record) continue;
-    const status = record.status as AttendanceStatus;
-    if (status === "present") presentDays += 1;
-    if (status === "absent") absentDays += 1;
-    if (status === "late") lateDays += 1;
-  }
-
-  const attendancePercentage = calculateAttendancePercentage({
-    presentDays,
-    lateDays,
-    workingDays,
-    lateCountsAsPresent: lateAsPresent,
-  });
-
-  const assessmentHistory = await getStudentAssessmentHistory(classId, studentId);
   const assessments = assessmentHistory?.entries ?? [];
   const latest = assessments[0] ?? null;
 
@@ -90,8 +162,8 @@ export async function getStudentProfile(
       display_name: student.class.displayName,
     },
     summary: {
-      attendance_percentage: attendancePercentage,
-      attendance_month: month,
+      attendance_percentage: attendance.attendance_percentage,
+      attendance_month: attendance.month,
       average_marks_percentage: assessmentHistory?.average_percentage ?? null,
       latest_assessment: latest
         ? {
@@ -103,14 +175,7 @@ export async function getStudentProfile(
           }
         : null,
     },
-    attendance: {
-      month,
-      present_days: presentDays,
-      absent_days: absentDays,
-      late_days: lateDays,
-      working_days: workingDays,
-      attendance_percentage: attendancePercentage,
-    },
+    attendance,
     assessments,
   };
 }

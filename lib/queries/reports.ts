@@ -115,6 +115,7 @@ export async function getMonthlyAttendanceReport(
     }
 
     return {
+      student_id: student.id,
       roll_no: student.rollNo,
       full_name: student.fullName,
       present_days: presentDays,
