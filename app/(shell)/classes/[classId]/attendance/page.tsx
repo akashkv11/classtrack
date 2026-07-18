@@ -1,20 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AttendanceGrid from "@/components/attendance/attendance-grid";
 import AttendanceToolbar from "@/components/attendance/attendance-toolbar";
 import { useClass } from "@/components/classes/class-provider";
 import Alert from "@/components/ui/alert";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
+import Card from "@/components/ui/card";
 import FormField, { TextInput } from "@/components/ui/form-field";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { formatTime12h } from "@/lib/timetable";
-import type { AttendanceRecordRow } from "@/lib/types";
+import { buildAttendanceLink } from "@/lib/timetable/links";
+import type { AttendanceRecordRow, AttendanceSessionOnDate } from "@/lib/types";
 import { todayISO } from "@/lib/dates";
 import { useClientEffect } from "@/lib/use-client-effect";
 import { attendanceSaveSchema, isoDateSchema, parseInput } from "@/lib/validation";
+
+function sessionPeriodLabel(session: AttendanceSessionOnDate): string {
+  if (session.timetable_subject) {
+    const time =
+      session.timetable_start_time && session.timetable_end_time
+        ? ` · ${formatTime12h(session.timetable_start_time)} – ${formatTime12h(session.timetable_end_time)}`
+        : "";
+    return `${session.timetable_subject}${time}`;
+  }
+  return "No period linked";
+}
 
 export default function MarkAttendancePage() {
   const params = useParams<{ classId: string }>();
@@ -33,8 +49,13 @@ export default function MarkAttendancePage() {
   const [records, setRecords] = useState<AttendanceRecordRow[]>([]);
   const [initialRecords, setInitialRecords] = useState<AttendanceRecordRow[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionsOnDate, setSessionsOnDate] = useState<AttendanceSessionOnDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AttendanceSessionOnDate | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [dateError, setDateError] = useState("");
 
@@ -71,6 +92,7 @@ export default function MarkAttendancePage() {
     setRecords(data.records ?? []);
     setInitialRecords(JSON.parse(JSON.stringify(data.records ?? [])));
     setSessionId(data.session?.id ?? null);
+    setSessionsOnDate(data.sessions_on_date ?? []);
     setLoading(false);
   };
 
@@ -93,6 +115,8 @@ export default function MarkAttendancePage() {
     () => JSON.stringify(records) !== JSON.stringify(initialRecords),
     [records, initialRecords],
   );
+
+  const hasMultipleSessions = sessionsOnDate.length > 1;
 
   function handleDateChange(value: string) {
     setDate(value);
@@ -172,6 +196,39 @@ export default function MarkAttendancePage() {
     }
   }
 
+  async function confirmDeleteSession() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/attendance-sessions/${deleteTarget.id}/summary`, {
+        method: "DELETE",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error ?? "Failed to delete attendance");
+      }
+
+      const deletedCurrent = deleteTarget.id === sessionId;
+      setDeleteTarget(null);
+
+      if (deletedCurrent) {
+        setSessionId(null);
+        setInitialRecords(
+          records.map((r) => ({ ...r, status: "absent" as const })),
+        );
+        setRecords((prev) => prev.map((r) => ({ ...r, status: "absent" as const })));
+      }
+
+      await loadAttendance();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete attendance");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <PageContainer>
       <PageHeader
@@ -206,6 +263,74 @@ export default function MarkAttendancePage() {
         )}
       </div>
 
+      {sessionsOnDate.length > 0 && (
+        <Card className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-slate-900">
+            {hasMultipleSessions
+              ? `Sessions on this date (${sessionsOnDate.length})`
+              : "Session on this date"}
+          </h2>
+          {hasMultipleSessions && (
+            <p className="mb-3 text-sm text-slate-600">
+              Multiple attendance records exist for this date. Delete any duplicates you
+              do not need.
+            </p>
+          )}
+          <ul className="space-y-2">
+            {sessionsOnDate.map((session) => {
+              const isCurrent = session.id === sessionId;
+              return (
+                <li
+                  key={session.id}
+                  className="flex flex-col gap-2 rounded-lg border border-slate-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium text-slate-900">
+                      {sessionPeriodLabel(session)}
+                      {isCurrent ? (
+                        <span className="ml-2 text-xs font-normal text-blue-700">
+                          (current)
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-slate-500">{session.record_count} records</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={buildAttendanceLink(classId, {
+                        date: session.attendance_date,
+                        timetableEntryId: session.timetable_entry_id ?? undefined,
+                        subject: session.timetable_subject ?? undefined,
+                        startTime: session.timetable_start_time ?? undefined,
+                        endTime: session.timetable_end_time ?? undefined,
+                      })}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Open
+                    </Link>
+                    <Link
+                      href={`/classes/${classId}/summary/${session.id}`}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Summary
+                    </Link>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => setDeleteTarget(session)}
+                      disabled={deleting}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
+
       {!loading && records.length > 0 && (
         <p className="mb-4 text-sm text-slate-600">
           <span className="font-medium text-green-700">{presentCount} present</span>
@@ -223,12 +348,32 @@ export default function MarkAttendancePage() {
         classId={classId}
         sessionId={sessionId}
         saving={saving}
+        deleting={deleting}
         hasChanges={hasChanges}
         canSave={records.length > 0 && !dateError}
         onMarkAllPresent={markAllPresent}
         onMarkAllAbsent={markAllAbsent}
         onReset={resetChanges}
         onSave={saveAttendance}
+        onDelete={
+          sessionId
+            ? () => {
+                const current =
+                  sessionsOnDate.find((s) => s.id === sessionId) ??
+                  ({
+                    id: sessionId,
+                    attendance_date: date,
+                    timetable_entry_id: timetableEntryId,
+                    timetable_subject: timetableSubject,
+                    timetable_start_time: timetableStartTime,
+                    timetable_end_time: timetableEndTime,
+                    record_count: records.length,
+                    created_at: "",
+                  } satisfies AttendanceSessionOnDate);
+                setDeleteTarget(current);
+              }
+            : undefined
+        }
       />
 
       {error && <Alert variant="error" className="mb-4">{error}</Alert>}
@@ -244,6 +389,23 @@ export default function MarkAttendancePage() {
           onMarkLate={markStudentLate}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete attendance?"
+        description={
+          deleteTarget
+            ? `This will permanently delete attendance for ${sessionPeriodLabel(deleteTarget)} on ${deleteTarget.attendance_date}. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        loading={deleting}
+        onConfirm={confirmDeleteSession}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
     </PageContainer>
   );
 }

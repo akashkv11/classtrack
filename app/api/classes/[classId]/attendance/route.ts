@@ -5,6 +5,7 @@ import { summarizeRecords, isAttendanceStatus } from "@/lib/attendance";
 import { parseISODate } from "@/lib/dates";
 import {
   findAttendanceSessionForSlot,
+  listAttendanceSessionsForDate,
   upsertAttendanceSessionForSlot,
 } from "@/lib/queries/attendance-sessions";
 import { validateTimetableEntryForClass } from "@/lib/timetable/access";
@@ -49,11 +50,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     orderBy: { rollNo: "asc" },
   });
 
-  const session = await findAttendanceSessionForSlot(
-    classId,
-    attendanceDate,
-    slotTimetableId,
-  );
+  const [session, sessionsOnDate] = await Promise.all([
+    findAttendanceSessionForSlot(classId, attendanceDate, slotTimetableId),
+    listAttendanceSessionsForDate(classId, attendanceDate),
+  ]);
 
   const recordMap = new Map(
     session?.records.map((r) => [r.studentId, r.status]) ?? [],
@@ -71,6 +71,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       exists: false,
       session: null,
       records,
+      sessions_on_date: sessionsOnDate,
     });
   }
 
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       notes: session.notes ?? "",
     },
     records,
+    sessions_on_date: sessionsOnDate,
   });
 }
 

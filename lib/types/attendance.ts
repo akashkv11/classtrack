@@ -8,6 +8,17 @@ export type AttendanceRecordRow = {
   status: AttendanceStatus;
 };
 
+export type AttendanceSessionOnDate = {
+  id: string;
+  attendance_date: string;
+  timetable_entry_id: string | null;
+  timetable_subject: string | null;
+  timetable_start_time: string | null;
+  timetable_end_time: string | null;
+  record_count: number;
+  created_at: string;
+};
+
 export type AttendanceSummary = {
   session_id: string;
   class: {

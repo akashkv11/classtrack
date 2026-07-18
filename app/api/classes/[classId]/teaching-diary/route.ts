@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { isUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
 import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
@@ -108,35 +109,50 @@ export async function POST(request: NextRequest, context: RouteContext) {
     syllabusTopicIds: topicIds,
     timetableEntryId: parsed.data.timetable_entry_id ?? null,
     diaryStatus: parsed.data.diary_status,
+    topicTaught: parsed.data.topic_taught,
   });
 
   if (duplicateError) {
     return NextResponse.json({ error: duplicateError }, { status: 409 });
   }
 
-  const entry = await prisma.teachingDiaryEntry.create({
-    data: {
-      classId,
-      timetableEntryId: parsed.data.timetable_entry_id ?? null,
-      syllabusSubjectId: parsed.data.syllabus_subject_id ?? null,
-      syllabusChapterId: parsed.data.syllabus_chapter_id ?? null,
-      syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
-      entryDate: parseISODate(parsed.data.entry_date),
-      topicTaught: parsed.data.topic_taught,
-      subtopicsCovered: serializeSubtopicsCoveredForDb(
-        parsed.data.subtopics_covered ?? [],
-      ),
-      teachingNotes: parsed.data.teaching_notes ?? null,
-      examplesCovered: parsed.data.examples_covered ?? null,
-      studentResponse: parsed.data.student_response,
-      nextClassPlan: parsed.data.next_class_plan ?? null,
-      diaryStatus: parsed.data.diary_status,
-      syllabusStatusUpdate: parsed.data.syllabus_status_update,
-      remarks: parsed.data.remarks ?? null,
-    },
-  });
+  let entryId: string;
+  try {
+    entryId = await prisma.$transaction(async (tx) => {
+      const entry = await tx.teachingDiaryEntry.create({
+        data: {
+          classId,
+          timetableEntryId: parsed.data.timetable_entry_id ?? null,
+          syllabusSubjectId: parsed.data.syllabus_subject_id ?? null,
+          syllabusChapterId: parsed.data.syllabus_chapter_id ?? null,
+          syllabusTopicId: parsed.data.syllabus_topic_id ?? null,
+          entryDate: parseISODate(parsed.data.entry_date),
+          topicTaught: parsed.data.topic_taught,
+          subtopicsCovered: serializeSubtopicsCoveredForDb(
+            parsed.data.subtopics_covered ?? [],
+          ),
+          teachingNotes: parsed.data.teaching_notes ?? null,
+          examplesCovered: parsed.data.examples_covered ?? null,
+          studentResponse: parsed.data.student_response,
+          nextClassPlan: parsed.data.next_class_plan ?? null,
+          diaryStatus: parsed.data.diary_status,
+          syllabusStatusUpdate: parsed.data.syllabus_status_update,
+          remarks: parsed.data.remarks ?? null,
+        },
+      });
 
-  await replaceTeachingDiaryTopics(entry.id, topicIds);
+      await replaceTeachingDiaryTopics(entry.id, topicIds, tx);
+      return entry.id;
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return NextResponse.json(
+        { error: "A diary entry for this class slot on this date already exists." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
 
   if (
     topicIds.length > 0 &&
@@ -149,7 +165,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const freshEntry = await getTeachingDiaryEntryById(entry.id);
+  const freshEntry = await getTeachingDiaryEntryById(entryId);
 
   return NextResponse.json({
     success: true,

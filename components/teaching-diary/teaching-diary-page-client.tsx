@@ -37,6 +37,7 @@ type TeachingDiaryPageClientProps = {
     end_time?: string;
     open_form?: boolean;
   } | null;
+  initialEditingEntry?: TeachingDiaryEntrySummary | null;
 };
 
 function getMonthRange(preset: DateRangePreset): {
@@ -80,6 +81,7 @@ export default function TeachingDiaryPageClient({
   initialSubjects,
   initialData,
   timetablePrefill = null,
+  initialEditingEntry = null,
 }: TeachingDiaryPageClientProps) {
   const router = useRouter();
   const [entries, setEntries] = useState(initialData.entries);
@@ -90,9 +92,11 @@ export default function TeachingDiaryPageClient({
   const [subjectFilter, setSubjectFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRangePreset>("this_month");
   const [statusFilter, setStatusFilter] = useState("");
-  const [showForm, setShowForm] = useState(Boolean(timetablePrefill?.open_form));
+  const [showForm, setShowForm] = useState(
+    Boolean(timetablePrefill?.open_form || initialEditingEntry),
+  );
   const [editingEntry, setEditingEntry] =
-    useState<TeachingDiaryEntrySummary | null>(null);
+    useState<TeachingDiaryEntrySummary | null>(initialEditingEntry);
   const [deletingEntry, setDeletingEntry] =
     useState<TeachingDiaryEntrySummary | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -184,9 +188,11 @@ export default function TeachingDiaryPageClient({
 
       {timetablePrefill && (
         <Alert variant="info" className="mb-4">
-          {timetablePrefill.timetable_entry_id
-            ? "Adding a diary entry for today's scheduled class"
-            : "Creating a diary entry from your timetable"}
+          {initialEditingEntry
+            ? "Editing the diary entry for this scheduled class"
+            : timetablePrefill.timetable_entry_id
+              ? "Adding a diary entry for today's scheduled class"
+              : "Creating a diary entry from your timetable"}
           {timetablePrefill.subject_name ? ` · ${timetablePrefill.subject_name}` : ""}
           {timetablePrefill.start_time && timetablePrefill.end_time
             ? ` · ${formatTime12h(timetablePrefill.start_time)} – ${formatTime12h(timetablePrefill.end_time)}`

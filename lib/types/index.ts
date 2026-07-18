@@ -2,6 +2,7 @@ export type { Student, StudentFormData } from "./student";
 export type { ClassSummary, ClassContextValue } from "./class";
 export type {
   AttendanceRecordRow,
+  AttendanceSessionOnDate,
   AttendanceSummary,
   WhatsAppMessageData,
 } from "./attendance";

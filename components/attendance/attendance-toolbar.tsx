@@ -5,24 +5,28 @@ type AttendanceToolbarProps = {
   classId: string;
   sessionId: string | null;
   saving: boolean;
+  deleting?: boolean;
   hasChanges: boolean;
   canSave: boolean;
   onMarkAllPresent: () => void;
   onMarkAllAbsent: () => void;
   onReset: () => void;
   onSave: () => void;
+  onDelete?: () => void;
 };
 
 export default function AttendanceToolbar({
   classId,
   sessionId,
   saving,
+  deleting = false,
   hasChanges,
   canSave,
   onMarkAllPresent,
   onMarkAllAbsent,
   onReset,
   onSave,
+  onDelete,
 }: AttendanceToolbarProps) {
   return (
     <ActionBar className="mb-4">
@@ -55,7 +59,7 @@ export default function AttendanceToolbar({
         size="sm"
         className={actionButtonClassName}
         onClick={onSave}
-        disabled={saving || !canSave}
+        disabled={saving || deleting || !canSave}
       >
         {saving ? "Saving..." : "Save Attendance"}
       </Button>
@@ -68,6 +72,17 @@ export default function AttendanceToolbar({
         >
           View Summary
         </ButtonLink>
+      )}
+      {sessionId && onDelete && (
+        <Button
+          variant="danger"
+          size="sm"
+          className={actionButtonClassName}
+          onClick={onDelete}
+          disabled={saving || deleting}
+        >
+          {deleting ? "Deleting..." : "Delete Attendance"}
+        </Button>
       )}
     </ActionBar>
   );

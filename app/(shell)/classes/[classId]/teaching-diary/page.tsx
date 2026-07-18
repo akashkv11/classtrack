@@ -6,11 +6,13 @@ import { getClassById } from "@/lib/queries/classes";
 import { getSyllabusSubjectsForClass } from "@/lib/queries/syllabus";
 import {
   computeDiarySummary,
+  findTeachingDiaryEntryForSlot,
   getTaughtSyllabusTopicIds,
   getTeachingDiaryEntriesForClass,
 } from "@/lib/queries/teaching-diary";
 import { matchSyllabusSubjectIdByName } from "@/lib/timetable/links";
 import { getTimetableEntryById } from "@/lib/queries/timetable";
+import type { TeachingDiaryEntrySummary } from "@/lib/types/teaching-diary";
 
 export const revalidate = 30;
 
@@ -63,13 +65,21 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
     end_time?: string;
     open_form?: boolean;
   } | null = null;
+  let existingSlotEntry: TeachingDiaryEntrySummary | null = null;
 
   if (query.timetable_entry_id) {
     const entry = await getTimetableEntryById(query.timetable_entry_id);
     if (entry && entry.class_id === classId) {
+      const entryDate =
+        query.date ?? entry.entry_date ?? new Date().toISOString().slice(0, 10);
+      existingSlotEntry = await findTeachingDiaryEntryForSlot(
+        classId,
+        entryDate,
+        entry.id,
+      );
       timetablePrefill = {
         timetable_entry_id: entry.id,
-        entry_date: query.date ?? entry.entry_date ?? new Date().toISOString().slice(0, 10),
+        entry_date: entryDate,
         subject_name: query.subject ?? entry.subject,
         start_time: query.start_time ?? entry.start_time,
         end_time: query.end_time ?? entry.end_time,
@@ -117,6 +127,7 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
               }
             : null
         }
+        initialEditingEntry={existingSlotEntry}
       />
     </PageContainer>
   );

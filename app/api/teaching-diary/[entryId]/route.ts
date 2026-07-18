@@ -131,6 +131,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     syllabusTopicIds: topicIds,
     timetableEntryId: existing.timetableEntryId,
     diaryStatus,
+    topicTaught:
+      parsed.data.topic_taught !== undefined
+        ? parsed.data.topic_taught
+        : existing.topicTaught,
     excludeEntryId: entryId,
   });
 

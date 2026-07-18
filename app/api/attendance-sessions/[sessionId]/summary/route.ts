@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords } from "@/lib/attendance";
 import { formatISODate } from "@/lib/dates";
+import { deleteAttendanceSession } from "@/lib/queries/attendance-sessions";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
@@ -68,8 +69,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   const { sessionId } = await context.params;
+  const result = await deleteAttendanceSession(sessionId);
 
-  await prisma.attendanceSession.delete({ where: { id: sessionId } });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 }

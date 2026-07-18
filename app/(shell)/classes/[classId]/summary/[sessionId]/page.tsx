@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useClass } from "@/components/classes/class-provider";
 import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
+import Alert from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import Card, { StatCard } from "@/components/ui/card";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
@@ -20,10 +22,15 @@ import { useClientEffect } from "@/lib/use-client-effect";
 
 export default function AttendanceSummaryPage() {
   const params = useParams<{ classId: string; sessionId: string }>();
+  const router = useRouter();
   const { classId, sessionId } = params;
   const { displayName } = useClass();
 
   const [data, setData] = useState<AttendanceSummary | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const {
     open,
     missingOpen,
@@ -37,11 +44,48 @@ export default function AttendanceSummaryPage() {
   } = useWhatsAppMessage();
 
   async function loadSummary(signal?: AbortSignal) {
+    setLoadError("");
     const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`, { signal });
-    setData(await res.json());
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setLoadError(body.error ?? "Failed to load attendance summary");
+      setData(null);
+      return;
+    }
+    setData(body);
   }
 
   useClientEffect((signal) => loadSummary(signal), [sessionId]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/attendance-sessions/${sessionId}/summary`, {
+        method: "DELETE",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error ?? "Failed to delete attendance");
+      }
+      router.push(`/classes/${classId}/attendance`);
+      router.refresh();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete attendance");
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (loadError) {
+    return (
+      <PageContainer>
+        <PageHeader title="Attendance Summary" backHref={`/classes/${classId}`} />
+        <Alert variant="error">{loadError}</Alert>
+      </PageContainer>
+    );
+  }
 
   if (!data) {
     return (
@@ -125,12 +169,14 @@ export default function AttendanceSummaryPage() {
         </p>
       )}
 
+      {deleteError && <Alert variant="error" className="mb-4">{deleteError}</Alert>}
+
       <ActionBar>
         <Button
           variant="whatsapp"
           className={actionButtonClassName}
           onClick={() => openPreview(sessionId)}
-          disabled={!hasWhatsApp || loading}
+          disabled={!hasWhatsApp || loading || deleting}
         >
           {loading ? "Loading..." : "Send WhatsApp Message"}
         </Button>
@@ -142,10 +188,33 @@ export default function AttendanceSummaryPage() {
         >
           Edit Attendance
         </ButtonLink>
+        <Button
+          variant="danger"
+          className={actionButtonClassName}
+          onClick={() => setConfirmDelete(true)}
+          disabled={deleting}
+        >
+          Delete Attendance
+        </Button>
         <ButtonLink href="/classes" variant="secondary" className={actionButtonClassName}>
           Back to Classes
         </ButtonLink>
       </ActionBar>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete attendance?"
+        description={`This will permanently delete attendance for ${data.attendance_date}${
+          data.timetable_subject ? ` (${data.timetable_subject})` : ""
+        }. This cannot be undone.`}
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          if (!deleting) setConfirmDelete(false);
+        }}
+      />
 
       <WhatsAppMissingItemsDialog
         open={missingOpen}

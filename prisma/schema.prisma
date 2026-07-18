@@ -150,6 +150,8 @@ model TeachingDiaryEntry {
   @@index([classId, entryDate])
   @@index([timetableEntryId])
   @@index([syllabusTopicId])
+  // Partial unique: (class_id, entry_date, timetable_entry_id) WHERE timetable_entry_id IS NOT NULL
+  // — applied in migration 20260718120000_prevent_duplicate_session_entries
   @@map("teaching_diary_entries")
 }
 
@@ -232,6 +234,8 @@ model AttendanceSession {
 
   @@index([classId])
   @@index([classId, attendanceDate])
+  // Unique with NULLS NOT DISTINCT so null timetable slots cannot duplicate per class/date
+  // — enforced in migration 20260718120000_prevent_duplicate_session_entries
   @@unique([classId, attendanceDate, timetableEntryId])
   @@index([timetableEntryId])
   @@map("attendance_sessions")
