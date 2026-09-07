@@ -8,6 +8,7 @@ import {
   listAttendanceSessionsForDate,
   upsertAttendanceSessionForSlot,
 } from "@/lib/queries/attendance-sessions";
+import { revalidateOperationalViews } from "@/lib/cache/revalidate-operational";
 import { validateTimetableEntryForClass } from "@/lib/timetable/access";
 import {
   attendanceDateQuerySchema,
@@ -169,6 +170,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const savedRecords = await prisma.attendanceRecord.findMany({
     where: { sessionId: session.id },
   });
+
+  revalidateOperationalViews(classId);
 
   return NextResponse.json({
     success: true,

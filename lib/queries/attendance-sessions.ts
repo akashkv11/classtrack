@@ -61,7 +61,7 @@ export async function listAttendanceSessionsForDate(
 export async function deleteAttendanceSession(sessionId: string) {
   const existing = await prisma.attendanceSession.findUnique({
     where: { id: sessionId },
-    select: { id: true },
+    select: { id: true, classId: true },
   });
 
   if (!existing) {
@@ -69,7 +69,7 @@ export async function deleteAttendanceSession(sessionId: string) {
   }
 
   await prisma.attendanceSession.delete({ where: { id: sessionId } });
-  return { ok: true as const };
+  return { ok: true as const, classId: existing.classId };
 }
 
 export async function upsertAttendanceSessionForSlot(

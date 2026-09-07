@@ -17,6 +17,7 @@ import {
   verifyClassOwnership,
 } from "@/lib/teaching-diary/access";
 import { parseRequiredClassIdQuery } from "@/lib/teaching-diary/api-helpers";
+import { revalidateOperationalViews } from "@/lib/cache/revalidate-operational";
 import {
   parseInput,
   teachingDiaryUpdateSchema,
@@ -198,6 +199,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const freshEntry = await getTeachingDiaryEntryById(entryId);
 
+  revalidateOperationalViews(classIdResult.classId);
+
   return NextResponse.json({
     success: true,
     entry: freshEntry,
@@ -224,6 +227,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   await prisma.teachingDiaryEntry.delete({ where: { id: entryId } });
+
+  revalidateOperationalViews(classIdResult.classId);
 
   return NextResponse.json({ success: true });
 }

@@ -7,7 +7,8 @@ import { getTodayScheduleItems } from "@/lib/queries/dashboard";
 import { getTimetableEntries } from "@/lib/queries/timetable";
 import { todayISO } from "@/lib/dates";
 
-export const revalidate = 30;
+// Always render fresh — today's period status must match live attendance/diary.
+export const dynamic = "force-dynamic";
 
 export default async function TimetablePage() {
   const { activeYear, classes } = await getActiveClasses();

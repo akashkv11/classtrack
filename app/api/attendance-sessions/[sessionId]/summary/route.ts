@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { summarizeRecords } from "@/lib/attendance";
 import { formatISODate } from "@/lib/dates";
+import { revalidateOperationalViews } from "@/lib/cache/revalidate-operational";
 import { deleteAttendanceSession } from "@/lib/queries/attendance-sessions";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
@@ -74,6 +75,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }
+
+  revalidateOperationalViews(result.classId);
 
   return NextResponse.json({ success: true });
 }

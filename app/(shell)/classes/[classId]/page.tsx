@@ -6,7 +6,7 @@ import { formatISODate } from "@/lib/dates";
 import { getClassWorkspaceOverview } from "@/lib/queries/class-overview";
 import { getClassDetail } from "@/lib/queries/classes";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ classId: string }> };
 

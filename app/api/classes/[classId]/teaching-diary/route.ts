@@ -4,6 +4,7 @@ import { isUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
 import { serializeSubtopicsCoveredForDb } from "@/lib/syllabus/subtopics";
+import { revalidateOperationalViews } from "@/lib/cache/revalidate-operational";
 import {
   applySyllabusStatusUpdateToTopics,
   computeDiarySummary,
@@ -166,6 +167,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   const freshEntry = await getTeachingDiaryEntryById(entryId);
+
+  revalidateOperationalViews(classId);
 
   return NextResponse.json({
     success: true,

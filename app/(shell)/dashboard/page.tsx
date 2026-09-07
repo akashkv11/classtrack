@@ -9,7 +9,8 @@ import PageHeader from "@/components/ui/page-header";
 import { formatTodayHeading } from "@/lib/dates";
 import { getDashboardData } from "@/lib/queries/dashboard";
 
-export const revalidate = 30;
+// Always render fresh — attendance/diary status must not stick behind ISR.
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
