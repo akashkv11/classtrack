@@ -8,6 +8,9 @@ export type SettingsData = {
   academic_years: { id: string; name: string; is_active: boolean }[];
   classes: SettingsClassSubject[];
   settings: {
+    class_update_recipient: string;
+    preparation_streak_threshold: number;
+    preparation_include_partial: boolean;
     message_signature: string;
     late_counts_as_present: boolean;
     low_attendance_threshold: number;

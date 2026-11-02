@@ -1,6 +1,7 @@
 import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
+import SendClassUpdateButton from "@/components/whatsapp/send-class-update-button";
 
 type Session = {
   id: string;
@@ -44,6 +45,7 @@ export default function RecentSessionsList({
                     View
                   </ButtonLink>
                   <SendWhatsAppButton sessionId={session.id} className={actionButtonClassName} />
+                  <SendClassUpdateButton sessionId={session.id} className={actionButtonClassName} />
                 </ActionBar>
               </div>
             </li>

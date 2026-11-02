@@ -3,6 +3,7 @@ import DashboardFollowUps from "@/components/dashboard/dashboard-follow-ups";
 import DashboardQuickActions from "@/components/dashboard/dashboard-quick-actions";
 import DashboardTodayComplianceBanner from "@/components/dashboard/dashboard-today-compliance";
 import DashboardTodaySchedule from "@/components/dashboard/dashboard-today-schedule";
+import PreparationFollowUps from "@/components/dashboard/preparation-follow-ups";
 import NoAcademicYearAlert from "@/components/classes/no-academic-year-alert";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
@@ -36,6 +37,7 @@ export default async function DashboardPage() {
 
             <div className="mt-4">
               <DashboardFollowUps summary={data.follow_ups} />
+              <PreparationFollowUps classIds={data.classes.map((card) => card.class_id)} date={data.today} />
               <DashboardTodayComplianceBanner compliance={data.today_compliance} />
               <DashboardTodaySchedule items={data.today_items} date={data.today} />
             </div>

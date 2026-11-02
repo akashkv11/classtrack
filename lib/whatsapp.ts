@@ -236,6 +236,64 @@ export function buildWhatsAppUrl(phoneNumber: string, message: string): string {
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
 
+export function buildSeparateClassUpdateMessage(options: {
+  className: string;
+  date: Date;
+  subject?: string | null;
+  chapter?: string | null;
+  topics?: { title: string; bullets: string[] } | null;
+  unpreparedStudents?: string[];
+  preparationLines?: string[];
+  absentees?: Array<string | { fullName: string; totalCount: number }>;
+  lateStudents?: Array<string | { fullName: string; totalCount: number }>;
+  diaryStatus?: DiaryStatus | string | null;
+}): string {
+  const sessionLabels: Record<string, string> = {
+    TAUGHT: "Regular class",
+    PARTIALLY_TAUGHT: "Partially taught",
+    REVISION: "Revision",
+    EXAM: "Exam",
+    CANCELLED: "Cancelled",
+  };
+  const sessionLabel = sessionLabels[options.diaryStatus ?? ""] ?? "Not recorded in teaching diary";
+  return [
+    "CLASS UPDATE",
+    "",
+    `*CLASS:* ${options.className}`,
+    `*DATE:* ${formatWhatsAppDate(options.date)}`,
+    `*SUBJECT:* ${options.subject ?? ""}`.trimEnd(),
+    `*SESSION:* ${sessionLabel}`,
+    `*CHAPTER:* ${options.chapter ?? ""}`.trimEnd(),
+    `*TOPICS:* ${options.diaryStatus === "CANCELLED" ? "No topics covered (class cancelled)." : options.topics?.title ?? ""}`.trimEnd(),
+    "*HW:*",
+    "",
+    "",
+    "*ABSENTEES*",
+    ...formatStudentList((options.absentees ?? []).map((student) =>
+      typeof student === "string" ? student : `${student.fullName} (${student.totalCount} class absent)`,
+    )),
+    "",
+    "*LATE STUDENTS*",
+    ...formatStudentList((options.lateStudents ?? []).map((student) =>
+      typeof student === "string" ? student : `${student.fullName} (${student.totalCount} class late)`,
+    )),
+    "",
+    "*UNPREPARED STUDENTS*",
+    ...(options.preparationLines ?? formatStudentList(options.unpreparedStudents ?? [])),
+  ].join("\n");
+}
+
+function formatStudentList(names: string[]): string[] {
+  return names.length > 0
+    ? names.map((name, index) => `${index + 1}) ${name}`)
+    : ["None"];
+}
+
+export function setMessageHomework(message: string, homework: string | null): string {
+  const value = homework?.trim() || "No homework assigned.";
+  return message.replace(/^\*HW:\*[\s\S]*?(?=^\*ABSENTEES\*)/m, () => `*HW:* ${value}\n\n`);
+}
+
 export function setMessageClassTime(message: string, classTime: string | null): string {
   const trimmed = classTime?.trim() ?? "";
   const lines = message.split("\n").filter((line) => !line.startsWith("Class Time:"));

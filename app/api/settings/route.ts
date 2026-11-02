@@ -5,6 +5,9 @@ import { COMMUNICATION_REASON_LABELS } from "@/lib/parent-communication/status";
 import { NOTE_CATEGORY_LABELS } from "@/lib/student-notes/status";
 import {
   getAllSettings,
+  SETTING_CLASS_UPDATE_RECIPIENT,
+  SETTING_PREPARATION_THRESHOLD,
+  SETTING_PREPARATION_INCLUDE_PARTIAL,
   mapSettingsRecord,
   setSetting,
   SETTING_CONTINUOUS_ABSENCE_THRESHOLD,
@@ -157,6 +160,19 @@ export async function PATCH(request: NextRequest) {
     settingUpdates.push([SETTING_REPORT_FOOTER, data.report_footer]);
   }
 
+  if (data.class_update_recipient !== undefined) {
+    settingUpdates.push([
+      SETTING_CLASS_UPDATE_RECIPIENT,
+      data.class_update_recipient.replace(/\D/g, ""),
+    ]);
+  }
+
+  if (data.preparation_streak_threshold !== undefined) {
+    settingUpdates.push([SETTING_PREPARATION_THRESHOLD, String(data.preparation_streak_threshold)]);
+  }
+  if (data.preparation_include_partial !== undefined) {
+    settingUpdates.push([SETTING_PREPARATION_INCLUDE_PARTIAL, String(data.preparation_include_partial)]);
+  }
   await Promise.all(settingUpdates.map(([key, value]) => setSetting(key, value)));
 
   return NextResponse.json({ success: true });

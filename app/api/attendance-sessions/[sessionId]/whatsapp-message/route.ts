@@ -7,16 +7,24 @@ import { serializeTimetableEntry } from "@/lib/queries/timetable";
 import { getScheduleForDate } from "@/lib/timetable";
 import {
   buildClassUpdateMessage,
+  buildSeparateClassUpdateMessage,
   buildTopicTakenFromDiary,
   buildWhatsAppUrl,
   formatClassTimeRange,
   subjectForStream,
 } from "@/lib/whatsapp";
 import { getWhatsAppMissingItems } from "@/lib/whatsapp-readiness";
+import { getSetting, SETTING_CLASS_UPDATE_RECIPIENT } from "@/lib/settings";
+import { getPreparationRoster } from "@/lib/queries/preparation";
+import { preparationMessageLines } from "@/lib/preparation";
+import { getSessionAttendanceTotals } from "@/lib/queries/attendance-totals";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 
 const diaryInclude = {
+  syllabusChapter: {
+    select: { chapterNumber: true, chapterTitle: true },
+  },
   syllabusSubject: {
     select: { subjectName: true },
   },
@@ -90,6 +98,58 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+
+  if (request.nextUrl.searchParams.get("template") === "separate") {
+    const [diaryEntry, phoneNumber, preparation, attendanceTotals] = await Promise.all([
+      findDiaryEntryForSession({
+        classId: session.classId,
+        attendanceDate: session.attendanceDate,
+        timetableEntryId: session.timetableEntryId,
+      }),
+      getSetting(SETTING_CLASS_UPDATE_RECIPIENT),
+      getPreparationRoster(session.classId, formatISODate(session.attendanceDate), session.timetableEntryId),
+      getSessionAttendanceTotals({
+        sessionId: session.id,
+        classId: session.classId,
+        date: session.attendanceDate,
+        lateStudentIds: session.records.filter((record) => record.status === "late").map((record) => record.studentId),
+        absentStudentIds: session.records.filter((record) => record.status === "absent").map((record) => record.studentId),
+      }),
+    ]);
+    const chapter = diaryEntry?.syllabusChapter;
+    const message = buildSeparateClassUpdateMessage({
+      className: session.class.displayName,
+      date: session.attendanceDate,
+      subject: session.timetableEntry?.subject ??
+        diaryEntry?.timetableEntry?.subject ??
+        diaryEntry?.syllabusSubject?.subjectName ??
+        subjectForStream(session.class.stream),
+      chapter: chapter
+        ? `${chapter.chapterNumber ? `${chapter.chapterNumber}. ` : ""}${chapter.chapterTitle}`
+        : null,
+      topics: diaryEntry ? buildTopicTakenFromDiary(diaryEntry) : null,
+      preparationLines: preparationMessageLines(preparation.records, preparation.includePartial),
+      diaryStatus: diaryEntry?.diaryStatus,
+      absentees: session.records.filter((record) => record.status === "absent").map((record) => ({
+        fullName: record.student.fullName,
+        totalCount: attendanceTotals.absent.get(record.studentId) ?? 1,
+      })),
+      lateStudents: session.records.filter((record) => record.status === "late").map((record) => ({
+        fullName: record.student.fullName,
+        totalCount: attendanceTotals.late.get(record.studentId) ?? 1,
+      })),
+    });
+    return NextResponse.json({
+      phone_number: phoneNumber,
+      message,
+      students: preparation.records,
+      class_id: session.classId,
+      attendance_date: formatISODate(session.attendanceDate),
+      timetable_entry_id: session.timetableEntryId,
+      threshold: preparation.threshold,
+      includePartial: preparation.includePartial,
+    });
   }
 
   if (!session.class.whatsappNumber) {

@@ -1,5 +1,6 @@
 import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
+import MarkPreparationButton from "@/components/preparation/mark-preparation-button";
 import { buildAttendanceLink, buildTeachingDiaryLink } from "@/lib/timetable/links";
 import type { DashboardTodayItem } from "@/lib/types/dashboard";
 
@@ -60,6 +61,13 @@ export default function TimetableScheduleActions({
       >
         {item.teaching_diary_status === "written" ? "View Diary" : "Add Diary"}
       </ButtonLink>
+      <MarkPreparationButton
+        classId={item.class_id}
+        date={date}
+        timetableEntryId={item.entry_id}
+        title={item.subject}
+        className={actionButtonClassName}
+      />
       <ButtonLink
         href={`/classes/${item.class_id}/syllabus`}
         variant="secondary"

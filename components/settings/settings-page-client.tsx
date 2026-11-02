@@ -7,6 +7,7 @@ import SettingsAssessmentSection from "@/components/settings/settings-assessment
 import SettingsAttendanceSection from "@/components/settings/settings-attendance-section";
 import SettingsCommunicationSection from "@/components/settings/settings-communication-section";
 import SettingsReportSection from "@/components/settings/settings-report-section";
+import PreparationSettingsForm from "@/components/settings/preparation-settings-form";
 import Card from "@/components/ui/card";
 import LoadingState from "@/components/ui/loading-state";
 import type { SettingsData } from "@/lib/types";
@@ -67,7 +68,11 @@ export default function SettingsPageClient() {
         onSaved={() => reloadSettings(undefined, true)}
       />
 
-      <SettingsCommunicationSection communication={data.communication} />
+      <SettingsCommunicationSection
+        communication={data.communication}
+        classUpdateRecipient={data.settings.class_update_recipient}
+      />
+      <PreparationSettingsForm settings={data.settings} />
 
       <Card padding="lg">
         <h2 className="text-lg font-semibold text-slate-900">Security</h2>

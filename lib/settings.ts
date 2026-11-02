@@ -5,6 +5,9 @@ import type {
 } from "@/lib/types/settings";
 
 export const SETTING_MESSAGE_SIGNATURE = "message_signature";
+export const SETTING_CLASS_UPDATE_RECIPIENT = "class_update_recipient";
+export const SETTING_PREPARATION_THRESHOLD = "preparation_streak_threshold";
+export const SETTING_PREPARATION_INCLUDE_PARTIAL = "preparation_include_partial";
 export const SETTING_LATE_COUNTS_AS_PRESENT = "late_counts_as_present";
 export const SETTING_LOW_ATTENDANCE_THRESHOLD = "low_attendance_threshold";
 export const SETTING_CONTINUOUS_ABSENCE_THRESHOLD = "continuous_absence_threshold";
@@ -16,6 +19,9 @@ export const SETTING_REPORT_TITLE = "report_title";
 export const SETTING_REPORT_FOOTER = "report_footer";
 
 const DEFAULTS: Record<string, string> = {
+  [SETTING_CLASS_UPDATE_RECIPIENT]: "",
+  [SETTING_PREPARATION_THRESHOLD]: "3",
+  [SETTING_PREPARATION_INCLUDE_PARTIAL]: "false",
   [SETTING_MESSAGE_SIGNATURE]: "- Class Teacher",
   [SETTING_LATE_COUNTS_AS_PRESENT]: "true",
   [SETTING_LOW_ATTENDANCE_THRESHOLD]: "75",
@@ -100,6 +106,9 @@ export async function getAllSettings(): Promise<Record<string, string>> {
 
 export function mapSettingsRecord(settings: Record<string, string>) {
   return {
+    class_update_recipient: settings[SETTING_CLASS_UPDATE_RECIPIENT] ?? "",
+    preparation_streak_threshold: parseSettingNumber(settings[SETTING_PREPARATION_THRESHOLD], 3),
+    preparation_include_partial: settings[SETTING_PREPARATION_INCLUDE_PARTIAL] === "true",
     message_signature: settings[SETTING_MESSAGE_SIGNATURE],
     late_counts_as_present: settings[SETTING_LATE_COUNTS_AS_PRESENT] !== "false",
     low_attendance_threshold: parseSettingNumber(

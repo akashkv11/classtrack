@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uuidSchema } from "./primitives";
+import { optionalWhatsAppSchema, uuidSchema } from "./primitives";
 
 const percentSchema = z.coerce
   .number()
@@ -45,6 +45,9 @@ export const academicSettingsSchema = z.object({
 
 export const settingsPatchSchema = z
   .object({
+    class_update_recipient: optionalWhatsAppSchema.optional(),
+    preparation_streak_threshold: positiveIntSchema(30, "Preparation streak threshold").optional(),
+    preparation_include_partial: z.boolean().optional(),
     active_academic_year_id: uuidSchema.optional(),
     low_attendance_threshold: percentSchema.optional(),
     continuous_absence_threshold: positiveIntSchema(30, "Continuous absence threshold").optional(),

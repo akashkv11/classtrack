@@ -1,19 +1,23 @@
 import SettingsSection from "@/components/settings/settings-section";
+import ClassUpdateRecipientForm from "@/components/settings/class-update-recipient-form";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
 import type { SettingsData } from "@/lib/types";
 
 type SettingsCommunicationSectionProps = {
+  classUpdateRecipient: string;
   communication: SettingsData["communication"];
 };
 
 export default function SettingsCommunicationSection({
+  classUpdateRecipient,
   communication,
 }: SettingsCommunicationSectionProps) {
   return (
     <SettingsSection
       title="Communication"
-      description="Default categories used in Student Notes and Parent Communication."
+      description="Class update recipient and default communication categories."
     >
+      <ClassUpdateRecipientForm initialValue={classUpdateRecipient} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <p className="mb-2 text-sm font-medium text-slate-800">Parent communication reasons</p>

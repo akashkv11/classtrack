@@ -35,6 +35,29 @@ export function countAbsentDaysByStudent(
   return counts;
 }
 
+/** Sessions must be newest first. Count matching records through the selected session. */
+export function countTotalAttendanceByStudent(
+  sessions: { id: string; records: { studentId: string; status: string }[] }[],
+  sessionId: string,
+  studentIds: string[],
+  status: "late" | "absent",
+): Map<string, number> {
+  const currentIndex = sessions.findIndex((session) => session.id === sessionId);
+  const counts = new Map<string, number>();
+  if (currentIndex === -1) return counts;
+  const history = sessions.slice(currentIndex).map((session) =>
+    new Map(session.records.map((record) => [record.studentId, record.status])),
+  );
+  for (const studentId of studentIds) {
+    let count = 0;
+    for (const records of history) {
+      if (records.get(studentId) === status) count++;
+    }
+    counts.set(studentId, count);
+  }
+  return counts;
+}
+
 export function calculateAttendancePercentage(options: {
   presentDays: number;
   lateDays: number;

@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/app/generated/prisma/client";
+import { Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import { getDatabaseUrl } from "@/lib/database-url";
 import { Pool } from "pg";
 
@@ -22,8 +22,14 @@ const pool = globalForDatabase.pgPool ?? createPool();
 
 const adapter = new PrismaPg(pool);
 
+// Regenerating Prisma during development can leave the global client missing new models.
+const cachedClient = globalForDatabase.prisma;
+const hasCurrentModels = cachedClient && Object.values(Prisma.ModelName).every((name) =>
+  `${name[0].toLowerCase()}${name.slice(1)}` in cachedClient,
+);
+
 export const prisma =
-  globalForDatabase.prisma ??
+  (hasCurrentModels ? cachedClient : undefined) ??
   new PrismaClient({
     adapter,
     log:

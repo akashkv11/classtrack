@@ -7,6 +7,7 @@ import SectionCard from "@/components/ui/section-card";
 import { StatusBadgeFromConfig } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/card";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
+import SendClassUpdateButton from "@/components/whatsapp/send-class-update-button";
 import OpenWhatsAppChannelButton from "@/components/whatsapp/open-whatsapp-channel-button";
 import type { ClassWorkspaceOverview } from "@/lib/queries/class-overview";
 import {
@@ -148,6 +149,10 @@ export default function ClassWorkspace({
                 View Attendance
               </ButtonLink>
               <SendWhatsAppButton
+                sessionId={overview.attendance_session_id}
+                className={actionButtonClassName}
+              />
+              <SendClassUpdateButton
                 sessionId={overview.attendance_session_id}
                 className={actionButtonClassName}
               />

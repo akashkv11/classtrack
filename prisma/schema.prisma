@@ -41,6 +41,7 @@ model Class {
   studentNotes          StudentNote[]
   parentCommunications  ParentCommunication[]
   attendanceAlertStatuses AttendanceAlertStatus[]
+  preparationRecords StudentPreparation[]
 
   @@index([academicYearId])
   @@unique([academicYearId, level, stream])
@@ -189,6 +190,7 @@ model TimetableEntry {
 
   attendanceSessions AttendanceSession[]
   teachingDiaryEntries TeachingDiaryEntry[]
+  preparationRecords StudentPreparation[]
 
   @@index([classId])
   @@index([classId, entryDate])
@@ -208,6 +210,7 @@ model Student {
 
   class              Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
   attendanceRecords  AttendanceRecord[]
+  preparationRecords StudentPreparation[]
   assessmentMarks       AssessmentMark[]
   studentNotes          StudentNote[]
   parentCommunications  ParentCommunication[]
@@ -217,6 +220,25 @@ model Student {
   @@unique([classId, rollNo])
   @@unique([classId, admissionNo])
   @@map("students")
+}
+
+model StudentPreparation {
+  id String @id @default(uuid()) @db.Uuid
+  classId String @map("class_id") @db.Uuid
+  studentId String @map("student_id") @db.Uuid
+  preparationDate DateTime @map("preparation_date") @db.Date
+  timetableEntryId String? @map("timetable_entry_id") @db.Uuid
+  status String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  timetableEntry TimetableEntry? @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, preparationDate, timetableEntryId, studentId], map: "student_preparation_slot_student_key")
+  @@index([classId, studentId, preparationDate])
+  @@map("student_preparations")
 }
 
 model AttendanceSession {
@@ -246,6 +268,7 @@ model AttendanceRecord {
   sessionId String   @map("session_id") @db.Uuid
   studentId String   @map("student_id") @db.Uuid
   status    String
+  isUnprepared Boolean @default(false) @map("is_unprepared")
   remarks   String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

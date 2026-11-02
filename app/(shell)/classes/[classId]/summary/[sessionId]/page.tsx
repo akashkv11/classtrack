@@ -13,6 +13,7 @@ import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import WhatsAppNumberForm from "@/components/whatsapp/whatsapp-number-form";
+import SendClassUpdateButton from "@/components/whatsapp/send-class-update-button";
 import WhatsAppPreview from "@/components/whatsapp/whatsapp-preview";
 import WhatsAppMissingItemsDialog from "@/components/whatsapp/whatsapp-missing-items-dialog";
 import { useWhatsAppMessage } from "@/components/whatsapp/use-whatsapp-message";
@@ -180,6 +181,12 @@ export default function AttendanceSummaryPage() {
         >
           {loading ? "Loading..." : "Send WhatsApp Message"}
         </Button>
+        <SendClassUpdateButton
+          sessionId={sessionId}
+          size="md"
+          className={actionButtonClassName}
+          disabled={deleting}
+        />
         {error && <p className="w-full text-sm text-red-700">{error}</p>}
         <ButtonLink
           href={editAttendanceHref}
