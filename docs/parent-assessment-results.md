@@ -2,7 +2,7 @@
 
 Save an assessment's marks, then use **Parent results link → Copy Link** on its assessment page. Share the copied link manually. Parents do not need a teacher login.
 
-Parents enter the child's full name as recorded in ClassTrack. Matching ignores capitalisation and extra spaces. If the name matches multiple saved results, the parent must also enter the roll number. The page shows only the matching child's result for that assessment, including absence status and student-specific marks remarks. Anyone holding the link who knows these details can use this lookup.
+Parents enter the student's full name as recorded in ClassTrack. Matching ignores capitalisation and extra spaces. If the name matches multiple saved results, the parent must also enter the roll number. The page shows only the matching student's result for that assessment, including absence status and student-specific marks remarks. Anyone holding the link who knows these details can use this lookup.
 
 Corrections appear at the same link after saving. **Disable Link** stops public lookup; saving again does not enable it. **Enable Link** restores access. **Regenerate Link** replaces the link and invalidates the old one. Links have no automatic expiry. Existing assessments can use **Generate Link** when they already have saved marks.
 

@@ -5,7 +5,7 @@ import { lookupParentResult, resultResponseHeaders } from "@/lib/assessments/sha
 const schema = z.object({ name: z.string().trim().min(1).max(200), roll_no: z.number().int().positive().optional() });
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Enter your child’s full name and a valid roll number if requested." }, { status: 400, headers: resultResponseHeaders });
+  if (!parsed.success) return NextResponse.json({ error: "Enter the student’s full name and a valid roll number if requested." }, { status: 400, headers: resultResponseHeaders });
   try {
     const { token } = await context.params;
     const result = await lookupParentResult(token, parsed.data.name, parsed.data.roll_no);

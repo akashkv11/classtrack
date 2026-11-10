@@ -37,7 +37,7 @@ export default function AssessmentSharingControls({ assessmentId, classId, shari
   }
   return <Card className="mb-6">
     <h3 className="font-semibold text-slate-900">Parent results link</h3>
-    <p className="mt-1 text-sm text-slate-600">{!sharing.path ? "A link is generated when you save marks." : sharing.enabled ? "Parents can enter their child’s full name to view this assessment’s saved result." : "This link is disabled. Parents cannot view results."}</p>
+    <p className="mt-1 text-sm text-slate-600">{!sharing.path ? "A link is generated when you save marks." : sharing.enabled ? "Parents can enter the student’s full name to view this assessment’s saved result." : "This link is disabled. Parents cannot view results."}</p>
     {sharing.path && <div className="mt-3"><label htmlFor="parent-results-link" className="sr-only">Parent results link</label><TextInput id="parent-results-link" readOnly value={origin + sharing.path} onFocus={event => { setOrigin(window.location.origin); event.target.select(); }} /></div>}
     <div className="mt-3 flex flex-wrap gap-2">
       {sharing.path && sharing.enabled && <><Button type="button" size="sm" disabled={busy} onClick={copyLink}>Copy Link</Button><ButtonLink size="sm" href={sharing.path} target="_blank" rel="noreferrer">Open Link</ButtonLink></>}

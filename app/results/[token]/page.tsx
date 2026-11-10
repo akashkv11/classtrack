@@ -17,7 +17,7 @@ export default async function ParentResultsPage({ params }: { params: Promise<{ 
     <p className="mb-6 text-sm font-semibold text-blue-700">ClassTrack</p>
     {assessment ? <ParentResults token={token} assessment={assessment} /> : <section>
       <h1 className="text-xl font-bold text-slate-900">Results unavailable</h1>
-      <p className="mt-3 text-sm text-slate-600">This link is unavailable. Please contact your child’s teacher for the current results link.</p>
+      <p className="mt-3 text-sm text-slate-600">This link is unavailable. Please contact the student’s teacher for the current results link.</p>
     </section>}
   </main>;
 }
