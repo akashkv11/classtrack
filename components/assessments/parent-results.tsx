@@ -38,7 +38,7 @@ export default function ParentResults({ token, assessment }: { token: string; as
     <h1 className="text-2xl font-bold text-slate-900">{info.name}</h1>
     <p className="mt-2 text-sm text-slate-600">{info.class_name} · {info.subject}</p>
     <form onSubmit={lookup} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <div><label htmlFor="child-name" className="mb-1 block text-sm font-medium text-slate-700">Child’s full name</label>
+      <div><label htmlFor="child-name" className="mb-1 block text-sm font-medium text-slate-700">Enter student’s full name</label>
         <TextInput id="child-name" required maxLength={200} autoComplete="off" value={name} disabled={loading} onChange={event => { setName(event.target.value); setResult(null); setRollRequired(false); setRollNo(""); setError(""); }} />
         <p className="mt-1 text-xs text-slate-500">Enter the full name recorded by the teacher.</p>
       </div>
