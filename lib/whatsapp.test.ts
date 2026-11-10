@@ -24,13 +24,14 @@ test("homework answers replace the HW section without changing attendance or pre
   assert.equal(withoutHomework.includes("Bring $5"), false);
 });
 
-test("message includes individual total absence and late counts", () => {
+test("message lists absentee and late student names without attendance totals", () => {
   const message = buildSeparateClassUpdateMessage({ ...session,
-    absentees: [{ fullName: "Asha", totalCount: 3 }, { fullName: "Dev", totalCount: 1 }],
-    lateStudents: [{ fullName: "Meera", totalCount: 2 }],
+    absentees: ["Asha", "Dev"],
+    lateStudents: ["Meera"],
   });
-  assert.ok(message.includes("*ABSENTEES*\n1) Asha (3 class absent)\n2) Dev (1 class absent)"));
-  assert.ok(message.includes("*LATE STUDENTS*\n1) Meera (2 class late)"));
+  assert.ok(message.includes("*ABSENTEES*\n1) Asha\n2) Dev\n\n*LATE STUDENTS*\n1) Meera\n"));
+  assert.equal(message.includes("class absent"), false);
+  assert.equal(message.includes("class late"), false);
   const withHomework = setMessageHomework(message, "Revise the chapter.");
   assert.equal(withHomework.split("*ABSENTEES*")[1], message.split("*ABSENTEES*")[1]);
 });
@@ -61,13 +62,13 @@ test("separate update includes attendance lists before preparation so preview ed
     ...session,
     absentees: ["Asha", "Dev"],
     lateStudents: ["Rahul"],
-    preparationLines: ["1) Meera (not prepared; 3 consecutive unprepared classes)"],
+    preparationLines: ["1) Meera (not prepared)"],
   });
   assert.ok(message.includes("*ABSENTEES*\n1) Asha\n2) Dev\n\n*LATE STUDENTS*\n1) Rahul"));
   const retained = message.split("*UNPREPARED STUDENTS*")[0];
   assert.ok(retained.includes("*ABSENTEES*\n1) Asha\n2) Dev"));
   assert.ok(retained.includes("*LATE STUDENTS*\n1) Rahul"));
-  assert.ok(message.endsWith("*UNPREPARED STUDENTS*\n1) Meera (not prepared; 3 consecutive unprepared classes)"));
+  assert.ok(message.endsWith("*UNPREPARED STUDENTS*\n1) Meera (not prepared)"));
 });
 
 test("missing diary data leaves fields editable and no selection says None", () => {

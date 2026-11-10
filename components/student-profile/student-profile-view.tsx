@@ -11,6 +11,8 @@ import Table, {
 } from "@/components/ui/table";
 import { ButtonLink } from "@/components/ui/button";
 import StudentAttendanceSection from "@/components/student-profile/student-attendance-section";
+import EditStudentButton from "@/components/student-profile/edit-student-button";
+import ParentPhoneLink from "@/components/students/parent-phone-link";
 import { formatDisplayDate } from "@/lib/dates";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
 import type { StudentProfile } from "@/lib/types/student-profile";
@@ -19,17 +21,8 @@ type StudentProfileViewProps = {
   profile: StudentProfile;
 };
 
-function formatMonthLabel(month: string): string {
-  const [year, monthNum] = month.split("-").map(Number);
-  const date = new Date(year, monthNum - 1, 1);
-  return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(
-    date,
-  );
-}
-
 export default function StudentProfileView({ profile }: StudentProfileViewProps) {
-  const { student, class: cls, summary, attendance, assessments } = profile;
-  const monthLabel = formatMonthLabel(summary.attendance_month);
+  const { student, class: cls, summary, attendance, overall_attendance: overallAttendance, assessments } = profile;
 
   return (
     <>
@@ -49,21 +42,24 @@ export default function StudentProfileView({ profile }: StudentProfileViewProps)
             )}
             {student.parent_phone && (
               <p className="mt-1 text-sm text-slate-600">
-                Parent Phone: {student.parent_phone}
+                Parent Phone: <ParentPhoneLink phone={student.parent_phone} />
               </p>
             )}
           </div>
-          <Badge variant={student.is_active ? "success" : "neutral"}>
-            {student.is_active ? "Active" : "Inactive"}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant={student.is_active ? "success" : "neutral"}>
+              {student.is_active ? "Active" : "Inactive"}
+            </Badge>
+            <EditStudentButton student={student} />
+          </div>
         </div>
       </Card>
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Summary</h3>
       <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
-          label={`Attendance (${monthLabel})`}
-          value={`${summary.attendance_percentage}%`}
+          label="Overall Attendance"
+          value={`${overallAttendance.attendance_percentage}%`}
         />
         <StatCard
           label="Average Marks"
@@ -89,6 +85,7 @@ export default function StudentProfileView({ profile }: StudentProfileViewProps)
         classId={cls.id}
         studentId={student.id}
         initialAttendance={attendance}
+        overallAttendance={overallAttendance}
       />
 
       <Card className="mb-8">

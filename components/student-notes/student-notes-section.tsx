@@ -129,12 +129,15 @@ export default function StudentNotesSection({
           </h3>
           <Button
             size="sm"
+            aria-label="Add Note"
+            title="Add Note"
+            className="h-9 w-9 shrink-0 p-0 text-2xl leading-none"
             onClick={() => {
               setEditingNote(null);
               setShowForm(true);
             }}
           >
-            Add Note
+            <span aria-hidden="true">+</span>
           </Button>
         </div>
 

@@ -1,3 +1,5 @@
+import { formatDisplayDate, parseISODate } from "@/lib/dates";
+
 export const PREPARATION_LABELS = {
   NOT_MARKED: "Not marked",
   FULL: "Fully prepared",
@@ -12,7 +14,24 @@ export type PreparationStudent = {
   full_name: string;
   preparation_status: PreparationStatus;
   previous_streak: number;
+  note: string | null;
+  automatic_note: string | null;
 };
+
+export type StudentPreparationHistoryEntry = {
+  id: string;
+  date: string;
+  timetable_entry_id: string | null;
+  subject: string | null;
+  status: PreparationStatus;
+  note: string | null;
+  automatic_note: string | null;
+};
+
+export function buildAutomaticPreparationNote(status: string, date: string, subject?: string | null): string | null {
+  if (status !== "NONE" && status !== "PARTIAL") return null;
+  return `${PREPARATION_LABELS[status]} for ${subject?.trim() || "class"} on ${formatDisplayDate(parseISODate(date))}.`;
+}
 
 export function countsAsUnprepared(status: string, includePartial = false): boolean {
   return status === "NONE" || (includePartial && status === "PARTIAL");
@@ -29,17 +48,12 @@ export function preparationStreak(statuses: string[], includePartial = false): n
 }
 
 export function preparationMessageLines(
-  students: Pick<PreparationStudent, "full_name" | "preparation_status" | "previous_streak">[],
-  includePartial = false,
+  students: Pick<PreparationStudent, "full_name" | "preparation_status">[],
 ): string[] {
   const flagged = students.filter((student) => countsAsUnprepared(student.preparation_status, true));
   const lines = flagged.map((student, index) => {
     const status = PREPARATION_LABELS[student.preparation_status].toLowerCase();
-    const count = student.previous_streak + 1;
-    const streak = countsAsUnprepared(student.preparation_status, includePartial)
-      ? `; ${count} consecutive unprepared class${count === 1 ? "" : "es"}`
-      : "";
-    return `${index + 1}) ${student.full_name} (${status}${streak})`;
+    return `${index + 1}) ${student.full_name} (${status})`;
   });
   const unmarked = students.filter((student) => student.preparation_status === "NOT_MARKED").length;
   if (lines.length === 0 && unmarked === 0) lines.push("None");

@@ -81,7 +81,7 @@ export default function SendClassUpdateButton({
       }
       const heading = "*UNPREPARED STUDENTS*";
       setMessage((current) => `${current.split(heading)[0]}${heading}\n${
-        preparationMessageLines(students, rules.includePartial).join("\n")
+        preparationMessageLines(students).join("\n")
       }`);
       setStep("homework");
     } catch (err) {

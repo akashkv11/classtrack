@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import {
@@ -51,10 +52,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await prisma.student.update({
+    const student = await prisma.student.update({
       where: { id: studentId },
       data,
+      select: { classId: true },
     });
+    revalidatePath(`/classes/${student.classId}/students/${studentId}`);
+    revalidatePath(`/classes/${student.classId}/students`);
+    revalidatePath("/student-profile");
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

@@ -244,8 +244,8 @@ export function buildSeparateClassUpdateMessage(options: {
   topics?: { title: string; bullets: string[] } | null;
   unpreparedStudents?: string[];
   preparationLines?: string[];
-  absentees?: Array<string | { fullName: string; totalCount: number }>;
-  lateStudents?: Array<string | { fullName: string; totalCount: number }>;
+  absentees?: string[];
+  lateStudents?: string[];
   diaryStatus?: DiaryStatus | string | null;
 }): string {
   const sessionLabels: Record<string, string> = {
@@ -269,14 +269,10 @@ export function buildSeparateClassUpdateMessage(options: {
     "",
     "",
     "*ABSENTEES*",
-    ...formatStudentList((options.absentees ?? []).map((student) =>
-      typeof student === "string" ? student : `${student.fullName} (${student.totalCount} class absent)`,
-    )),
+    ...formatStudentList(options.absentees ?? []),
     "",
     "*LATE STUDENTS*",
-    ...formatStudentList((options.lateStudents ?? []).map((student) =>
-      typeof student === "string" ? student : `${student.fullName} (${student.totalCount} class late)`,
-    )),
+    ...formatStudentList(options.lateStudents ?? []),
     "",
     "*UNPREPARED STUDENTS*",
     ...(options.preparationLines ?? formatStudentList(options.unpreparedStudents ?? [])),

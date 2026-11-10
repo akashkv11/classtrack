@@ -10,6 +10,7 @@ import FormField, {
 import Alert from "@/components/ui/alert";
 import type { Student, StudentFormData } from "@/lib/types";
 import { FieldErrors, parseInput, studentFormSchema } from "@/lib/validation";
+import { parentPhoneInputValue } from "@/lib/phone";
 
 type StudentFormProps = {
   open: boolean;
@@ -20,11 +21,8 @@ type StudentFormProps = {
 
 function initialFormState(student?: Student | null) {
   return {
-    rollNo: student ? String(student.roll_no) : "",
     fullName: student?.full_name ?? "",
-    admissionNo: student?.admission_no ?? "",
-    email: student?.email ?? "",
-    parentPhone: student?.parent_phone ?? "",
+    parentPhone: parentPhoneInputValue(student?.parent_phone),
     isActive: student?.is_active ?? true,
   };
 }
@@ -35,14 +33,9 @@ export default function StudentForm({
   onClose,
   onSave,
 }: StudentFormProps) {
-  const [rollNo, setRollNo] = useState(() => initialFormState(student).rollNo);
   const [fullName, setFullName] = useState(
     () => initialFormState(student).fullName,
   );
-  const [admissionNo, setAdmissionNo] = useState(
-    () => initialFormState(student).admissionNo,
-  );
-  const [email, setEmail] = useState(() => initialFormState(student).email);
   const [parentPhone, setParentPhone] = useState(
     () => initialFormState(student).parentPhone,
   );
@@ -59,10 +52,7 @@ export default function StudentForm({
     setFieldErrors({});
 
     const parsed = parseInput(studentFormSchema, {
-      roll_no: rollNo,
       full_name: fullName,
-      admission_no: admissionNo,
-      email,
       parent_phone: parentPhone,
       is_active: isActive,
     });
@@ -111,53 +101,36 @@ export default function StudentForm({
       }
     >
       <form id="student-form" onSubmit={handleSubmit} className="space-y-3">
-        <FormField label="Roll No" error={fieldErrors.roll_no}>
-          <TextInput
-            type="number"
-            min={1}
-            step={1}
-            value={rollNo}
-            onChange={(e) => setRollNo(e.target.value)}
-            error={!!fieldErrors.roll_no}
-            className="w-90 "
-          />
-        </FormField>
+        {!student && <p className="text-sm text-slate-600">Roll and admission numbers will be assigned automatically when saved.</p>}
         <FormField label="Full Name" error={fieldErrors.full_name}>
           <TextInput
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             error={!!fieldErrors.full_name}
-            className="w-90 "
-          />
-        </FormField>
-        <FormField label="Admission No" error={fieldErrors.admission_no}>
-          <TextInput
-            value={admissionNo}
-            onChange={(e) => setAdmissionNo(e.target.value)}
-            error={!!fieldErrors.admission_no}
-            className="w-90 "
-          />
-        </FormField>
-        <FormField label="Email (optional)" error={fieldErrors.email}>
-          <TextInput
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="student@example.com"
-            error={!!fieldErrors.email}
-            className="w-90 "
+            className="w-full"
           />
         </FormField>
         <FormField
           label="Parent Phone (optional)"
           error={fieldErrors.parent_phone}
+          hint="Enter the 10-digit number without +91."
         >
           <TextInput
+            aria-label="Parent phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            pattern="[0-9]{10}"
+            maxLength={10}
             value={parentPhone}
-            onChange={(e) => setParentPhone(e.target.value)}
-            placeholder="91XXXXXXXXXX"
+            onChange={(e) => setParentPhone(e.target.value.replace(/\D/g, ""))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setParentPhone(parentPhoneInputValue(e.clipboardData.getData("text")));
+            }}
+            placeholder="9876543210"
             error={!!fieldErrors.parent_phone}
-            className="w-90 "
+            className="w-full"
           />
         </FormField>
         <CheckboxField

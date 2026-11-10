@@ -18,67 +18,28 @@ export const unlockSchema = z.object({
 });
 
 export const studentFormSchema = z.object({
-  roll_no: z.coerce
-    .number({ error: "Roll number is required" })
-    .int("Roll number must be a whole number")
-    .min(1, "Roll number must be at least 1"),
   full_name: z
     .string()
     .trim()
     .min(1, "Full name is required")
     .max(100, "Full name must be 100 characters or less"),
-  admission_no: z
-    .string()
-    .trim()
-    .max(50, "Admission number must be 50 characters or less"),
-  email: optionalEmailSchema,
   parent_phone: optionalPhoneSchema,
   is_active: z.boolean(),
 });
 
 export const studentCreateSchema = z.object({
-  roll_no: z.coerce
-    .number({ error: "Roll number is required" })
-    .int("Roll number must be a whole number")
-    .min(1, "Roll number must be at least 1"),
   full_name: z
     .string()
     .trim()
     .min(1, "Full name is required")
     .max(100, "Full name must be 100 characters or less"),
-  admission_no: z
-    .union([z.string(), z.null(), z.undefined()])
-    .transform((value) =>
-      typeof value === "string" && value.trim() ? value.trim() : null,
-    )
-    .pipe(
-      z
-        .string()
-        .max(50, "Admission number must be 50 characters or less")
-        .nullable(),
-    ),
-  email: z
-    .union([z.string(), z.null(), z.undefined()])
-    .transform((value) =>
-      typeof value === "string" ? normalizeOptionalEmail(value) : null,
-    )
-    .pipe(
-      z
-        .email("Enter a valid email address")
-        .max(254, "Email must be 254 characters or less")
-        .nullable(),
-    ),
-  parent_phone: z
-    .union([z.string(), z.null(), z.undefined()])
-    .transform((value) =>
-      typeof value === "string" ? normalizeOptionalPhone(value) : null,
-    )
-    .pipe(
-      z
-        .string()
-        .regex(/^\d{10,15}$/, "Phone must be 10–15 digits")
-        .nullable(),
-    ),
+  email: optionalEmailSchema
+    .refine((value) => value.length <= 254, "Email must be 254 characters or less")
+    .nullish()
+    .transform((value) => typeof value === "string" ? normalizeOptionalEmail(value) : null),
+  parent_phone: optionalPhoneSchema.nullish().transform((value) =>
+    typeof value === "string" ? normalizeOptionalPhone(value) : null,
+  ),
   is_active: z.boolean().optional(),
 });
 
@@ -119,18 +80,9 @@ export const studentUpdateSchema = z
           .nullable(),
       )
       .optional(),
-    parent_phone: z
-      .union([z.string(), z.null(), z.undefined()])
-      .transform((value) =>
-        typeof value === "string" ? normalizeOptionalPhone(value) : null,
-      )
-      .pipe(
-        z
-          .string()
-          .regex(/^\d{10,15}$/, "Phone must be 10–15 digits")
-          .nullable(),
-      )
-      .optional(),
+    parent_phone: optionalPhoneSchema.nullish().transform((value) =>
+      typeof value === "string" ? normalizeOptionalPhone(value) : null,
+    ).optional(),
     is_active: z.boolean().optional(),
   })
   .refine(

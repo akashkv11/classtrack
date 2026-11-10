@@ -25,11 +25,11 @@ test("preparation saves without attendance and rejects foreign students or perio
   prisma.$transaction = (async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)) as unknown as typeof prisma.$transaction;
   prisma.class.findUnique = (async () => ({ id: classId })) as unknown as typeof prisma.class.findUnique;
   prisma.timetableEntry.findFirst = (async ({ where }: { where: { id: string; classId: string } }) =>
-    where.id === periodId && where.classId === classId ? { id: periodId } : null) as unknown as typeof prisma.timetableEntry.findFirst;
+    where.id === periodId && where.classId === classId ? { subject: "Computer Science" } : null) as unknown as typeof prisma.timetableEntry.findFirst;
   try {
     const token = await createSessionToken();
     const context = { params: Promise.resolve({ classId }) };
-    const record = { student_id: studentId, preparation_status: "PARTIAL" };
+    const record = { student_id: studentId, preparation_status: "PARTIAL", note: "  Forgot the revision notes.  " };
     function request(body: unknown, auth = true) {
       return new NextRequest(`http://localhost/api/classes/${classId}/preparation`, {
         method: "PUT", body: JSON.stringify(body),
@@ -48,8 +48,23 @@ test("preparation saves without attendance and rejects foreign students or perio
     assert.equal(writes[0][1], studentId);
     assert.equal(writes[0][3], null);
     assert.equal(writes[0][4], "PARTIAL");
+    assert.equal(writes[0][5], "Forgot the revision notes.");
+    assert.equal(writes[0][6], "Partially prepared for class on 02-11-2026.");
+    assert.equal(writes[0][7], true);
     assert.equal((await PUT(request({ ...body, timetable_entry_id: periodId }), context)).status, 200);
     assert.equal(writes[1][3], periodId);
+    assert.equal(writes[1][6], "Partially prepared for Computer Science on 02-11-2026.");
+    assert.equal((await PUT(request({ ...body, records: [{ student_id: studentId, preparation_status: "NONE" }] }), context)).status, 200);
+    assert.equal(writes[2][6], "Not prepared for class on 02-11-2026.");
+    assert.equal(writes[2][7], false, "Existing teacher-written notes are preserved");
+    assert.equal((await PUT(request({ ...body, records: [{ ...record, note: "  " }] }), context)).status, 200);
+    assert.equal(writes[3][5], null);
+    assert.equal(writes[3][7], true, "An explicitly empty legacy note clears it");
+    const before = writes.length;
+    assert.equal((await PUT(request({ ...body, records: [{ ...record, note: "x".repeat(2001) }] }), context)).status, 400);
+    assert.equal(writes.length, before);
+    assert.equal((await PUT(request({ ...body, records: [{ student_id: studentId, preparation_status: "FULL" }] }), context)).status, 200);
+    assert.equal(writes[before][6], null, "Correcting preparation removes the automatic concern note");
   } finally {
     prisma.$transaction = originalTransaction;
     prisma.class.findUnique = originalClass;

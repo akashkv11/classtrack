@@ -16,6 +16,7 @@ import type {
   StudentProfileListItem,
   StudentAttendanceDetailRow,
   StudentMonthlyAttendance,
+  StudentOverallAttendance,
 } from "@/lib/types/student-profile";
 
 function currentMonth(): string {
@@ -41,19 +42,38 @@ export async function getStudentMonthlyAttendance(
   const parsedMonth = parseMonth(month);
   if (!parsedMonth) return null;
 
+  const attendance = await getStudentAttendance(classId, studentId, {
+    gte: startOfMonth(parsedMonth.year, parsedMonth.monthNum),
+    lte: endOfMonth(parsedMonth.year, parsedMonth.monthNum),
+  });
+  return attendance ? { month, ...attendance } : null;
+}
+
+export async function getStudentOverallAttendance(
+  classId: string,
+  studentId: string,
+): Promise<StudentOverallAttendance | null> {
+  return getStudentAttendance(classId, studentId);
+}
+
+async function getStudentAttendance(
+  classId: string,
+  studentId: string,
+  dateRange?: { gte: Date; lte: Date },
+): Promise<StudentOverallAttendance | null> {
+
   const student = await prisma.student.findFirst({
     where: { id: studentId, classId },
     select: { id: true },
   });
   if (!student) return null;
 
-  const rangeStart = startOfMonth(parsedMonth.year, parsedMonth.monthNum);
-  const rangeEnd = endOfMonth(parsedMonth.year, parsedMonth.monthNum);
-
   const sessions = await prisma.attendanceSession.findMany({
     where: {
       classId,
-      attendanceDate: { gte: rangeStart, lte: rangeEnd },
+      ...(dateRange
+        ? { attendanceDate: dateRange }
+        : { records: { some: { studentId } } }),
     },
     include: {
       records: {
@@ -112,7 +132,6 @@ export async function getStudentMonthlyAttendance(
   });
 
   return {
-    month,
     present_days: presentDays,
     absent_days: absentDays,
     late_days: lateDays,
@@ -137,12 +156,13 @@ export async function getStudentProfile(
   if (!student) return null;
 
   const attendanceMonth = month ?? currentMonth();
-  const [attendance, assessmentHistory] = await Promise.all([
+  const [attendance, overallAttendance, assessmentHistory] = await Promise.all([
     getStudentMonthlyAttendance(classId, studentId, attendanceMonth),
+    getStudentOverallAttendance(classId, studentId),
     getStudentAssessmentHistory(classId, studentId),
   ]);
 
-  if (!attendance) return null;
+  if (!attendance || !overallAttendance) return null;
 
   const assessments = assessmentHistory?.entries ?? [];
   const latest = assessments[0] ?? null;
@@ -176,6 +196,7 @@ export async function getStudentProfile(
         : null,
     },
     attendance,
+    overall_attendance: overallAttendance,
     assessments,
   };
 }

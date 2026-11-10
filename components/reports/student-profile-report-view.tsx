@@ -10,6 +10,7 @@ import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
 import { formatDisplayDate } from "@/lib/dates";
 import type { AssessmentType } from "@/lib/types/assessment";
 import type { StudentProfile } from "@/lib/types/student-profile";
+import ParentPhoneLink from "@/components/students/parent-phone-link";
 
 type StudentProfileReportViewProps = {
   profile: StudentProfile;
@@ -31,7 +32,7 @@ export default function StudentProfileReportView({
           {cls.display_name}
         </p>
         {student.parent_phone && (
-          <p className="mt-1 text-sm text-slate-600">Parent phone: {student.parent_phone}</p>
+          <p className="mt-1 text-sm text-slate-600">Parent phone: <ParentPhoneLink phone={student.parent_phone} /></p>
         )}
       </div>
 

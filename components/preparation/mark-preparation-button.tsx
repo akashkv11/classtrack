@@ -7,12 +7,13 @@ import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import PreparationRoster from "@/components/preparation/preparation-roster";
 import type { PreparationStudent } from "@/lib/preparation";
 
-export default function MarkPreparationButton({ classId, date, timetableEntryId, title, className }: {
+export default function MarkPreparationButton({ classId, date, timetableEntryId, title, className, label = "Mark Preparation" }: {
   classId: string;
   date: string;
   timetableEntryId: string | null;
   title: string;
   className?: string;
+  label?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -68,7 +69,7 @@ export default function MarkPreparationButton({ classId, date, timetableEntryId,
   return (
     <>
       <Button type="button" variant="secondary" size="sm" className={className} onClick={load} disabled={busy}>
-        {busy && !open ? "Loading..." : "Mark Preparation"}
+        {busy && !open ? "Loading..." : label}
       </Button>
       {saved && <p role="status" className="w-full text-sm text-green-700">Preparation saved.</p>}
       {error && !open && <p role="alert" className="w-full text-sm text-red-700">{error}</p>}

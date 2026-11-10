@@ -46,6 +46,7 @@ export default function PreparationRoster({ students, onChange, disabled, thresh
       <p className="text-sm text-slate-600">
         Tap students who are not prepared. Tap <span className="font-semibold text-amber-700">P</span> at
         the end of a row for partially prepared. Everyone else is saved as fully prepared.
+        Notes are added automatically for students marked not prepared or partially prepared.
       </p>
       <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm" aria-live="polite">
         <span className="text-green-700">{students.filter((student) => student.preparation_status === "FULL").length} fully prepared</span>

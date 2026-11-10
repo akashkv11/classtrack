@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
+import { createStudentWithAssignedNumbers } from "@/lib/queries/student-admissions";
 import {
   parseInput,
   studentCreateSchema,
@@ -47,19 +48,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const { roll_no, full_name, admission_no, email, parent_phone } = parsed.data;
+  const { full_name, email, parent_phone, is_active } = parsed.data;
 
   try {
-    const student = await prisma.student.create({
-      data: {
-        classId,
-        rollNo: roll_no,
-        fullName: full_name,
-        admissionNo: admission_no,
-        email,
-        parentPhone: parent_phone,
-      },
+    const student = await createStudentWithAssignedNumbers(classId, {
+      fullName: full_name,
+      email,
+      parentPhone: parent_phone,
+      isActive: is_active,
     });
+    if (!student) return NextResponse.json({ error: "Class not found" }, { status: 404 });
 
     return NextResponse.json({
       success: true,

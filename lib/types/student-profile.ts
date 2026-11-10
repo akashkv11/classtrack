@@ -22,6 +22,8 @@ export type StudentMonthlyAttendance = StudentProfileAttendance & {
   records: StudentAttendanceDetailRow[];
 };
 
+export type StudentOverallAttendance = Omit<StudentMonthlyAttendance, "month">;
+
 export type StudentProfileLatestAssessment = {
   assessment_id: string;
   assessment_name: string;
@@ -53,6 +55,7 @@ export type StudentProfile = {
   };
   summary: StudentProfileSummary;
   attendance: StudentMonthlyAttendance;
+  overall_attendance: StudentOverallAttendance;
   assessments: StudentAssessmentHistoryEntry[];
 };
 

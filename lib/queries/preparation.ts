@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { parseISODate, formatISODate } from "@/lib/dates";
 import { getAllSettings, SETTING_PREPARATION_THRESHOLD, SETTING_PREPARATION_INCLUDE_PARTIAL } from "@/lib/settings";
-import { preparationStreak, type PreparationStudent, type PreparationStatus } from "@/lib/preparation";
+import { preparationStreak, type PreparationStudent, type PreparationStatus, type StudentPreparationHistoryEntry } from "@/lib/preparation";
 
 export async function getPreparationRules() {
   const settings = await getAllSettings();
@@ -45,9 +45,31 @@ export async function getPreparationRoster(classId: string, date: string, timeta
       full_name: student.fullName,
       preparation_status: (current?.status ?? "NOT_MARKED") as PreparationStatus,
       previous_streak: preparationStreak(previous.map((record) => record.status), rules.includePartial),
+      note: current?.note ?? null,
+      automatic_note: current?.automaticNote ?? null,
     };
   });
   return { records, ...rules };
+}
+
+export async function getStudentPreparationHistory(classId: string, studentId: string): Promise<StudentPreparationHistoryEntry[]> {
+  const records = await prisma.studentPreparation.findMany({
+    where: {
+      classId, studentId,
+      OR: [{ status: { in: ["NONE", "PARTIAL"] } }, { note: { not: null } }],
+    },
+    include: { timetableEntry: { select: { subject: true, startTime: true } } },
+  });
+  records.sort(newestFirst);
+  return records.map((record) => ({
+    id: record.id,
+    date: formatISODate(record.preparationDate),
+    timetable_entry_id: record.timetableEntryId,
+    subject: record.timetableEntry?.subject ?? null,
+    status: record.status as PreparationStatus,
+    note: record.note,
+    automatic_note: record.automaticNote,
+  }));
 }
 
 export async function getPreparationAlerts(classIds: string[], today: string) {

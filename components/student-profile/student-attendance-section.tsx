@@ -6,6 +6,7 @@ import Alert from "@/components/ui/alert";
 import Badge from "@/components/ui/badge";
 import Card, { StatCard } from "@/components/ui/card";
 import FormField, { TextInput } from "@/components/ui/form-field";
+import { Button } from "@/components/ui/button";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import Table, {
   TableBody,
@@ -15,7 +16,7 @@ import Table, {
   TableRow,
 } from "@/components/ui/table";
 import { formatDisplayDate } from "@/lib/dates";
-import type { StudentMonthlyAttendance } from "@/lib/types/student-profile";
+import type { StudentMonthlyAttendance, StudentOverallAttendance } from "@/lib/types/student-profile";
 import { useClientEffect } from "@/lib/use-client-effect";
 import { monthSchema, parseInput } from "@/lib/validation";
 
@@ -23,6 +24,7 @@ type StudentAttendanceSectionProps = {
   classId: string;
   studentId: string;
   initialAttendance: StudentMonthlyAttendance;
+  overallAttendance: StudentOverallAttendance;
 };
 
 function formatMonthLabel(month: string): string {
@@ -50,7 +52,9 @@ export default function StudentAttendanceSection({
   classId,
   studentId,
   initialAttendance,
+  overallAttendance,
 }: StudentAttendanceSectionProps) {
+  const [scope, setScope] = useState<"overall" | "month">("overall");
   const [month, setMonth] = useState(initialAttendance.month);
   const [attendance, setAttendance] = useState(initialAttendance);
   const [loading, setLoading] = useState(false);
@@ -58,6 +62,11 @@ export default function StudentAttendanceSection({
   const [monthError, setMonthError] = useState("");
 
   useClientEffect(async (signal) => {
+    if (scope === "overall") {
+      setLoading(false);
+      setError("");
+      return;
+    }
     const monthParsed = parseInput(monthSchema, month);
     if (!monthParsed.success) {
       setMonthError(monthParsed.error);
@@ -91,25 +100,37 @@ export default function StudentAttendanceSection({
 
     setAttendance(await res.json());
     setLoading(false);
-  }, [classId, studentId, month, initialAttendance.month]);
+  }, [classId, studentId, month, initialAttendance.month, scope]);
 
-  const monthLabel = formatMonthLabel(attendance.month);
+  const displayedAttendance = scope === "overall" ? overallAttendance : attendance;
+  const monthLabel = scope === "overall" ? "All recorded sessions for this student in this class" : formatMonthLabel(attendance.month);
 
   return (
     <Card className="mb-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Attendance</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{scope === "overall" ? "Overall Attendance" : "Monthly Attendance"}</h3>
           <p className="mt-1 text-sm text-slate-600">{monthLabel}</p>
         </div>
-        <FormField label="Month" error={monthError}>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex gap-2" role="group" aria-label="Attendance period">
+            <Button size="sm" variant={scope === "overall" ? "primary" : "secondary"} aria-pressed={scope === "overall"} onClick={() => setScope("overall")}>
+              Overall
+            </Button>
+            <Button size="sm" variant={scope === "month" ? "primary" : "secondary"} aria-pressed={scope === "month"} onClick={() => setScope("month")}>
+              By Month
+            </Button>
+          </div>
+          {scope === "month" && <FormField label="Month" error={monthError}>
           <TextInput
+            aria-label="Attendance month"
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             error={!!monthError}
           />
-        </FormField>
+          </FormField>}
+        </div>
       </div>
 
       {error && (
@@ -123,18 +144,18 @@ export default function StudentAttendanceSection({
       ) : (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <StatCard label="Present" value={attendance.present_days} />
-            <StatCard label="Absent" value={attendance.absent_days} />
-            <StatCard label="Late" value={attendance.late_days} />
-            <StatCard label="Sessions" value={attendance.working_days} />
+            <StatCard label="Present" value={displayedAttendance.present_days} />
+            <StatCard label="Absent" value={displayedAttendance.absent_days} />
+            <StatCard label="Late" value={displayedAttendance.late_days} />
+            <StatCard label="Sessions" value={displayedAttendance.working_days} />
             <StatCard
               label="Attendance %"
-              value={`${attendance.attendance_percentage}%`}
+              value={`${displayedAttendance.attendance_percentage}%`}
             />
           </div>
 
-          {attendance.records.length === 0 ? (
-            <EmptyState message="No attendance recorded for this month yet." />
+          {displayedAttendance.records.length === 0 ? (
+            <EmptyState message={scope === "overall" ? "No attendance recorded for this student yet." : "No attendance recorded for this month yet."} />
           ) : (
             <Table>
               <TableHead>
@@ -146,7 +167,7 @@ export default function StudentAttendanceSection({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {attendance.records.map((row) => (
+                {displayedAttendance.records.map((row) => (
                   <TableRow key={row.session_id}>
                     <TableCell>
                       <Link

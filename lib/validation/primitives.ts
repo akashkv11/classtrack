@@ -36,8 +36,8 @@ export const optionalPhoneSchema = z
   .string()
   .trim()
   .refine(
-    (value) => value === "" || /^\d{10,15}$/.test(stripDigits(value)),
-    "Phone must be 10–15 digits (country code + number)",
+    (value) => value === "" || /^\d{10}$/.test(value),
+    "Enter a 10-digit phone number without the country code",
   );
 
 export const optionalWhatsAppSchema = z

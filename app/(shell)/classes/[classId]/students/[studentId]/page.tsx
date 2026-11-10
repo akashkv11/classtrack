@@ -2,17 +2,19 @@ import { notFound } from "next/navigation";
 import StudentNotesSection from "@/components/student-notes/student-notes-section";
 import ParentCommunicationsSection from "@/components/parent-communication/parent-communications-section";
 import StudentProfileView from "@/components/student-profile/student-profile-view";
+import StudentPreparationSection from "@/components/student-profile/student-preparation-section";
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
 import { getStudentProfile } from "@/lib/queries/student-profile";
 import { getStudentNotes } from "@/lib/queries/student-notes";
+import { getStudentPreparationHistory } from "@/lib/queries/preparation";
 import {
   getParentCommunications,
   getStudentNoteOptions,
 } from "@/lib/queries/parent-communications";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ classId: string; studentId: string }>;
@@ -27,11 +29,12 @@ export default async function StudentProfilePage({ params, searchParams }: PageP
 
   const backFromStudentProfile = query.from === "student-profile";
 
-  const [profile, notes, communications, noteOptions] = await Promise.all([
+  const [profile, notes, communications, noteOptions, preparationHistory] = await Promise.all([
     getStudentProfile(classId, studentId),
     getStudentNotes(classId, studentId),
     getParentCommunications(classId, studentId),
     getStudentNoteOptions(classId, studentId),
+    getStudentPreparationHistory(classId, studentId),
   ]);
   if (!profile) notFound();
 
@@ -45,6 +48,7 @@ export default async function StudentProfilePage({ params, searchParams }: PageP
       />
 
       <StudentProfileView profile={profile} />
+      <StudentPreparationSection classId={classId} entries={preparationHistory} />
 
       <StudentNotesSection
         classId={classId}

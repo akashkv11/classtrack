@@ -67,6 +67,7 @@ export type {
   StudentProfileAttendance,
   StudentAttendanceDetailRow,
   StudentMonthlyAttendance,
+  StudentOverallAttendance,
   StudentProfileLatestAssessment,
   StudentProfileClassOverview,
   StudentProfileListItem,

@@ -113,12 +113,15 @@ export default function ParentCommunicationsSection({
           </h3>
           <Button
             size="sm"
+            aria-label="Add Communication"
+            title="Add Communication"
+            className="h-9 w-9 shrink-0 p-0 text-2xl leading-none"
             onClick={() => {
               setEditingCommunication(null);
               setShowForm(true);
             }}
           >
-            Add Communication
+            <span aria-hidden="true">+</span>
           </Button>
         </div>
 

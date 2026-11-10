@@ -9,10 +9,7 @@ export type Student = {
 };
 
 export type StudentFormData = {
-  roll_no: number;
   full_name: string;
-  admission_no: string;
-  email: string;
   parent_phone: string;
   is_active: boolean;
 };
