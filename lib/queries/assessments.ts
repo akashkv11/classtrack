@@ -2,13 +2,14 @@ import { prisma } from "@/lib/db";
 import { formatISODate, parseISODate } from "@/lib/dates";
 import { toMarkNumber } from "@/lib/assessments/marks";
 import { computeAssessmentSummary } from "@/lib/assessments/summary";
+import { assessmentSharingState } from "@/lib/assessments/sharing";
 import { getActiveClasses } from "@/lib/queries/classes";
 import { getLowMarksThresholdPercent } from "@/lib/settings";
 import type {
   AssessmentClassOverview,
   AssessmentDetail,
   AssessmentMarkRow,
-  AssessmentResultSummary,
+  AssessmentMarksResponse,
   AssessmentSummary,
   AssessmentType,
   StudentAssessmentHistory,
@@ -170,11 +171,7 @@ export async function getAssessmentById(
 export async function getAssessmentMarksGrid(
   assessmentId: string,
   classId: string,
-): Promise<{
-  assessment: AssessmentSummary;
-  records: AssessmentMarkRow[];
-  summary: AssessmentResultSummary;
-} | null> {
+): Promise<AssessmentMarksResponse | null> {
   const assessment = await prisma.assessment.findUnique({
     where: { id: assessmentId },
     include: assessmentInclude,
@@ -214,6 +211,7 @@ export async function getAssessmentMarksGrid(
 
   return {
     assessment: mapAssessmentToSummary(assessment, students.length),
+    sharing: assessmentSharingState(assessment, markRecords.length > 0),
     records,
     summary,
   };

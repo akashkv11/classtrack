@@ -56,6 +56,33 @@ export type AssessmentMarksResponse = {
   assessment: AssessmentSummary;
   records: AssessmentMarkRow[];
   summary: AssessmentResultSummary;
+  sharing: AssessmentSharingState;
+};
+
+export type AssessmentSharingState = {
+  path: string | null;
+  enabled: boolean;
+  has_saved_marks: boolean;
+};
+
+export type ParentAssessmentInfo = {
+  name: string;
+  assessment_type: AssessmentType;
+  assessment_date: string;
+  class_name: string;
+  subject: string;
+  chapter: string | null;
+  topics: string[];
+  max_marks: number;
+};
+
+export type ParentAssessmentResult = {
+  assessment: ParentAssessmentInfo;
+  student_name: string;
+  roll_no: number;
+  marks_obtained: number | null;
+  percentage: number | null;
+  remarks: string | null;
 };
 
 export type AssessmentListResponse = {

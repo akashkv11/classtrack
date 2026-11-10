@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AssessmentMarksTable from "@/components/assessments/assessment-marks-table";
 import AssessmentSummaryCards from "@/components/assessments/assessment-summary-cards";
+import AssessmentSharingControls from "@/components/assessments/assessment-sharing-controls";
 import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import Alert from "@/components/ui/alert";
 import Badge from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export default function AssessmentDetailClient({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [sharing, setSharing] = useState(initialData.sharing);
 
   const assessment = initialData.assessment;
   const maxMarks = assessment.max_marks;
@@ -73,6 +75,7 @@ export default function AssessmentDetailClient({
       setRecords(data.records);
       setSavedRecords(data.records);
       setSummary(data.summary);
+      setSharing(data.sharing);
       setSuccess("Marks saved successfully.");
       router.refresh();
     } catch (err) {
@@ -125,6 +128,8 @@ export default function AssessmentDetailClient({
           </Badge>
         </div>
       </Card>
+
+      <AssessmentSharingControls assessmentId={assessmentId} classId={classId} sharing={sharing} onChange={setSharing} />
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Assessment Summary</h3>
       <AssessmentSummaryCards

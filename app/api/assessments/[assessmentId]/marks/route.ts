@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { toMarkNumber } from "@/lib/assessments/marks";
+import { publishAssessmentOnFirstSave } from "@/lib/assessments/sharing";
 import {
   classOwnershipMismatchResponse,
   getAssessmentClassId,
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   }
 
-  if (validatedRecords.length !== students.length) {
+  if (validatedRecords.length === 0 || validatedRecords.length !== students.length || new Set(validatedRecords.map(record => record.studentId)).size !== students.length) {
     return NextResponse.json(
       { error: "All active students must have a mark record" },
       { status: 400 },
@@ -121,6 +122,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   await prisma.$transaction(async (tx) => {
+    // Serialize marks saves and link changes for this assessment.
+    await tx.$queryRaw`SELECT id FROM assessments WHERE id = ${assessmentId}::uuid FOR UPDATE`;
     for (const record of validatedRecords) {
       await tx.assessmentMark.upsert({
         where: {
@@ -141,6 +144,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
     }
+    await publishAssessmentOnFirstSave(tx, assessmentId);
   });
 
   const data = await getAssessmentMarksGrid(assessmentId, classIdResult.classId);

@@ -295,6 +295,8 @@ model Assessment {
   assessmentDate    DateTime @map("assessment_date") @db.Date
   maxMarks          Decimal  @map("max_marks") @db.Decimal(7, 2)
   remarks           String?
+  shareToken        String?  @unique @map("share_token")
+  sharingEnabled    Boolean  @default(false) @map("sharing_enabled")
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
