@@ -85,6 +85,16 @@ export type ParentAssessmentResult = {
   remarks: string | null;
 };
 
+export type ParentAssessmentMatch = {
+  full_name: string;
+  roll_no: number;
+};
+
+export type ParentAssessmentLookupResponse =
+  | { status: "unavailable" | "not_found" }
+  | { status: "matches"; matches: ParentAssessmentMatch[] }
+  | { status: "found"; result: ParentAssessmentResult };
+
 export type AssessmentListResponse = {
   class_id: string;
   assessments: AssessmentSummary[];

@@ -6,27 +6,25 @@ import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form-field";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
 import { formatDisplayDate, parseISODate } from "@/lib/dates";
-import type { ParentAssessmentInfo, ParentAssessmentResult } from "@/lib/types/assessment";
+import type { ParentAssessmentInfo, ParentAssessmentResult, ParentAssessmentMatch, ParentAssessmentLookupResponse } from "@/lib/types/assessment";
 
 export default function ParentResults({ token, assessment }: { token: string; assessment: ParentAssessmentInfo }) {
   const [name, setName] = useState("");
-  const [rollNo, setRollNo] = useState("");
-  const [rollRequired, setRollRequired] = useState(false);
+  const [matches, setMatches] = useState<ParentAssessmentMatch[]>([]);
   const [result, setResult] = useState<ParentAssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  async function lookup(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true); setError(""); setResult(null);
+  async function lookup(rollNo?: number) {
+    setLoading(true); setError(""); setResult(null); setMatches([]);
     try {
       const response = await fetch(`/api/results/${token}/lookup`, {
         method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store",
-        body: JSON.stringify({ name, ...(rollRequired ? { roll_no: Number(rollNo) } : {}) }),
+        body: JSON.stringify({ name, ...(rollNo !== undefined ? { roll_no: rollNo } : {}) }),
       });
-      const data = await response.json();
-      if (data.status === "roll_required") { setRollRequired(true); return; }
+      const data = await response.json() as ParentAssessmentLookupResponse & { error?: string };
+      if (response.ok && data.status === "matches") { setMatches(data.matches); return; }
       if (data.status === "unavailable") throw new Error("This results link is unavailable. Please contact the student’s teacher.");
-      if (data.status === "not_found") throw new Error("No saved result matches these details. Check the student’s full name and roll number, or contact the teacher.");
+      if (data.status === "not_found") throw new Error("No saved result matches these details. Check the student’s name, try a different part of the name, or contact the teacher.");
       if (!response.ok || data.status !== "found") throw new Error(data.error ?? "Results could not be loaded. Please try again.");
       setResult(data.result);
     } catch (error) {
@@ -37,19 +35,26 @@ export default function ParentResults({ token, assessment }: { token: string; as
   return <>
     <h1 className="text-2xl font-bold text-slate-900">{info.name}</h1>
     <p className="mt-2 text-sm text-slate-600">{info.class_name} · {info.subject}</p>
-    <form onSubmit={lookup} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <div><label htmlFor="student-name" className="mb-1 block text-sm font-medium text-slate-700">Enter student’s full name</label>
-        <TextInput id="student-name" required maxLength={200} autoComplete="off" value={name} disabled={loading} onChange={event => { setName(event.target.value); setResult(null); setRollRequired(false); setRollNo(""); setError(""); }} />
-        <p className="mt-1 text-xs text-slate-500">Enter the full name recorded by the teacher.</p>
+    <form onSubmit={event => { event.preventDefault(); void lookup(); }} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div><label htmlFor="student-name" className="mb-1 block text-sm font-medium text-slate-700">Enter student’s name</label>
+        <TextInput id="student-name" required minLength={2} maxLength={200} autoComplete="off" value={name} disabled={loading} onChange={event => { setName(event.target.value); setResult(null); setMatches([]); setError(""); }} />
+        <p className="mt-1 text-xs text-slate-500">Enter a first name or part of the name.</p>
       </div>
-      {rollRequired && <div>
-        <p className="mb-3 text-sm text-slate-600" role="status">More than one student has this name. Enter the student’s roll number.</p>
-        <label htmlFor="student-roll" className="mb-1 block text-sm font-medium text-slate-700">Roll number</label>
-        <TextInput id="student-roll" type="number" inputMode="numeric" min={1} step={1} required value={rollNo} disabled={loading} onChange={event => { setRollNo(event.target.value); setResult(null); setError(""); }} />
-      </div>}
       {error && <div role="alert"><Alert variant="error">{error}</Alert></div>}
-      <Button type="submit" disabled={loading || !name.trim()} className="w-full">{loading ? "Checking…" : "View result"}</Button>
+      <Button type="submit" disabled={loading || name.trim().length < 2} className="w-full">{loading ? "Checking…" : "View result"}</Button>
     </form>
+    {matches.length > 0 && <section aria-label="Matching students" aria-live="polite" className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+      <h2 className="text-lg font-semibold text-slate-900">Select the student</h2>
+      <p className="mt-1 text-sm text-slate-600">More than one student matches. Choose the correct name and roll number.</p>
+      <ul className="mt-4 space-y-2">
+        {matches.map(match => <li key={match.roll_no}>
+          <button type="button" disabled={loading} onClick={() => lookup(match.roll_no)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-300 p-3 text-left hover:border-blue-500 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60">
+            <span className="min-w-0 break-words font-medium text-slate-900">{match.full_name}</span>
+            <span className="shrink-0 text-sm text-slate-600">Roll {match.roll_no}</span>
+          </button>
+        </li>)}
+      </ul>
+    </section>}
     {result && <section aria-label="Student’s result" aria-live="polite" className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
       <h2 className="text-xl font-semibold text-slate-900">{result.student_name}</h2>
       <p className="mt-1 text-sm text-slate-600">Roll {result.roll_no} · {info.class_name}</p>

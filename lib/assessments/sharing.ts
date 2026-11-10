@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { formatISODate } from "@/lib/dates";
 import { roundMark, toMarkNumber } from "@/lib/assessments/marks";
-import type { AssessmentSharingState, AssessmentType, ParentAssessmentInfo, ParentAssessmentResult } from "@/lib/types/assessment";
+import type { AssessmentSharingState, AssessmentType, ParentAssessmentInfo, ParentAssessmentLookupResponse } from "@/lib/types/assessment";
 
 export const RESULT_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 export const resultResponseHeaders = { "Cache-Control": "private, no-store, max-age=0", "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer" };
@@ -69,10 +69,10 @@ export async function getParentAssessment(token: string, db: Database = prisma) 
   return row ? parentAssessmentInfo(row) : null;
 }
 
-export async function lookupParentResult(token: string, name: string, rollNo?: number, db: Database = prisma): Promise<
-  { status: "unavailable" | "not_found" | "roll_required" } | { status: "found"; result: ParentAssessmentResult }
-> {
+export async function lookupParentResult(token: string, name: string, rollNo?: number, db: Database = prisma): Promise<ParentAssessmentLookupResponse> {
   if (!RESULT_TOKEN_PATTERN.test(token)) return { status: "unavailable" };
+  const normalizedName = normalizeStudentName(name);
+  if (normalizedName.length < 2) return { status: "not_found" };
   const assessment = await db.assessment.findUnique({
     where: { shareToken: token, sharingEnabled: true },
     select: { ...parentAssessmentSelect, id: true, classId: true },
@@ -82,14 +82,20 @@ export async function lookupParentResult(token: string, name: string, rollNo?: n
   const records = await db.assessmentMark.findMany({
     where: { assessmentId: assessment.id, student: { classId: assessment.classId } },
     select: { marksObtained: true, remarks: true, student: { select: { fullName: true, rollNo: true } } },
+    orderBy: { student: { rollNo: "asc" } },
   });
-  const matches = records.filter(record => normalizeStudentName(record.student.fullName) === normalizeStudentName(name));
-  if (matches.length > 1 && rollNo === undefined) return { status: "roll_required" };
-  const match = matches.find(record => rollNo === undefined || record.student.rollNo === rollNo);
-  if (!match) return { status: "not_found" };
+  const matches = records.filter(record => normalizeStudentName(record.student.fullName).includes(normalizedName));
   // Recheck after lookup so a concurrent disable/regeneration cannot serve a stale link.
   const stillEnabled = await db.assessment.count({ where: { id: assessment.id, shareToken: token, sharingEnabled: true } });
   if (!stillEnabled) return { status: "unavailable" };
+  if (matches.length > 1 && rollNo === undefined) {
+    return {
+      status: "matches",
+      matches: matches.map(record => ({ full_name: record.student.fullName, roll_no: record.student.rollNo })),
+    };
+  }
+  const match = matches.find(record => rollNo === undefined || record.student.rollNo === rollNo);
+  if (!match) return { status: "not_found" };
   const info = parentAssessmentInfo(assessment);
   const marks = toMarkNumber(match.marksObtained);
   return { status: "found", result: {

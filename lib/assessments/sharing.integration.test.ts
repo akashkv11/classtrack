@@ -30,6 +30,8 @@ test("parent assessment publication, lookup and access controls", { skip: proces
     const foreignStudent = await prisma.student.create({ data: { classId: otherClass.id, rollNo: 1, fullName: "Foreign Example" } });
     const makeAssessment = (name: string) => prisma.assessment.create({ data: { classId: cls.id, syllabusSubjectId: subject.id, syllabusChapterId: chapter.id, name, assessmentType: "CLASS_TEST", assessmentDate: new Date("2026-11-11"), maxMarks: 30, remarks: "Internal assessment note", topics: { create: { syllabusTopicId: topic.id } } } });
     const assessment = await makeAssessment("Parent Results Test");
+    const otherAssessment = await makeAssessment("Other Assessment Test");
+    await prisma.assessmentMark.create({ data: { assessmentId: otherAssessment.id, studentId: students[4].id, marksObtained: 30 } });
     const marksPath = `/api/assessments/${assessment.id}/marks?class_id=${cls.id}`;
     const ctx = { params: Promise.resolve({ assessmentId: assessment.id }) };
     const records = students.slice(0, 4).map((student, index) => ({ student_id: student.id, marks_obtained: [12.5, 25, null, 0][index], remarks: index === 0 ? "Good effort" : null }));
@@ -53,9 +55,26 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       token = body.sharing.path.split("/").pop();
       assert.match(token, /^[A-Za-z0-9_-]{43}$/);
     });
-    await t.test("public lookup requires roll only for duplicate full names and returns a strict result projection", async () => {
-      const roll = await lookupParentResult(token, "  ALEX  EXAMPLE ");
-      assert.deepEqual(roll, { status: "roll_required" });
+    await t.test("partial-name matches reveal only names and roll numbers; selection returns only the matched result", async () => {
+      const expectedMatches = { status: "matches", matches: [
+        { full_name: "Alex Example", roll_no: 1 },
+        { full_name: "Alex   Example", roll_no: 2 },
+      ] };
+      assert.deepEqual(await lookupParentResult(token, "  ALEX  EXAMPLE "), expectedMatches);
+      assert.deepEqual(await lookupParentResult(token, "alex"), expectedMatches);
+      assert.deepEqual(await lookupParentResult(token, "  AlEx   EXA "), expectedMatches);
+      const suggestionsResponse = await lookup(request(`/api/results/${token}/lookup`, { name: "alex" }), { params: Promise.resolve({ token }) });
+      assert.equal(suggestionsResponse.status, 200);
+      assert.match(suggestionsResponse.headers.get("cache-control") ?? "", /no-store/);
+      assert.deepEqual(await suggestionsResponse.json(), expectedMatches);
+      assert.deepEqual(await lookupParentResult(token, "Alex", 3), { status: "not_found" });
+      const selected = await lookupParentResult(token, "Alex", 2);
+      assert.equal(selected.status, "found");
+      if (selected.status === "found") {
+        assert.equal(selected.result.roll_no, 2);
+        assert.equal(selected.result.marks_obtained, 25);
+        assert.equal(selected.result.remarks, null);
+      }
       assert.deepEqual(await lookupParentResult(token, "Alex Example", 99), { status: "not_found" });
       const response = await lookup(request(`/api/results/${token}/lookup`, { name: "alex example", roll_no: 1, student_id: foreignStudent.id }), { params: Promise.resolve({ token }) });
       assert.equal(response.status, 200);
@@ -69,7 +88,18 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.deepEqual(body.result.assessment.topics, ["Main Topic"]);
       const serialized = JSON.stringify(body);
       for (const forbidden of ["9999999999", "Internal assessment note", "Private subtopic", foreignStudent.id, "class_average", "student_id", "shareToken"]) assert.equal(serialized.includes(forbidden), false, forbidden);
-      assert.deepEqual(await lookupParentResult(token, "Alex"), { status: "not_found" });
+      const surnameMatches = await lookupParentResult(token, "Example");
+      assert.equal(surnameMatches.status, "matches");
+      if (surnameMatches.status === "matches") assert.deepEqual(surnameMatches.matches.map(match => match.roll_no), [1, 2, 3, 4]);
+      const unique = await lookupParentResult(token, "eRo");
+      assert.equal(unique.status, "found");
+      if (unique.status === "found") assert.equal(unique.result.marks_obtained, 0);
+      for (const name of ["", " ", "a", " a "]) {
+        assert.deepEqual(await lookupParentResult(token, name), { status: "not_found" });
+        const shortResponse = await lookup(request(`/api/results/${token}/lookup`, { name }), { params: Promise.resolve({ token }) });
+        assert.equal(shortResponse.status, 400);
+      }
+      assert.deepEqual(await lookupParentResult(token, "unknown"), { status: "not_found" });
       assert.deepEqual(await lookupParentResult(token, "Foreign Example"), { status: "not_found" });
       assert.deepEqual(await lookupParentResult(token, "No Saved Result"), { status: "not_found" });
     });
@@ -94,6 +124,8 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.equal((await share(request(`/api/assessments/${assessment.id}/sharing?class_id=${otherClass.id}`, { action: "disable" }, true), ctx)).status, 403);
       assert.equal((await share(request(path, { action: "disable" }, true), ctx)).status, 200);
       assert.equal(await getParentAssessment(token), null);
+      assert.deepEqual(await lookupParentResult(token, "Alex"), { status: "unavailable" });
+      assert.deepEqual(await lookupParentResult(token, "Alex", 1), { status: "unavailable" });
       assert.deepEqual(await lookupParentResult(token, "Zero Example"), { status: "unavailable" });
       assert.equal((await saveMarks(request(marksPath, { records: records.slice(1) }, true), ctx)).status, 200);
       assert.equal((await prisma.assessment.findUniqueOrThrow({ where: { id: assessment.id } })).sharingEnabled, false);
