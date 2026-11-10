@@ -21,12 +21,14 @@ export default async function TeachingDiaryReportPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Teaching Diary Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Teaching Diary Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <TeachingDiaryReportClient
         classId={classId}
         subjects={subjects}

@@ -21,12 +21,14 @@ export default async function AcademicWorkReportPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Monthly Academic Work Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Monthly Academic Work Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <AcademicWorkReportClient
         classId={classId}
         subjects={subjects}

@@ -1,4 +1,5 @@
 const sizes = {
+  xl: "max-w-[1440px]",
   lg: "max-w-6xl",
   md: "max-w-2xl",
 } as const;

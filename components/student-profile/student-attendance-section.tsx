@@ -5,7 +5,7 @@ import { useState } from "react";
 import Alert from "@/components/ui/alert";
 import Badge from "@/components/ui/badge";
 import Card, { StatCard } from "@/components/ui/card";
-import FormField, { TextInput } from "@/components/ui/form-field";
+import FormField, { SelectInput, TextInput } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import LoadingState, { EmptyState } from "@/components/ui/loading-state";
 import Table, {
@@ -60,6 +60,9 @@ export default function StudentAttendanceSection({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [monthError, setMonthError] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [status, setStatus] = useState<"all" | StudentMonthlyAttendance["records"][number]["status"]>("all");
 
   useClientEffect(async (signal) => {
     if (scope === "overall") {
@@ -104,6 +107,14 @@ export default function StudentAttendanceSection({
 
   const displayedAttendance = scope === "overall" ? overallAttendance : attendance;
   const monthLabel = scope === "overall" ? "All recorded sessions for this student in this class" : formatMonthLabel(attendance.month);
+  const invalidDateRange = !!fromDate && !!toDate && fromDate > toDate;
+  const hasFilters = !!fromDate || !!toDate || status !== "all";
+  const filteredRecords = displayedAttendance.records.filter((row) =>
+    !invalidDateRange &&
+    (!fromDate || row.attendance_date >= fromDate) &&
+    (!toDate || row.attendance_date <= toDate) &&
+    (status === "all" || row.status === status),
+  );
 
   return (
     <Card className="mb-8">
@@ -154,10 +165,50 @@ export default function StudentAttendanceSection({
             />
           </div>
 
+          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-3 text-sm font-medium text-slate-800">Filter attendance history</p>
+            <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <FormField label="From Date">
+                <TextInput type="date" aria-label="Attendance from date" className="w-full"
+                  value={fromDate} max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} />
+              </FormField>
+              <FormField label="To Date">
+                <TextInput type="date" aria-label="Attendance to date" className="w-full"
+                  value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} />
+              </FormField>
+              <FormField label="Status">
+                <SelectInput aria-label="Attendance status" className="w-full" value={status}
+                  onChange={(e) => setStatus(e.target.value as typeof status)}>
+                  <option value="all">All statuses</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="late">Late</option>
+                  <option value="not_marked">Not marked</option>
+                </SelectInput>
+              </FormField>
+              <Button type="button" variant="secondary" disabled={!hasFilters} onClick={() => {
+                setFromDate(""); setToDate(""); setStatus("all");
+              }}>Clear Filters</Button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">Filters apply to the history below. Summary totals cover the full selected period.</p>
+          </div>
+          {invalidDateRange && <Alert variant="error" className="mb-3">From Date must be on or before To Date.</Alert>}
+          <p className="mb-3 text-sm text-slate-600" role="status">
+            Showing {filteredRecords.length} of {displayedAttendance.records.length} sessions
+          </p>
+
           {displayedAttendance.records.length === 0 ? (
             <EmptyState message={scope === "overall" ? "No attendance recorded for this student yet." : "No attendance recorded for this month yet."} />
+          ) : filteredRecords.length === 0 ? (
+            <EmptyState message={invalidDateRange ? "Choose a valid date range to view attendance." : "No attendance sessions match these filters."} />
           ) : (
-            <Table>
+            <Table
+              key={`${scope}-${month}-${fromDate}-${toDate}-${status}`}
+              className="max-h-[min(26rem,60vh)] overflow-y-auto overscroll-contain [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10"
+              role="region"
+              aria-label="Student attendance history"
+              tabIndex={0}
+            >
               <TableHead>
                 <TableRow>
                   <TableHeaderCell>Date</TableHeaderCell>
@@ -167,7 +218,7 @@ export default function StudentAttendanceSection({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {displayedAttendance.records.map((row) => (
+                {filteredRecords.map((row) => (
                   <TableRow key={row.session_id}>
                     <TableCell>
                       <Link

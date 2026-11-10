@@ -38,12 +38,13 @@ export default async function TimetablePage() {
   ]);
 
   return (
-    <PageContainer>
+    <PageContainer size="xl">
       <TimetableContent
         classes={classOptions}
         initialEntries={entries}
         todayItems={todayItems}
         today={todayISO()}
+        currentTime={new Date().toTimeString().slice(0, 5)}
       />
     </PageContainer>
   );

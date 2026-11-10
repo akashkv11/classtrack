@@ -1,4 +1,5 @@
 import type { SyllabusChapterSummary, SyllabusTopic } from "@/lib/types/syllabus";
+import type { DiaryStatus } from "@/lib/types/teaching-diary";
 
 const TAUGHT_SYLLABUS_STATUSES = new Set(["COMPLETED", "REVISED"]);
 
@@ -14,7 +15,9 @@ export function filterTopicsForDiaryForm(
   topics: SyllabusTopic[],
   fullyTaughtTopicIds: ReadonlySet<string>,
   currentTopicIds: ReadonlyArray<string> = [],
+  diaryStatus: DiaryStatus = "TAUGHT",
 ): SyllabusTopic[] {
+  if (diaryStatus === "REVISION") return topics;
   const keep = new Set(currentTopicIds.filter(Boolean));
   return topics.filter(
     (topic) =>
@@ -27,7 +30,9 @@ export function filterChaptersForDiaryForm(
   fullyTaughtTopicIds: ReadonlySet<string>,
   currentChapterId?: string | null,
   currentTopicIds: ReadonlyArray<string> = [],
+  diaryStatus: DiaryStatus = "TAUGHT",
 ): SyllabusChapterSummary[] {
+  if (diaryStatus === "REVISION") return chapters;
   return chapters.filter((chapter) => {
     if (chapter.id === currentChapterId) return true;
     return (

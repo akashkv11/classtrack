@@ -21,12 +21,14 @@ export default async function StudentProfileReportPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Student Profile Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Student Profile Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <StudentProfileReportClient
         classId={classId}
         students={students}

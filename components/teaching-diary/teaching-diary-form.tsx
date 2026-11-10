@@ -160,6 +160,7 @@ function TeachingDiaryFormDialog({
         fullyTaughtTopicIds,
         chapterId || entry?.chapter?.id,
         topicIds.length > 0 ? topicIds : initialTopicIds,
+        diaryStatus,
       )
     : [];
   const selectedChapter = chapters.find((ch) => ch.id === chapterId);
@@ -168,6 +169,7 @@ function TeachingDiaryFormDialog({
         selectedChapter.topics,
         fullyTaughtTopicIds,
         topicIds.length > 0 ? topicIds : initialTopicIds,
+        diaryStatus,
       )
     : [];
   const selectedTopics = topics.filter((t) => topicIds.includes(t.id));
@@ -182,7 +184,7 @@ function TeachingDiaryFormDialog({
       allSubtopicLabels,
       selected,
     );
-    if (statusSuggestion) {
+    if (statusSuggestion && diaryStatus !== "REVISION") {
       setDiaryStatus(statusSuggestion);
       applySyllabusStatusSuggestion(statusSuggestion);
     }

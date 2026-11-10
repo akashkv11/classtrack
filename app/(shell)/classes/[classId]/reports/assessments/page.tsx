@@ -19,12 +19,14 @@ export default async function AssessmentsReportPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Assessment / Marks Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Assessment / Marks Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <AssessmentsReportClient classId={classId} reportSettings={reportSettings} />
     </PageContainer>
   );

@@ -24,12 +24,14 @@ export default async function AssessmentMarkSheetReportPage({ params }: PageProp
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Assessment Mark Sheet"
-        subtitle={`${cls.displayName} · ${data.assessment.name}`}
-        backHref={`/classes/${classId}/reports/assessments`}
-        backLabel="← Back to Assessments Report"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Assessment Mark Sheet"
+          subtitle={`${cls.displayName} · ${data.assessment.name}`}
+          backHref={`/classes/${classId}/reports/assessments`}
+          backLabel="← Back to Assessments Report"
+        />
+      </div>
       <AssessmentMarkSheetClient
         data={data}
         reportSettings={reportSettings}

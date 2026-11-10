@@ -1,12 +1,13 @@
-type TableProps = {
+type TableProps = React.HTMLAttributes<HTMLDivElement> & {
   children: React.ReactNode;
   className?: string;
 };
 
-export default function Table({ children, className = "" }: TableProps) {
+export default function Table({ children, className = "", ...props }: TableProps) {
   return (
     <div
       className={`overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}
+      {...props}
     >
       <table className="min-w-[640px] w-full text-left text-xs sm:text-sm">{children}</table>
     </div>

@@ -19,12 +19,14 @@ export default async function AttendanceReportPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Attendance Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Attendance Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <AttendanceReportClient classId={classId} reportSettings={reportSettings} />
     </PageContainer>
   );

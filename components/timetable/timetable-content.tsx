@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import "./timetable-content.css";
 import TimetableEntryCard from "@/components/timetable/timetable-entry-card";
-import TimetableScheduleCard from "@/components/timetable/timetable-schedule-card";
+import TimetableScheduleActions from "@/components/timetable/timetable-schedule-actions";
+import TimetableIcon from "@/components/timetable/timetable-icon";
 import TimetableEntryForm, {
   type ClassOption,
   type TimetableFormValues,
@@ -10,17 +13,13 @@ import TimetableEntryForm, {
 } from "@/components/timetable/timetable-entry-form";
 import Alert from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import Card from "@/components/ui/card";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
-import PageHeader from "@/components/ui/page-header";
-import Tabs from "@/components/ui/tabs";
-import FormField, { SelectInput } from "@/components/ui/form-field";
+import Modal from "@/components/ui/modal";
+import { formatTodayHeading, parseISODate, todayISO } from "@/lib/dates";
+import { getTimetableDay, getTimetableWeek, hideCompletedOneTimeEntries } from "@/lib/timetable-calendar";
 import {
   filterTimetableEntries,
-  formatRepeatDays,
-  formatScheduleExceptionsSummary,
   formatTime12h,
-  groupEntriesByWeekday,
   WEEKDAYS,
 } from "@/lib/timetable";
 import type { TimetableEntrySummary, TimetableOverlap } from "@/lib/types/timetable";
@@ -32,6 +31,7 @@ type TimetableContentProps = {
   initialEntries: TimetableEntrySummary[];
   todayItems?: DashboardTodayItem[];
   today?: string;
+  currentTime: string;
 };
 
 type ViewTab = "weekly" | "all";
@@ -67,8 +67,23 @@ export default function TimetableContent({
   initialEntries,
   todayItems = [],
   today = "",
+  currentTime,
 }: TimetableContentProps) {
+  const router = useRouter();
+  const [clock, setClock] = useState({ date: today || todayISO(), time: currentTime });
+  const todayDate = clock.date;
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = new Date();
+      const date = todayISO();
+      const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      setClock((previous) => previous.date === date && previous.time === time ? previous : { date, time });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [entries, setEntries] = useState(initialEntries);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [createDate, setCreateDate] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ViewTab>("weekly");
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimetableEntrySummary | null>(null);
@@ -82,24 +97,46 @@ export default function TimetableContent({
   const [disabling, setDisabling] = useState(false);
 
   const subjectOptions = useMemo(() => {
-    const subjects = new Set(entries.map((entry) => entry.subject));
+    const subjects = new Set(hideCompletedOneTimeEntries(entries, clock.date, clock.time).map((entry) => entry.subject));
     return [...subjects].sort();
-  }, [entries]);
+  }, [entries, clock.date, clock.time]);
 
   const filteredEntries = useMemo(
     () =>
-      filterTimetableEntries(entries, {
+      filterTimetableEntries(hideCompletedOneTimeEntries(entries, clock.date, clock.time), {
         classId: filterClassId || undefined,
         subject: filterSubject || undefined,
       }),
-    [entries, filterClassId, filterSubject],
+    [entries, filterClassId, filterSubject, clock.date, clock.time],
   );
 
-  const weeklyGrouped = useMemo(
-    () => groupEntriesByWeekday(filteredEntries, { activeOnly: true }),
-    [filteredEntries],
-  );
-
+  const weekDates = getTimetableWeek(todayDate, weekOffset);
+  const weekDays = weekDates.map((date, index) => ({
+    date, label: WEEKDAYS[index].label, periods: getTimetableDay(filteredEntries, date),
+  }));
+  const todayPeriods = getTimetableDay(filteredEntries, todayDate);
+  const todayCards: DashboardTodayItem[] = todayPeriods.map(({ entry, start_time, end_time, is_exception }, index) => {
+    const existing = todayItems.find((item) => item.entry_id === entry.id);
+    return {
+      entry_id: entry.id, period_number: existing?.period_number ?? index + 1,
+      class_id: entry.class_id, class_name: entry.class_name, subject: entry.subject,
+      start_time, end_time, schedule_type: entry.schedule_type, has_time_exception: is_exception,
+      attendance_status: existing?.attendance_status ?? "not_marked",
+      attendance_session_id: existing?.attendance_session_id ?? null,
+      attendance_present: existing?.attendance_present ?? null,
+      attendance_absent: existing?.attendance_absent ?? null,
+      attendance_late: existing?.attendance_late ?? null,
+      teaching_diary_status: existing?.teaching_diary_status ?? "pending",
+      teaching_diary_entry_id: existing?.teaching_diary_entry_id ?? null,
+      last_topic_taught: existing?.last_topic_taught ?? null,
+      next_class_plan: existing?.next_class_plan ?? null,
+      suggested_next_topic: existing?.suggested_next_topic ?? null,
+      open_alerts_count: existing?.open_alerts_count ?? 0,
+      top_alert_preview: existing?.top_alert_preview ?? null,
+    };
+  });
+  const weekStartLabel = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(parseISODate(weekDates[0]));
+  const weekEndLabel = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(parseISODate(weekDates[6]));
   const allEntriesSorted = useMemo(
     () =>
       [...filteredEntries].sort((a, b) => {
@@ -110,7 +147,8 @@ export default function TimetableContent({
     [filteredEntries],
   );
 
-  function openCreateForm() {
+  function openCreateForm(date?: string) {
+    setCreateDate(date ?? null);
     setEditingEntry(null);
     setFieldErrors({});
     setMessage("");
@@ -131,6 +169,7 @@ export default function TimetableContent({
     setEditingEntry(null);
     setFieldErrors({});
     setOverlapWarning(null);
+    setMessage("");
   }
 
   async function handleSave(values: TimetableFormValues) {
@@ -169,6 +208,7 @@ export default function TimetableContent({
     });
 
     closeForm();
+    router.refresh();
 
     if (overlaps.length > 0) {
       setMessage(
@@ -205,191 +245,82 @@ export default function TimetableContent({
     );
     setDisableTarget(null);
     setMessage("Entry disabled.");
+    router.refresh();
   }
 
   return (
-    <>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Timetable"
-          subtitle="Your full teaching schedule — classes, subjects, and periods."
-        />
-        <Button
-          type="button"
-          variant="primary"
-          className="shrink-0"
-          onClick={() => (showForm ? closeForm() : openCreateForm())}
-        >
-          {showForm ? "Cancel" : "Add Entry"}
+    <div className="tt-workspace">
+      <header className="tt-heading">
+        <div>
+
+          <h1>Timetable</h1>
+          <p className="tt-subtitle">View and manage your class schedule.</p>
+        </div>
+        <Button type="button" onClick={() => openCreateForm()} disabled={classes.length === 0} className="tt-add-button">
+          <TimetableIcon name="plus" size={17} /> Add Entry
         </Button>
-      </div>
+      </header>
 
-      {message && (
-        <Alert variant={overlapWarning ? "warning" : "info"} className="mb-4">
-          {message}
-        </Alert>
-      )}
+      {message && !showForm && <Alert variant="info" className="mb-5">{message}</Alert>}
+      {classes.length === 0 && <Alert variant="info" className="mb-5">Add a class from the Classes page to start scheduling your periods.</Alert>}
 
-      {todayItems.length > 0 && today && (
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Today&apos;s Schedule</h2>
-          <div className="space-y-4">
-            {todayItems.map((item) => (
-              <TimetableScheduleCard
-                key={item.entry_id}
-                item={item}
-                date={today}
-                showPeriodNumber
-              />
-            ))}
+      <section className="tt-planner" aria-labelledby="tt-planner-title">
+        <div className="tt-planner-heading"><h2 id="tt-planner-title">{activeTab === "weekly" ? "Weekly schedule" : "All entries"}</h2><div className="tt-view-switch" role="group" aria-label="Timetable view">
+          <button type="button" aria-pressed={activeTab === "weekly"} onClick={() => setActiveTab("weekly")}><TimetableIcon name="calendar" size={16} /> Week</button>
+          <button type="button" aria-pressed={activeTab === "all"} onClick={() => setActiveTab("all")}><TimetableIcon name="list" size={16} /> All entries</button>
+        </div></div>
+        <div className="tt-toolbar">
+          {activeTab === "weekly" ? <div className="tt-week-nav"><div className="tt-arrow-pair"><button type="button" aria-label="Previous week" onClick={() => setWeekOffset((offset) => offset - 1)}><TimetableIcon name="left" size={16} /></button><button type="button" aria-label="Next week" onClick={() => setWeekOffset((offset) => offset + 1)}><TimetableIcon name="right" size={16} /></button></div><span className="tt-week-label" aria-live="polite">{weekStartLabel} – {weekEndLabel}</span><button type="button" className="tt-this-week" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0}>This week</button></div> : <p className="tt-list-caption">{allEntriesSorted.length} entries · active and disabled schedules</p>}
+          <div className="tt-filters">
+            <label className="sr-only" htmlFor="tt-class-filter">Filter by class</label><select id="tt-class-filter" value={filterClassId} onChange={(event) => setFilterClassId(event.target.value)}><option value="">All classes</option>{classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.displayName}</option>)}</select>
+            <label className="sr-only" htmlFor="tt-subject-filter">Filter by subject</label><select id="tt-subject-filter" value={filterSubject} onChange={(event) => setFilterSubject(event.target.value)}><option value="">All subjects</option>{subjectOptions.map((subject) => <option key={subject}>{subject}</option>)}</select>
+            {(filterClassId || filterSubject) && <button type="button" className="tt-clear-filters" onClick={() => { setFilterClassId(""); setFilterSubject(""); }}>Clear</button>}
           </div>
-        </section>
-      )}
-
-      {showForm && (
-        <Card padding="lg" className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">
-            {editingEntry ? "Edit Timetable Entry" : "Add Timetable Entry"}
-          </h2>
-          <TimetableEntryForm
-            key={editingEntry?.id ?? "new"}
-            classes={classes}
-            initialValues={
-              editingEntry ? entryToFormValues(editingEntry) : undefined
-            }
-            editingEntryId={editingEntry?.id}
-            saving={saving}
-            fieldErrors={fieldErrors}
-            overlapWarning={overlapWarning}
-            submitLabel={editingEntry ? "Update Entry" : "Save Entry"}
-            onSubmit={handleSave}
-            onCancel={closeForm}
-          />
-        </Card>
-      )}
-
-      <div className="mb-4 grid gap-4 sm:grid-cols-2">
-        <FormField label="Filter by class">
-          <SelectInput
-            value={filterClassId}
-            onChange={(e) => setFilterClassId(e.target.value)}
-          >
-            <option value="">All classes</option>
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.displayName}
-              </option>
-            ))}
-          </SelectInput>
-        </FormField>
-        <FormField label="Filter by subject">
-          <SelectInput
-            value={filterSubject}
-            onChange={(e) => setFilterSubject(e.target.value)}
-          >
-            <option value="">All subjects</option>
-            {subjectOptions.map((subject) => (
-              <option key={subject} value={subject}>
-                {subject}
-              </option>
-            ))}
-          </SelectInput>
-        </FormField>
-      </div>
-
-      <Tabs
-        tabs={[
-          { id: "weekly", label: "Weekly" },
-          { id: "all", label: "All Entries" },
-        ]}
-        activeTab={activeTab}
-        onChange={(tabId) => setActiveTab(tabId as ViewTab)}
-      />
-
-      {activeTab === "weekly" ? (
-        <div className="space-y-6">
-          {WEEKDAYS.map((day) => {
-            const dayEntries = weeklyGrouped[day.value];
-            return (
-              <section key={day.value}>
-                <h2 className="mb-3 text-base font-semibold text-slate-900">
-                  {day.label}
-                </h2>
-                {dayEntries.length === 0 ? (
-                  <p className="text-sm text-slate-500">No entries scheduled.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {dayEntries.map((entry) => (
-                      <TimetableEntryCard
-                        key={`${day.value}-${entry.id}`}
-                        entry={entry}
-                        onEdit={openEditForm}
-                        onDisable={setDisableTarget}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            );
-          })}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {allEntriesSorted.length === 0 ? (
-            <p className="text-sm text-slate-500">No timetable entries yet.</p>
-          ) : (
-            allEntriesSorted.map((entry) => (
-              <Card key={entry.id} padding="sm" className={!entry.is_active ? "opacity-60" : ""}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {entry.class_name} · {entry.subject}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {entry.schedule_type === "repeating"
-                        ? `Repeats ${formatRepeatDays(entry.repeat_days)}`
-                        : entry.entry_date
-                          ? `One-time · ${entry.entry_date}`
-                          : "One-time"}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      {formatTime12h(entry.start_time)} – {formatTime12h(entry.end_time)}
-                    </p>
-                    {entry.schedule_exceptions.length > 0 && (
-                      <p className="mt-1 text-xs text-amber-800">
-                        One-time changes: {formatScheduleExceptionsSummary(entry)}
-                      </p>
-                    )}
-                    <p className="mt-1 text-xs text-slate-500">
-                      {entry.is_active ? "Active" : "Disabled"}
-                    </p>
-                  </div>
-                  {entry.is_active && (
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => openEditForm(entry)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setDisableTarget(entry)}
-                      >
-                        Disable
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-      )}
+        {activeTab === "weekly" ? <div className="tt-board-scroll" role="region" aria-label="Weekly timetable" tabIndex={0}>
+          <div className="tt-week-board">{weekDays.map((day) => <section key={day.date} className={`tt-day ${day.date === todayDate ? "is-today" : ""}`} aria-label={`${day.label}, ${day.date}`}>
+            <header className="tt-day-heading"><span>{day.label.slice(0, 3)}</span><strong>{parseISODate(day.date).getUTCDate()}</strong>{day.date === todayDate && <small>Today</small>}<span className="tt-day-count">{day.periods.length}</span></header>
+            <div className="tt-day-content">{day.periods.map(({ entry, start_time, end_time, is_exception }) => <button type="button" key={entry.id} className="tt-week-card" onClick={() => openEditForm(entry)} aria-label={`Edit ${entry.class_name}, ${entry.subject}, ${day.date} at ${formatTime12h(start_time)}`}>
+              <span className="tt-week-time">{formatTime12h(start_time)}</span><strong>{entry.class_name}</strong><span className="tt-week-subject">{entry.subject}</span><span className="tt-week-end">Until {formatTime12h(end_time)}</span>
+              {is_exception && <span className="tt-exception-label">Time changed</span>}
+              <span className="tt-card-footer"><span>{entry.schedule_type === "repeating" ? "↻ Weekly" : "One-time"}</span><TimetableIcon name="edit" size={13} /></span>
+            </button>)}
+            {day.periods.length === 0 && <div className="tt-free-day"><span>—</span><p>No classes</p><button type="button" disabled={classes.length === 0} onClick={() => openCreateForm(day.date)}>+ Add entry</button></div>}
+            </div>
+          </section>)}</div>
+        </div> : <div className="tt-all-entries">
+          {allEntriesSorted.length === 0 ? <div className="tt-empty-list"><TimetableIcon name="calendar" size={28} /><h3>No matching entries</h3><p>{filterClassId || filterSubject ? "Clear the filters or choose a different class or subject." : "Add your first period to start building your teaching week."}</p></div> : allEntriesSorted.map((entry) => <TimetableEntryCard key={entry.id} entry={entry} onEdit={openEditForm} onDisable={setDisableTarget} />)}
+        </div>}
+      </section>
+      <details className="tt-today">
+        <summary>Today’s class actions <span>({todayCards.length}) · {formatTodayHeading(todayDate)}</span></summary>
+        {todayCards.length > 0 ? <div className="tt-focus-grid">
+          {todayCards.map((item) => <article key={item.entry_id} className="tt-focus-card">
+            <div className="tt-focus-top"><span className="tt-class-label">{item.class_name}</span><span className="tt-period-label">PERIOD {item.period_number}</span></div>
+            <h3>{item.subject}</h3>
+            <p className="tt-focus-time"><TimetableIcon name="clock" size={14} />{formatTime12h(item.start_time)} <span>—</span> {formatTime12h(item.end_time)}</p>
+            {item.has_time_exception && <p className="tt-time-change">One-time timing change</p>}
+            <div className="tt-status-line">
+              <span className={item.attendance_status === "marked" ? "is-done" : "is-pending"}>{item.attendance_status === "marked" ? "✓ Attendance marked" : "○ Attendance pending"}</span>
+              <span className={item.teaching_diary_status === "written" ? "is-done" : "is-pending"}>{item.teaching_diary_status === "written" ? "✓ Diary added" : "○ Diary pending"}</span>
+            </div>
+            <div className="tt-focus-actions"><TimetableScheduleActions item={item} date={todayDate} /></div>
+          </article>)}
+        </div> : <div className="tt-empty-today"><span className="tt-empty-icon"><TimetableIcon name="calendar" size={24} /></span><div><h3>{filterClassId || filterSubject ? "No matching classes today" : "No classes today"}</h3><p>{filterClassId || filterSubject ? "Try another class or subject filter, or explore your week below." : "No classes scheduled for today."}</p></div><button type="button" onClick={() => openCreateForm(todayDate)} disabled={classes.length === 0}>Add a class today <span aria-hidden="true">↗</span></button></div>}
+      </details>
+
+
+      <Modal open={showForm} onClose={() => { if (!saving) closeForm(); }} title={editingEntry ? "Edit Timetable Entry" : "Add Timetable Entry"} maxWidth="lg"
+        footer={<p className="text-xs text-slate-500">One-time timing changes can be added for individual dates.</p>}
+      >
+        {showForm && <>
+          {message && <Alert variant="error" className="mb-4">{message}</Alert>}
+          <TimetableEntryForm key={editingEntry?.id ?? createDate ?? "new"} classes={classes}
+            initialValues={editingEntry ? entryToFormValues(editingEntry) : createDate ? { schedule_type: "one_time", entry_date: createDate } : undefined}
+            editingEntryId={editingEntry?.id} saving={saving} fieldErrors={fieldErrors} overlapWarning={overlapWarning}
+            submitLabel={editingEntry ? "Update Entry" : "Save Entry"} onSubmit={handleSave} onCancel={closeForm} />
+        </>}
+      </Modal>
 
       <ConfirmDialog
         open={disableTarget !== null}
@@ -405,6 +336,6 @@ export default function TimetableContent({
         onConfirm={confirmDisable}
         onCancel={() => setDisableTarget(null)}
       />
-    </>
+    </div>
   );
 }

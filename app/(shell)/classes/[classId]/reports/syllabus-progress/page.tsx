@@ -21,12 +21,14 @@ export default async function SyllabusProgressReportPage({ params }: PageProps) 
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Syllabus Progress Report"
-        subtitle={cls.displayName}
-        backHref={`/classes/${classId}/reports`}
-        backLabel="← Back to Reports"
-      />
+      <div className="print:hidden">
+        <PageHeader
+          title="Syllabus Progress Report"
+          subtitle={cls.displayName}
+          backHref={`/classes/${classId}/reports`}
+          backLabel="← Back to Reports"
+        />
+      </div>
       <SyllabusProgressReportClient
         classId={classId}
         subjects={subjects}
