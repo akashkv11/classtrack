@@ -4,7 +4,7 @@ import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { countAbsentDaysByStudent } from "@/lib/attendance";
 import { endOfMonth, formatISODate, startOfMonth } from "@/lib/dates";
 import { serializeTimetableEntry } from "@/lib/queries/timetable";
-import { getScheduleForDate } from "@/lib/timetable";
+import { getWhatsAppScheduleOptions, resolveWhatsAppSchedule } from "@/lib/whatsapp-schedule";
 import {
   buildClassUpdateMessage,
   buildSeparateClassUpdateMessage,
@@ -195,13 +195,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
     subjectForStream(session.class.stream);
   let classTime: string | null = null;
 
-  if (timetableRecord) {
-    const timetableEntry = serializeTimetableEntry(timetableRecord);
-    subject = timetableEntry.subject;
-    const schedule = getScheduleForDate(timetableEntry, isoDate);
-    if (schedule) {
-      classTime = formatClassTimeRange(schedule.start_time, schedule.end_time);
-    }
+  const candidates = timetableRecord ? [] : await prisma.timetableEntry.findMany({
+    where: { classId: session.classId, isActive: true },
+    include: { class: { select: { displayName: true } } },
+  });
+  const schedule = resolveWhatsAppSchedule(
+    timetableRecord ? serializeTimetableEntry(timetableRecord) : null,
+    candidates.map(serializeTimetableEntry),
+    isoDate,
+  );
+  if (schedule) {
+    subject = schedule.entry.subject;
+    classTime = formatClassTimeRange(schedule.start_time, schedule.end_time);
   }
 
   const topicTaken = diaryEntry ? buildTopicTakenFromDiary(diaryEntry) : null;
@@ -232,6 +237,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     class_id: session.classId,
     attendance_date: isoDate,
     class_time: classTime,
+    period_options: getWhatsAppScheduleOptions(candidates.map(serializeTimetableEntry), isoDate)
+      .map(({ entry, start_time, end_time }) => ({ id: entry.id, subject: entry.subject, start_time, end_time })),
     missing_items: missingItems,
   });
 }

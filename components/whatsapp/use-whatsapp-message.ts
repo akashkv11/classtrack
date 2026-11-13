@@ -10,6 +10,7 @@ const emptyData: WhatsAppMessageData = {
   class_id: "",
   attendance_date: "",
   class_time: null,
+  period_options: [],
   missing_items: [],
 };
 

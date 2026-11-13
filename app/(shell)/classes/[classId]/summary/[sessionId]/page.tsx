@@ -236,6 +236,7 @@ export default function AttendanceSummaryPage() {
         message={whatsappData.message}
         whatsappUrl={whatsappData.whatsapp_url}
         classTime={whatsappData.class_time}
+        periodOptions={whatsappData.period_options}
         onClose={closePreview}
       />
     </PageContainer>

@@ -54,6 +54,7 @@ export default function SendWhatsAppButton({
         message={data.message}
         whatsappUrl={data.whatsapp_url}
         classTime={data.class_time}
+        periodOptions={data.period_options}
         onClose={closePreview}
       />
     </>

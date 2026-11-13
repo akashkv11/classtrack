@@ -36,7 +36,15 @@ export type AttendanceSummary = {
   late_students: { roll_no: number; full_name: string }[];
 };
 
+export type WhatsAppPeriodOption = {
+  id: string;
+  subject: string;
+  start_time: string;
+  end_time: string;
+};
+
 export type WhatsAppMessageData = {
+  period_options: WhatsAppPeriodOption[];
   phone_number: string;
   message: string;
   whatsapp_url: string;
