@@ -19,6 +19,9 @@ import {
 type Session = {
   id: string;
   date: string;
+  subject: string | null;
+  startTime: string | null;
+  endTime: string | null;
 };
 
 type ClassWorkspaceProps = {

@@ -51,6 +51,7 @@ type TeachingDiaryFormProps = {
   fullyTaughtTopicIds: ReadonlySet<string>;
   entry?: TeachingDiaryEntrySummary | null;
   timetablePrefill?: {
+    session_id?: string;
     timetable_entry_id?: string;
     entry_date: string;
     syllabus_subject_id?: string | null;
@@ -60,6 +61,7 @@ type TeachingDiaryFormProps = {
   } | null;
   onClose: () => void;
   onSaved: () => void;
+  onOpenExisting: (entry: TeachingDiaryEntrySummary) => void;
 };
 
 type TeachingDiaryFormDialogProps = Omit<TeachingDiaryFormProps, "open">;
@@ -78,12 +80,64 @@ function TeachingDiaryFormDialog({
   timetablePrefill,
   onClose,
   onSaved,
+  onOpenExisting,
 }: TeachingDiaryFormDialogProps) {
   const isEdit = Boolean(entry);
 
   const [entryDate, setEntryDate] = useState(
     () => entry?.entry_date ?? timetablePrefill?.entry_date ?? todayISO(),
   );
+  const [sessionId, setSessionId] = useState(entry?.session_id ?? timetablePrefill?.session_id ?? "");
+  const [sessionOptions, setSessionOptions] = useState<Array<{
+    id: string; timetable_entry_id: string | null;
+    timetable_subject: string | null; timetable_start_time: string | null; timetable_end_time: string | null;
+  }>>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/classes/${classId}/attendance?date=${entryDate}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load sessions.");
+        return response.json();
+      })
+      .then((data) => {
+        const options = data.sessions_on_date ?? [];
+        setSessionOptions(options);
+        setSessionId((current) => options.some((s: { id: string }) => s.id === current)
+          ? current
+          : options.find((s: { timetable_entry_id: string | null }) =>
+              timetablePrefill?.timetable_entry_id && s.timetable_entry_id === timetablePrefill.timetable_entry_id)?.id
+            ?? (options.length === 1 ? options[0].id : ""));
+        setSessionsLoading(false);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSessionsError("Could not load sessions. Reopen the form to try again.");
+          setSessionsLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [classId, entryDate, timetablePrefill?.timetable_entry_id]);
+  const [checkedSessionId, setCheckedSessionId] = useState("");
+  const [sessionLookupError, setSessionLookupError] = useState("");
+  useEffect(() => {
+    if (!sessionId || isEdit) return;
+    const controller = new AbortController();
+    fetch(`/api/classes/${classId}/teaching-diary?session_id=${sessionId}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not check the session diary.");
+        return response.json();
+      })
+      .then((data) => {
+        if (data.entry) onOpenExisting(data.entry);
+        else setCheckedSessionId(sessionId);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setSessionLookupError("Could not check the session diary. Reopen the form to try again.");
+      });
+    return () => controller.abort();
+  }, [sessionId, classId, isEdit, onOpenExisting]);
   const [subjectId, setSubjectId] = useState(
     () => entry?.subject?.id ?? timetablePrefill?.syllabus_subject_id ?? "",
   );
@@ -306,7 +360,13 @@ function TeachingDiaryFormDialog({
     setError("");
     setFieldErrors({});
 
+    if (sessionsLoading || sessionsError || !sessionId || (!isEdit && checkedSessionId !== sessionId)) {
+      setError("Select a session before saving the diary entry.");
+      return;
+    }
+
     const payload = {
+      session_id: sessionId,
       entry_date: entryDate,
       timetable_entry_id: !isEdit ? timetablePrefill?.timetable_entry_id ?? null : null,
       syllabus_subject_id: subjectId || null,
@@ -347,6 +407,10 @@ function TeachingDiaryFormDialog({
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (res.status === 409 && body.entry) {
+          onOpenExisting(body.entry);
+          return;
+        }
         throw new Error(body.error ?? "Failed to save diary entry");
       }
 
@@ -370,7 +434,7 @@ function TeachingDiaryFormDialog({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="teaching-diary-form" variant="primary" disabled={loading}>
+          <Button type="submit" form="teaching-diary-form" variant="primary" disabled={loading || sessionsLoading || (!isEdit && checkedSessionId !== sessionId)}>
             {loading ? "Saving…" : "Save Entry"}
           </Button>
         </div>
@@ -378,14 +442,35 @@ function TeachingDiaryFormDialog({
     >
       <form id="teaching-diary-form" onSubmit={handleSubmit} className="space-y-4">
         {error && <Alert variant="error">{error}</Alert>}
+        {sessionLookupError && <Alert variant="error">{sessionLookupError}</Alert>}
 
         <FormField label="Date" error={fieldErrors.entry_date}>
           <TextInput
             type="date"
+            disabled={isEdit}
             value={entryDate}
-            onChange={(e) => setEntryDate(e.target.value)}
+            onChange={(e) => {
+              setEntryDate(e.target.value);
+              setSessionId("");
+              setSessionOptions([]);
+              setSessionsLoading(true);
+              setSessionsError("");
+            }}
             error={!!fieldErrors.entry_date}
           />
+        </FormField>
+
+        <FormField label="Session" error={fieldErrors.session_id}
+          hint={sessionsLoading ? "Loading sessions…" : sessionsError || (sessionOptions.length === 0 ? "Record attendance for this date to create a session first." : "Choose the session this diary entry belongs to.")}>
+          <SelectInput value={sessionId} required disabled={isEdit || sessionsLoading || !!sessionsError}
+            onChange={(e) => setSessionId(e.target.value)}>
+            <option value="">Select a session</option>
+            {sessionOptions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {session.timetable_subject ?? "Class session"} · {session.timetable_start_time && session.timetable_end_time ? `${session.timetable_start_time} – ${session.timetable_end_time}` : "Time not recorded"}
+              </option>
+            ))}
+          </SelectInput>
         </FormField>
 
         <FormField
@@ -658,6 +743,7 @@ export default function TeachingDiaryForm({
   timetablePrefill,
   onClose,
   onSaved,
+  onOpenExisting,
 }: TeachingDiaryFormProps) {
   if (!open) return null;
 
@@ -673,6 +759,7 @@ export default function TeachingDiaryForm({
       timetablePrefill={timetablePrefill}
       onClose={onClose}
       onSaved={onSaved}
+      onOpenExisting={onOpenExisting}
     />
   );
 }

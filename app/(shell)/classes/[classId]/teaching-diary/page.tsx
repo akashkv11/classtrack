@@ -1,3 +1,6 @@
+import { prisma } from "@/lib/db";
+import { formatISODate } from "@/lib/dates";
+import { getTeachingDiaryEntryById } from "@/lib/queries/teaching-diary";
 import { notFound } from "next/navigation";
 import TeachingDiaryPageClient from "@/components/teaching-diary/teaching-diary-page-client";
 import PageContainer from "@/components/ui/page-container";
@@ -19,6 +22,7 @@ export const revalidate = 30;
 type PageProps = {
   params: Promise<{ classId: string }>;
   searchParams: Promise<{
+    session_id?: string;
     timetable_entry_id?: string;
     date?: string;
     subject?: string;
@@ -58,6 +62,7 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
   const taughtTopicIds = await getTaughtSyllabusTopicIds(classId);
 
   let timetablePrefill: {
+    session_id?: string;
     timetable_entry_id?: string;
     entry_date: string;
     subject_name?: string;
@@ -67,7 +72,17 @@ export default async function TeachingDiaryPage({ params, searchParams }: PagePr
   } | null = null;
   let existingSlotEntry: TeachingDiaryEntrySummary | null = null;
 
-  if (query.timetable_entry_id) {
+  if (query.session_id) {
+    const session = await prisma.attendanceSession.findFirst({ where: { id: query.session_id, classId } });
+    if (!session) notFound();
+    const diary = await prisma.teachingDiaryEntry.findFirst({ where: { sessionId: session.id }, orderBy: [{ updatedAt: "desc" }, { id: "desc" }] });
+    existingSlotEntry = diary ? await getTeachingDiaryEntryById(diary.id) : null;
+    timetablePrefill = {
+      session_id: session.id, entry_date: formatISODate(session.attendanceDate),
+      subject_name: session.subject ?? undefined, start_time: session.startTime ?? undefined,
+      end_time: session.endTime ?? undefined, open_form: true,
+    };
+  } else if (query.timetable_entry_id) {
     const entry = await getTimetableEntryById(query.timetable_entry_id);
     if (entry && entry.class_id === classId) {
       const entryDate =

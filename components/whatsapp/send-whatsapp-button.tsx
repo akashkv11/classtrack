@@ -55,6 +55,7 @@ export default function SendWhatsAppButton({
         whatsappUrl={data.whatsapp_url}
         classTime={data.class_time}
         periodOptions={data.period_options}
+        sessionCount={data.session_count}
         onClose={closePreview}
       />
     </>

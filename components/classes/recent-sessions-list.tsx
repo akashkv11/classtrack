@@ -1,3 +1,4 @@
+import { formatTime12h } from "@/lib/timetable";
 import ActionBar, { actionButtonClassName } from "@/components/ui/action-bar";
 import { ButtonLink } from "@/components/ui/button";
 import SendWhatsAppButton from "@/components/whatsapp/send-whatsapp-button";
@@ -6,6 +7,9 @@ import SendClassUpdateButton from "@/components/whatsapp/send-class-update-butto
 type Session = {
   id: string;
   date: string;
+  subject: string | null;
+  startTime: string | null;
+  endTime: string | null;
 };
 
 type RecentSessionsListProps = {
@@ -22,7 +26,7 @@ export default function RecentSessionsList({
   return (
     <section className={showTitle ? "mb-10" : undefined}>
       {showTitle && (
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Attendance Dates</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Recent Sessions</h2>
       )}
       {sessions.length === 0 ? (
         <p className="text-sm text-slate-600">No attendance recorded yet.</p>
@@ -34,7 +38,7 @@ export default function RecentSessionsList({
               className="rounded-lg border border-slate-200 bg-white px-4 py-3"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-medium text-slate-900">{session.date}</span>
+                <span className="text-sm font-medium text-slate-900">{session.date} · {session.subject ?? "Class session"} · {session.startTime && session.endTime ? `${formatTime12h(session.startTime)} – ${formatTime12h(session.endTime)}` : "Time not recorded"}</span>
                 <ActionBar className="sm:justify-end">
                   <ButtonLink
                     href={`/classes/${classId}/summary/${session.id}`}

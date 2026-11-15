@@ -35,6 +35,10 @@ export type TeachingDiaryTopicRef = {
 };
 
 export type TeachingDiaryEntrySummary = {
+  session_id: string;
+  session_subject: string | null;
+  session_start_time: string | null;
+  session_end_time: string | null;
   id: string;
   entry_date: string;
   timetable_entry_id: string | null;

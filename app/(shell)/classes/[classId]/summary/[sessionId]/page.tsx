@@ -18,7 +18,8 @@ import WhatsAppPreview from "@/components/whatsapp/whatsapp-preview";
 import WhatsAppMissingItemsDialog from "@/components/whatsapp/whatsapp-missing-items-dialog";
 import { useWhatsAppMessage } from "@/components/whatsapp/use-whatsapp-message";
 import type { AttendanceSummary } from "@/lib/types";
-import { buildAttendanceLink } from "@/lib/timetable/links";
+import { formatTime12h } from "@/lib/timetable";
+import { buildAttendanceLink, buildTeachingDiaryLink } from "@/lib/timetable/links";
 import { useClientEffect } from "@/lib/use-client-effect";
 
 export default function AttendanceSummaryPage() {
@@ -99,6 +100,7 @@ export default function AttendanceSummaryPage() {
 
   const hasWhatsApp = Boolean(data.class.whatsapp_number);
   const editAttendanceHref = buildAttendanceLink(classId, {
+    sessionId,
     date: data.attendance_date,
     timetableEntryId: data.timetable_entry_id ?? undefined,
     subject: data.timetable_subject ?? undefined,
@@ -121,6 +123,8 @@ export default function AttendanceSummaryPage() {
         <StatCard label="Late" value={data.summary.late} />
       </div>
 
+      <p className="mb-4 text-sm text-slate-600">{data.timetable_subject ?? "Class session"} · {data.timetable_start_time && data.timetable_end_time ? `${formatTime12h(data.timetable_start_time)} – ${formatTime12h(data.timetable_end_time)}` : "Time not recorded"}</p>
+      <Link className="mb-4 inline-block text-sm text-blue-700" href={buildTeachingDiaryLink(classId, { sessionId })}>Open session diary</Link>
       <div className="mb-6 grid gap-6 md:grid-cols-2">
         <Card>
           <h2 className="mb-3 font-semibold text-slate-900">Absentees</h2>
@@ -237,6 +241,7 @@ export default function AttendanceSummaryPage() {
         whatsappUrl={whatsappData.whatsapp_url}
         classTime={whatsappData.class_time}
         periodOptions={whatsappData.period_options}
+        sessionCount={whatsappData.session_count}
         onClose={closePreview}
       />
     </PageContainer>

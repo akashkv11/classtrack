@@ -7,7 +7,9 @@ import FormField, { TextInput } from "@/components/ui/form-field";
 import Modal, { modalFooterClassName } from "@/components/ui/modal";
 import { inputClassName } from "@/lib/validation";
 import { optionalWhatsAppSchema } from "@/lib/validation/primitives";
-import { buildWhatsAppUrl, setMessageHomework } from "@/lib/whatsapp";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { buildDailySeparateMessage, type DailyMessageDetails } from "@/lib/daily-messages";
+import type { WhatsAppMissingItem } from "@/lib/whatsapp-readiness";
 import PreparationRoster from "@/components/preparation/preparation-roster";
 import { preparationMessageLines, type PreparationStudent } from "@/lib/preparation";
 
@@ -27,6 +29,8 @@ export default function SendClassUpdateButton({
   const [error, setError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState("");
+  const [missingItems, setMissingItems] = useState<WhatsAppMissingItem[]>([]);
+  const [dailyDetails, setDailyDetails] = useState<DailyMessageDetails | null>(null);
   const [students, setStudents] = useState<PreparationStudent[]>([]);
   const [step, setStep] = useState<"students" | "homework" | "preview">("students");
   const [homeworkGiven, setHomeworkGiven] = useState<"yes" | "no" | null>(null);
@@ -47,10 +51,9 @@ export default function SendClassUpdateButton({
       if (!res.ok) throw new Error(data.error ?? "Could not generate class update.");
       setPhoneNumber(data.phone_number);
       setMessage(data.message);
-      setStudents(data.students.map((student: PreparationStudent) => ({
-        ...student,
-        preparation_status: student.preparation_status === "NOT_MARKED" ? "FULL" : student.preparation_status,
-      })));
+      setStudents(data.students);
+      setDailyDetails(data.daily_details);
+      setMissingItems(data.missing_items ?? []);
       setSlot({ classId: data.class_id, date: data.attendance_date, timetableEntryId: data.timetable_entry_id });
       setRules({ threshold: data.threshold, includePartial: data.includePartial });
       setStep("students");
@@ -79,10 +82,7 @@ export default function SendClassUpdateButton({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Could not save unprepared students.");
       }
-      const heading = "*UNPREPARED STUDENTS*";
-      setMessage((current) => `${current.split(heading)[0]}${heading}\n${
-        preparationMessageLines(students).join("\n")
-      }`);
+      if (dailyDetails) setMessage(buildDailySeparateMessage(dailyDetails, preparationMessageLines(students)));
       setStep("homework");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save unprepared students.");
@@ -101,7 +101,7 @@ export default function SendClassUpdateButton({
       setError("Please enter the homework that was provided.");
       return;
     }
-    setMessage((current) => setMessageHomework(current, homeworkGiven === "yes" ? homework : null));
+    if (dailyDetails) setMessage(buildDailySeparateMessage(dailyDetails, preparationMessageLines(students), homeworkGiven === "yes" ? homework : null));
     setStep("preview");
   }
 
@@ -120,7 +120,7 @@ export default function SendClassUpdateButton({
       {error && !open && <p role="alert" className="w-full text-sm text-red-700">{error}</p>}
       <Modal
         open={open}
-        title={step === "students" ? "Mark Student Preparation" : step === "homework" ? "Homework for This Class" : "Class Update — Separate Recipient"}
+        title={step === "students" ? "Mark Daily Preparation" : step === "homework" ? "Homework for This Day" : "Class Update — Separate Recipient"}
         onClose={() => { if (!saving) setOpen(false); }}
         maxWidth="lg"
         footer={
@@ -166,6 +166,10 @@ export default function SendClassUpdateButton({
       >
         <div className="space-y-4">
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          {missingItems.length > 0 && <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+            <p className="font-medium">Some session diaries are missing. The message will label those details as not recorded.</p>
+            {missingItems.map(item => <p key={item.fix_href}><Link className="text-blue-700 underline" href={item.fix_href}>{item.label} — Add diary</Link></p>)}
+          </div>}
           {step === "students" ? (
             <PreparationRoster students={students} onChange={setStudents} disabled={saving} {...rules} />
           ) : step === "homework" ? (

@@ -29,6 +29,7 @@ type TeachingDiaryPageClientProps = {
   initialSubjects: SyllabusSubjectSummary[];
   initialData: TeachingDiaryListResponse;
   timetablePrefill?: {
+    session_id?: string;
     timetable_entry_id?: string;
     entry_date: string;
     subject_name?: string;
@@ -315,6 +316,7 @@ export default function TeachingDiaryPageClient({
           setEditingEntry(null);
         }}
         onSaved={handleSaved}
+        onOpenExisting={setEditingEntry}
       />
 
       <ConfirmDialog

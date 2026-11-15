@@ -44,6 +44,7 @@ export type WhatsAppPeriodOption = {
 };
 
 export type WhatsAppMessageData = {
+  session_count?: number;
   period_options: WhatsAppPeriodOption[];
   phone_number: string;
   message: string;

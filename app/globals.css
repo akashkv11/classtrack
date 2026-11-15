@@ -102,3 +102,11 @@ textarea::placeholder {
     page-break-before: avoid;
   }
 }
+
+@media print {
+  .student-report + .student-report { break-before: page; page-break-before: always; }
+  #report-content table { min-width: 0; table-layout: auto; }
+  #report-content td, #report-content th { overflow-wrap: anywhere; }
+  #report-content .overflow-x-auto { overflow: visible; }
+  #report-content h3 { break-after: avoid; }
+}

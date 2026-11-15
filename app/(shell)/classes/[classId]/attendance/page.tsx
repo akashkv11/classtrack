@@ -26,10 +26,10 @@ function sessionPeriodLabel(session: AttendanceSessionOnDate): string {
     const time =
       session.timetable_start_time && session.timetable_end_time
         ? ` · ${formatTime12h(session.timetable_start_time)} – ${formatTime12h(session.timetable_end_time)}`
-        : "";
+        : " · Time not recorded";
     return `${session.timetable_subject}${time}`;
   }
-  return "No period linked";
+  return "Class session · Time not recorded";
 }
 
 export default function MarkAttendancePage() {
@@ -40,12 +40,16 @@ export default function MarkAttendancePage() {
   const { displayName } = useClass();
 
   const timetableEntryId = searchParams.get("timetable_entry_id");
+  const requestedSessionId = searchParams.get("session_id");
   const timetableSubject = searchParams.get("subject");
   const timetableStartTime = searchParams.get("start_time");
   const timetableEndTime = searchParams.get("end_time");
   const initialDate = searchParams.get("date") ?? todayISO();
 
   const [date, setDate] = useState(initialDate);
+  const [subject, setSubject] = useState(timetableSubject ?? "");
+  const [startTime, setStartTime] = useState(timetableStartTime ?? "");
+  const [endTime, setEndTime] = useState(timetableEndTime ?? "");
   const [records, setRecords] = useState<AttendanceRecordRow[]>([]);
   const [initialRecords, setInitialRecords] = useState<AttendanceRecordRow[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -72,6 +76,7 @@ export default function MarkAttendancePage() {
     setError("");
 
     const params = new URLSearchParams({ date });
+    if (requestedSessionId) params.set("session_id", requestedSessionId);
     if (timetableEntryId) {
       params.set("timetable_entry_id", timetableEntryId);
     }
@@ -92,11 +97,14 @@ export default function MarkAttendancePage() {
     setRecords(data.records ?? []);
     setInitialRecords(JSON.parse(JSON.stringify(data.records ?? [])));
     setSessionId(data.session?.id ?? null);
+    setSubject(data.session?.subject ?? timetableSubject ?? "");
+    setStartTime(data.session?.start_time ?? timetableStartTime ?? "");
+    setEndTime(data.session?.end_time ?? timetableEndTime ?? "");
     setSessionsOnDate(data.sessions_on_date ?? []);
     setLoading(false);
   };
 
-  useClientEffect((signal) => loadAttendance(signal), [classId, date, timetableEntryId]);
+  useClientEffect((signal) => loadAttendance(signal), [classId, date, timetableEntryId, requestedSessionId]);
 
   const presentCount = useMemo(
     () => records.filter((r) => r.status === "present").length,
@@ -120,6 +128,8 @@ export default function MarkAttendancePage() {
 
   function handleDateChange(value: string) {
     setDate(value);
+    setSessionId(null);
+    if (requestedSessionId) router.replace(buildAttendanceLink(classId, { date: value }));
     const parsed = parseInput(isoDateSchema, value);
     setDateError(parsed.success ? "" : parsed.error);
   }
@@ -159,6 +169,8 @@ export default function MarkAttendancePage() {
 
     const parsed = parseInput(attendanceSaveSchema, {
       attendance_date: date,
+      session_id: sessionId,
+      ...(!sessionId && !timetableEntryId ? { subject, start_time: startTime, end_time: endTime } : {}),
       timetable_entry_id: timetableEntryId,
       notes: "",
       records: records.map((r) => ({
@@ -252,6 +264,7 @@ export default function MarkAttendancePage() {
         <FormField label="Date" error={dateError}>
           <TextInput
             type="date"
+            disabled={loading}
             value={date}
             onChange={(e) => handleDateChange(e.target.value)}
             error={!!dateError}
@@ -263,6 +276,16 @@ export default function MarkAttendancePage() {
         )}
       </div>
 
+      {!timetableEntryId && !sessionId && (
+        <Card className="mb-4 grid gap-3 sm:grid-cols-3">
+          <FormField label="Subject"><TextInput value={subject} onChange={(e) => setSubject(e.target.value)} /></FormField>
+          <FormField label="Start time"><TextInput type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></FormField>
+          <FormField label="End time"><TextInput type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></FormField>
+        </Card>
+      )}
+      {sessionId && <p className="mb-4 text-sm text-slate-600">{subject || "Class session"} · {startTime && endTime ? `${formatTime12h(startTime)} – ${formatTime12h(endTime)}` : "Time not recorded"}</p>}
+      <Link className="mb-4 inline-block text-sm text-blue-700" href={buildAttendanceLink(classId, { date })} onClick={() => { setSessionId(null); setSubject(""); setStartTime(""); setEndTime(""); if (!requestedSessionId && !timetableEntryId) void loadAttendance(); }}>+ New extra session</Link>
+
       {sessionsOnDate.length > 0 && (
         <Card className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">
@@ -272,8 +295,7 @@ export default function MarkAttendancePage() {
           </h2>
           {hasMultipleSessions && (
             <p className="mb-3 text-sm text-slate-600">
-              Multiple attendance records exist for this date. Delete any duplicates you
-              do not need.
+              Each session has its own attendance and diary. Select a session to edit it.
             </p>
           )}
           <ul className="space-y-2">
@@ -299,6 +321,7 @@ export default function MarkAttendancePage() {
                     <Link
                       href={buildAttendanceLink(classId, {
                         date: session.attendance_date,
+                        sessionId: session.id,
                         timetableEntryId: session.timetable_entry_id ?? undefined,
                         subject: session.timetable_subject ?? undefined,
                         startTime: session.timetable_start_time ?? undefined,
@@ -350,7 +373,7 @@ export default function MarkAttendancePage() {
         saving={saving}
         deleting={deleting}
         hasChanges={hasChanges}
-        canSave={records.length > 0 && !dateError}
+        canSave={records.length > 0 && !dateError && !loading}
         onMarkAllPresent={markAllPresent}
         onMarkAllAbsent={markAllAbsent}
         onReset={resetChanges}

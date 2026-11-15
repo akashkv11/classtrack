@@ -190,11 +190,17 @@ export const classCreateSchema = z.object({
 });
 
 export const attendanceDateQuerySchema = z.object({
+  session_id: uuidSchema.optional(),
   date: isoDateSchema,
   timetable_entry_id: uuidSchema.optional().nullable(),
 });
 
+const sessionTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Enter a valid time (HH:MM)");
 export const attendanceSaveSchema = z.object({
+  session_id: uuidSchema.optional().nullable(),
+  subject: z.string().trim().min(1, "Subject is required").optional(),
+  start_time: sessionTimeSchema.optional(),
+  end_time: sessionTimeSchema.optional(),
   attendance_date: isoDateSchema,
   timetable_entry_id: uuidSchema.optional().nullable(),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
@@ -208,6 +214,15 @@ export const attendanceSaveSchema = z.object({
       }),
     )
     .min(1, "At least one attendance record is required"),
+}).superRefine((data, ctx) => {
+  if (!data.session_id && !data.timetable_entry_id) {
+    for (const field of ["subject", "start_time", "end_time"] as const) {
+      if (!data[field]) ctx.addIssue({ code: "custom", path: [field], message: "Required for an extra session" });
+    }
+  }
+  if (data.start_time && data.end_time && data.end_time <= data.start_time) {
+    ctx.addIssue({ code: "custom", path: ["end_time"], message: "End time must be after start time" });
+  }
 });
 
 export const monthQuerySchema = z.object({

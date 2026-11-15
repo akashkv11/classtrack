@@ -24,6 +24,7 @@ export const syllabusStatusUpdateSchema = z.enum([
 ]);
 
 export const teachingDiaryCreateSchema = z.object({
+  session_id: uuidSchema,
   entry_date: isoDateSchema,
   timetable_entry_id: uuidSchema.optional().nullable(),
   syllabus_subject_id: uuidSchema.optional().nullable(),
@@ -54,6 +55,7 @@ export const teachingDiaryCreateSchema = z.object({
 
 export const teachingDiaryUpdateSchema = z
   .object({
+    session_id: uuidSchema.optional(),
     entry_date: isoDateSchema.optional(),
     timetable_entry_id: uuidSchema.optional().nullable(),
     syllabus_subject_id: uuidSchema.optional().nullable(),
@@ -87,6 +89,7 @@ export const teachingDiaryUpdateSchema = z
   });
 
 export const teachingDiaryListQuerySchema = z.object({
+  session_id: uuidSchema.optional(),
   subject_id: uuidSchema.optional(),
   chapter_id: uuidSchema.optional(),
   topic_id: uuidSchema.optional(),

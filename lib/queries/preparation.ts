@@ -26,7 +26,7 @@ export async function getPreparationRoster(classId: string, date: string, timeta
       orderBy: { rollNo: "asc" },
     }),
     prisma.studentPreparation.findMany({
-      where: { classId, preparationDate: { lte: preparationDate } },
+      where: { classId, preparationDate: { lte: preparationDate }, ...(timetableEntryId === null ? { timetableEntryId: null } : {}) },
       include: { timetableEntry: { select: { startTime: true } } },
     }),
     timetableEntryId ? prisma.timetableEntry.findUnique({ where: { id: timetableEntryId }, select: { startTime: true } }) : null,

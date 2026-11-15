@@ -30,6 +30,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const parsed = parseInput(attendanceDateQuerySchema, {
     date: dateParam ?? "",
     timetable_entry_id: timetableEntryId,
+    session_id: request.nextUrl.searchParams.get("session_id") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -52,9 +53,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
   });
 
   const [session, sessionsOnDate] = await Promise.all([
-    findAttendanceSessionForSlot(classId, attendanceDate, slotTimetableId),
+    parsed.data.session_id
+      ? prisma.attendanceSession.findFirst({ where: { id: parsed.data.session_id, classId, attendanceDate }, include: { records: true } })
+      : slotTimetableId ? findAttendanceSessionForSlot(classId, attendanceDate, slotTimetableId) : Promise.resolve(null),
     listAttendanceSessionsForDate(classId, attendanceDate),
   ]);
+
+  if (parsed.data.session_id && !session) return NextResponse.json({ error: "Session not found for this class and date" }, { status: 404 });
 
   const recordMap = new Map(
     session?.records.map((r) => [r.studentId, r.status]) ?? [],
@@ -84,6 +89,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       attendance_date: parsed.data.date,
       timetable_entry_id: session.timetableEntryId,
       notes: session.notes ?? "",
+      subject: session.subject, start_time: session.startTime, end_time: session.endTime,
     },
     records,
     sessions_on_date: sessionsOnDate,
@@ -118,6 +124,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
   }
 
+  if (parsed.data.session_id) {
+    const session = await prisma.attendanceSession.findFirst({
+      where: { id: parsed.data.session_id, classId, attendanceDate },
+    });
+    if (!session || (slotTimetableId && session.timetableEntryId !== slotTimetableId)) {
+      return NextResponse.json({ error: "Session not found for this class and date" }, { status: 404 });
+    }
+  }
   const students = await prisma.student.findMany({
     where: { classId, isActive: true },
   });
@@ -132,7 +146,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     validatedRecords.push({ studentId, status });
   }
 
-  if (validatedRecords.length !== students.length) {
+  if (validatedRecords.length !== students.length || new Set(validatedRecords.map((r) => r.studentId)).size !== students.length) {
     return NextResponse.json(
       { error: "All active students must have an attendance record" },
       { status: 400 },
@@ -145,6 +159,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       attendanceDate,
       timetableEntryId: slotTimetableId,
       notes,
+      sessionId: parsed.data.session_id, subject: parsed.data.subject,
+      startTime: parsed.data.start_time, endTime: parsed.data.end_time,
     });
 
     for (const record of validatedRecords) {

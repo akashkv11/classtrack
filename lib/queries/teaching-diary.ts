@@ -24,6 +24,8 @@ type DbTopicLink = {
 };
 
 type DbEntry = {
+  sessionId: string;
+  session: { subject: string | null; startTime: string | null; endTime: string | null };
   id: string;
   entryDate: Date;
   timetableEntryId: string | null;
@@ -56,6 +58,7 @@ type DbEntry = {
 };
 
 const entryInclude = {
+  session: { select: { subject: true, startTime: true, endTime: true } },
   syllabusSubject: {
     select: { id: true, subjectName: true },
   },
@@ -100,6 +103,10 @@ export function mapEntryToJson(entry: DbEntry): TeachingDiaryEntrySummary {
   return {
     id: entry.id,
     entry_date: formatISODate(entry.entryDate),
+    session_id: entry.sessionId,
+    session_subject: entry.session.subject,
+    session_start_time: entry.session.startTime,
+    session_end_time: entry.session.endTime,
     timetable_entry_id: entry.timetableEntryId,
     subject: entry.syllabusSubject
       ? { id: entry.syllabusSubject.id, name: entry.syllabusSubject.subjectName }
@@ -346,6 +353,7 @@ export async function findTeachingDiaryDuplicate(options: {
   diaryStatus: DiaryStatus;
   topicTaught?: string;
   excludeEntryId?: string;
+  sessionId?: string;
 }): Promise<string | null> {
   const exclude = options.excludeEntryId
     ? { id: { not: options.excludeEntryId } }
@@ -374,7 +382,7 @@ export async function findTeachingDiaryDuplicate(options: {
       where: {
         classId: options.classId,
         entryDate,
-        timetableEntryId: options.timetableEntryId ?? null,
+        ...(options.sessionId ? { sessionId: options.sessionId } : { timetableEntryId: options.timetableEntryId ?? null }),
         OR: [
           { syllabusTopicId },
           { topics: { some: { syllabusTopicId } } },
@@ -423,7 +431,7 @@ export async function findTeachingDiaryDuplicate(options: {
       where: {
         classId: options.classId,
         entryDate,
-        timetableEntryId: options.timetableEntryId ?? null,
+        ...(options.sessionId ? { sessionId: options.sessionId } : { timetableEntryId: options.timetableEntryId ?? null }),
         ...exclude,
       },
       select: {

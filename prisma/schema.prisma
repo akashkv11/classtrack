@@ -122,6 +122,8 @@ model SyllabusTopic {
 }
 
 model TeachingDiaryEntry {
+  sessionId String @map("session_id") @db.Uuid
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   id                   String   @id @default(uuid()) @db.Uuid
   classId              String   @map("class_id") @db.Uuid
   timetableEntryId     String?  @map("timetable_entry_id") @db.Uuid
@@ -148,6 +150,7 @@ model TeachingDiaryEntry {
   syllabusTopic   SyllabusTopic?   @relation(fields: [syllabusTopicId], references: [id], onDelete: SetNull)
   topics          TeachingDiaryTopic[]
 
+  @@index([sessionId])
   @@index([classId, entryDate])
   @@index([timetableEntryId])
   @@index([syllabusTopicId])
@@ -244,6 +247,9 @@ model StudentPreparation {
 }
 
 model AttendanceSession {
+  subject String?
+  startTime String? @map("start_time")
+  endTime String? @map("end_time")
   id               String   @id @default(uuid()) @db.Uuid
   classId          String   @map("class_id") @db.Uuid
   timetableEntryId String?  @map("timetable_entry_id") @db.Uuid
@@ -255,11 +261,11 @@ model AttendanceSession {
   class           Class            @relation(fields: [classId], references: [id], onDelete: Restrict)
   timetableEntry  TimetableEntry?  @relation(fields: [timetableEntryId], references: [id], onDelete: SetNull)
   records AttendanceRecord[]
+  teachingDiaryEntries TeachingDiaryEntry[]
 
   @@index([classId])
   @@index([classId, attendanceDate])
-  // Unique with NULLS NOT DISTINCT so null timetable slots cannot duplicate per class/date
-  // — enforced in migration 20260718120000_prevent_duplicate_session_entries
+  // Scheduled slots are unique per class/date; NULL slots allow multiple extra sessions.
   @@unique([classId, attendanceDate, timetableEntryId])
   @@index([timetableEntryId])
   @@map("attendance_sessions")

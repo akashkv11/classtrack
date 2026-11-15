@@ -3,7 +3,7 @@ import StudentProfileReportClient from "@/components/reports/student-profile-rep
 import PageContainer from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { getClassById } from "@/lib/queries/classes";
-import { getStudentsForProfileList } from "@/lib/queries/student-profile";
+import { prisma } from "@/lib/db";
 import { getReportSettings } from "@/lib/settings";
 
 export const revalidate = 30;
@@ -14,7 +14,7 @@ export default async function StudentProfileReportPage({ params }: PageProps) {
   const { classId } = await params;
   const [cls, students, reportSettings] = await Promise.all([
     getClassById(classId),
-    getStudentsForProfileList(classId),
+    prisma.student.findMany({ where: { classId }, orderBy: [{ rollNo: "asc" }, { fullName: "asc" }], select: { id: true, rollNo: true, fullName: true, isActive: true } }),
     getReportSettings(),
   ]);
   if (!cls) notFound();
@@ -31,7 +31,7 @@ export default async function StudentProfileReportPage({ params }: PageProps) {
       </div>
       <StudentProfileReportClient
         classId={classId}
-        students={students}
+        students={students.map(s => ({ id: s.id, roll_no: s.rollNo, full_name: s.fullName, is_active: s.isActive }))}
         reportSettings={reportSettings}
       />
     </PageContainer>

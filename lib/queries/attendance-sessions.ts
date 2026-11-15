@@ -1,5 +1,4 @@
 import type { Prisma } from "@/app/generated/prisma/client";
-import { isUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { prisma } from "@/lib/db";
 import { formatISODate } from "@/lib/dates";
 
@@ -50,9 +49,9 @@ export async function listAttendanceSessionsForDate(
     id: session.id,
     attendance_date: formatISODate(session.attendanceDate),
     timetable_entry_id: session.timetableEntryId,
-    timetable_subject: session.timetableEntry?.subject ?? null,
-    timetable_start_time: session.timetableEntry?.startTime ?? null,
-    timetable_end_time: session.timetableEntry?.endTime ?? null,
+    timetable_subject: session.subject ?? null,
+    timetable_start_time: session.startTime ?? null,
+    timetable_end_time: session.endTime ?? null,
     record_count: session._count.records,
     created_at: session.createdAt.toISOString(),
   }));
@@ -75,47 +74,32 @@ export async function deleteAttendanceSession(sessionId: string) {
 export async function upsertAttendanceSessionForSlot(
   tx: Prisma.TransactionClient,
   options: {
-    classId: string;
-    attendanceDate: Date;
-    timetableEntryId: string | null;
-    notes: string;
+    classId: string; attendanceDate: Date; timetableEntryId: string | null;
+    notes: string; sessionId?: string | null;
+    subject?: string; startTime?: string; endTime?: string;
   },
 ) {
-  const slotWhere = attendanceSessionSlotWhere(
-    options.classId,
-    options.attendanceDate,
-    options.timetableEntryId,
-  );
-
-  const existing = await tx.attendanceSession.findFirst({
-    where: slotWhere,
+  if (options.sessionId) {
+    return tx.attendanceSession.update({
+      where: { id: options.sessionId, classId: options.classId, attendanceDate: options.attendanceDate },
+      data: { notes: options.notes },
+    });
+  }
+  const timetable = options.timetableEntryId
+    ? await tx.timetableEntry.findUniqueOrThrow({ where: { id: options.timetableEntryId, classId: options.classId } })
+    : null;
+  const data = {
+    classId: options.classId, attendanceDate: options.attendanceDate,
+    timetableEntryId: options.timetableEntryId, notes: options.notes,
+    subject: timetable?.subject ?? options.subject,
+    startTime: timetable?.startTime ?? options.startTime,
+    endTime: timetable?.endTime ?? options.endTime,
+  };
+  if (!options.timetableEntryId) return tx.attendanceSession.create({ data });
+  return tx.attendanceSession.upsert({
+    where: { classId_attendanceDate_timetableEntryId: {
+      classId: options.classId, attendanceDate: options.attendanceDate, timetableEntryId: options.timetableEntryId,
+    } },
+    create: data, update: { notes: options.notes },
   });
-
-  if (existing) {
-    return tx.attendanceSession.update({
-      where: { id: existing.id },
-      data: { notes: options.notes },
-    });
-  }
-
-  try {
-    return await tx.attendanceSession.create({
-      data: {
-        classId: options.classId,
-        attendanceDate: options.attendanceDate,
-        timetableEntryId: options.timetableEntryId,
-        notes: options.notes,
-      },
-    });
-  } catch (error) {
-    if (!isUniqueConstraintError(error)) throw error;
-
-    const raced = await tx.attendanceSession.findFirst({ where: slotWhere });
-    if (!raced) throw error;
-
-    return tx.attendanceSession.update({
-      where: { id: raced.id },
-      data: { notes: options.notes },
-    });
-  }
 }

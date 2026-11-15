@@ -10,6 +10,7 @@ import type { WhatsAppPeriodOption } from "@/lib/types/attendance";
 
 type WhatsAppPreviewProps = {
   periodOptions: WhatsAppPeriodOption[];
+  sessionCount?: number;
   open: boolean;
   phoneNumber: string;
   message: string;
@@ -33,6 +34,7 @@ export default function WhatsAppPreview({
   whatsappUrl,
   classTime,
   periodOptions,
+  sessionCount = 1,
   onClose,
 }: WhatsAppPreviewProps) {
   if (!open) return null;
@@ -44,6 +46,7 @@ export default function WhatsAppPreview({
       whatsappUrl={whatsappUrl}
       classTime={classTime}
       periodOptions={periodOptions}
+      sessionCount={sessionCount}
       onClose={onClose}
     />
   );
@@ -55,6 +58,7 @@ function WhatsAppPreviewDialog({
   whatsappUrl,
   classTime,
   periodOptions,
+  sessionCount = 1,
   onClose,
 }: Omit<WhatsAppPreviewProps, "open">) {
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -66,8 +70,8 @@ function WhatsAppPreviewDialog({
     : "";
 
   const previewMessage = useMemo(
-    () => setMessageClassTime(message, editedClassTime || null),
-    [message, editedClassTime],
+    () => sessionCount > 1 ? message : setMessageClassTime(message, editedClassTime || null),
+    [message, editedClassTime, sessionCount],
   );
 
   const previewUrl = useMemo(
@@ -102,7 +106,7 @@ function WhatsAppPreviewDialog({
         Send To: <span className="font-medium text-slate-900">{phoneNumber}</span>
       </p>
 
-      {periodOptions.length > 1 && (
+      {sessionCount === 1 && periodOptions.length > 1 && (
         <div className="mb-4">
           <FormField label="Timetable Period" hint="Select a period to load its start and end time.">
             <SelectInput
@@ -128,7 +132,7 @@ function WhatsAppPreviewDialog({
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-2 gap-3">
+      {sessionCount === 1 && <div className="mb-4 grid grid-cols-2 gap-3">
         <FormField label="Start Time" hint="Edit if today's class time changed.">
           <TextInput
             type="time"
@@ -145,7 +149,7 @@ function WhatsAppPreviewDialog({
             onChange={(e) => setEndTime(e.target.value)}
           />
         </FormField>
-      </div>
+      </div>}
 
       <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm text-slate-800">
         {previewMessage}

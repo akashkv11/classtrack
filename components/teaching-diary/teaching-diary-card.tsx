@@ -1,3 +1,4 @@
+import { formatTime12h } from "@/lib/timetable";
 import Badge from "@/components/ui/badge";
 import Card from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,8 @@ export default function TeachingDiaryCard({
         <div>
           <p className="text-sm font-medium text-slate-500">
             {formatDisplayDate(new Date(entry.entry_date + "T00:00:00Z"))}
-            {entry.subject ? ` · ${entry.subject.name}` : ""}
+            {` · ${entry.session_subject ?? entry.subject?.name ?? "Class session"}`}
+            {entry.session_start_time && entry.session_end_time ? ` · ${formatTime12h(entry.session_start_time)} – ${formatTime12h(entry.session_end_time)}` : " · Time not recorded"}
           </p>
           {entry.chapter && (
             <p className="mt-1 font-semibold text-slate-900">{chapterLabel(entry.chapter)}</p>

@@ -174,6 +174,8 @@ export type ClassUpdateMessageOptions = {
   date: Date;
   subject?: string | null;
   classTime?: string | null;
+  chapter?: string | null;
+  attendanceRecorded?: boolean;
   absentees: Absentee[];
   topicTaken?: { title: string; bullets: string[] } | null;
   whatsappChannelUrl?: string | null;
@@ -198,9 +200,12 @@ export function buildClassUpdateMessage(options: ClassUpdateMessageOptions): str
     lines.push(`Class Time: ${options.classTime}`);
   }
 
+  if (kind !== "CANCELLED") {
   lines.push("", "Absentees:");
 
-  if (options.absentees.length === 0) {
+  if (options.attendanceRecorded === false) {
+    lines.push("Attendance not recorded.");
+  } else if (options.absentees.length === 0) {
     lines.push("No absentees today.");
   } else {
     options.absentees.forEach((student, index) => {
@@ -208,9 +213,13 @@ export function buildClassUpdateMessage(options: ClassUpdateMessageOptions): str
     });
   }
 
-  lines.push("", copy.detailsHeading);
+  }
 
-  if (options.topicTaken?.title) {
+  lines.push("", kind === "EXAM" ? "Chapter:" : copy.detailsHeading);
+
+  if (kind === "EXAM") {
+    lines.push(options.chapter || "Chapter not recorded.");
+  } else if (options.topicTaken?.title) {
     lines.push(options.topicTaken.title);
     lines.push(...options.topicTaken.bullets);
   } else {
@@ -242,6 +251,8 @@ export function buildSeparateClassUpdateMessage(options: {
   subject?: string | null;
   chapter?: string | null;
   topics?: { title: string; bullets: string[] } | null;
+  homework?: string | null;
+  attendanceRecorded?: boolean;
   unpreparedStudents?: string[];
   preparationLines?: string[];
   absentees?: string[];
@@ -264,17 +275,17 @@ export function buildSeparateClassUpdateMessage(options: {
     `*SUBJECT:* ${options.subject ?? ""}`.trimEnd(),
     `*SESSION:* ${sessionLabel}`,
     `*CHAPTER:* ${options.chapter ?? ""}`.trimEnd(),
-    `*TOPICS:* ${options.diaryStatus === "CANCELLED" ? "No topics covered (class cancelled)." : options.topics?.title ?? ""}`.trimEnd(),
-    "*HW:*",
+    ...(options.diaryStatus === "EXAM" ? [] : [`*TOPICS:* ${options.diaryStatus === "CANCELLED" ? "No topics covered (class cancelled)." : options.topics?.title ?? "Diary not recorded"}`.trimEnd()]),
+    `*HW:* ${options.homework?.trim() || "No homework assigned."}`,
     "",
     "",
     "*ABSENTEES*",
-    ...formatStudentList(options.absentees ?? []),
+    ...(options.diaryStatus === "CANCELLED" ? ["Not applicable (cancelled)"] : options.attendanceRecorded === false ? ["Attendance not recorded."] : formatStudentList(options.absentees ?? [])),
     "",
     "*LATE STUDENTS*",
-    ...formatStudentList(options.lateStudents ?? []),
+    ...(options.diaryStatus === "CANCELLED" ? ["Not applicable (cancelled)"] : options.attendanceRecorded === false ? ["Attendance not recorded."] : formatStudentList(options.lateStudents ?? [])),
     "",
-    "*UNPREPARED STUDENTS*",
+    "*UNPREPARED STUDENTS — DAILY PREPARATION*",
     ...(options.preparationLines ?? formatStudentList(options.unpreparedStudents ?? [])),
   ].join("\n");
 }

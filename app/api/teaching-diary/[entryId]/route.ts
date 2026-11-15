@@ -126,11 +126,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       : existing.diaryStatus
   ) as DiaryStatus;
 
+  const session = await prisma.attendanceSession.findFirst({
+    where: { id: parsed.data.session_id ?? existing.sessionId, classId: classIdResult.classId },
+  });
+  if (!session || formatISODate(session.attendanceDate) !== entryDate) {
+    return NextResponse.json({ error: "Choose a session belonging to this class and date." }, { status: 400 });
+  }
+
+  if (session.id !== existing.sessionId) {
+    return NextResponse.json({ error: "A diary entry must stay connected to its original session." }, { status: 400 });
+  }
+
   const duplicateError = await findTeachingDiaryDuplicate({
+    sessionId: session.id,
     classId: classIdResult.classId,
     entryDate,
     syllabusTopicIds: topicIds,
-    timetableEntryId: existing.timetableEntryId,
+    timetableEntryId: session.timetableEntryId,
     diaryStatus,
     topicTaught:
       parsed.data.topic_taught !== undefined
@@ -146,6 +158,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   await prisma.teachingDiaryEntry.update({
     where: { id: entryId },
     data: {
+      sessionId: session.id,
+      timetableEntryId: session.timetableEntryId,
       ...(parsed.data.entry_date !== undefined && {
         entryDate: parseISODate(parsed.data.entry_date),
       }),

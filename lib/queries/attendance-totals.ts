@@ -16,14 +16,14 @@ export async function getSessionAttendanceTotals(options: {
       id: true,
       attendanceDate: true,
       createdAt: true,
-      timetableEntry: { select: { startTime: true } },
+      startTime: true,
       // Keep the session timeline intact so reports exclude sessions later than the selected one.
       records: { where: { studentId: { in: studentIds } }, select: { studentId: true, status: true } },
     },
   });
   sessions.sort((a, b) =>
     b.attendanceDate.getTime() - a.attendanceDate.getTime() ||
-    (b.timetableEntry?.startTime ?? "00:00").localeCompare(a.timetableEntry?.startTime ?? "00:00") ||
+    (b.startTime ?? "00:00").localeCompare(a.startTime ?? "00:00") ||
     b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id),
   );
   return {

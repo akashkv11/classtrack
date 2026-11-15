@@ -3,242 +3,72 @@ import { prisma } from "@/lib/db";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
 import { countAbsentDaysByStudent } from "@/lib/attendance";
 import { endOfMonth, formatISODate, startOfMonth } from "@/lib/dates";
-import { serializeTimetableEntry } from "@/lib/queries/timetable";
-import { getWhatsAppScheduleOptions, resolveWhatsAppSchedule } from "@/lib/whatsapp-schedule";
-import {
-  buildClassUpdateMessage,
-  buildSeparateClassUpdateMessage,
-  buildTopicTakenFromDiary,
-  buildWhatsAppUrl,
-  formatClassTimeRange,
-  subjectForStream,
-} from "@/lib/whatsapp";
-import { getWhatsAppMissingItems } from "@/lib/whatsapp-readiness";
+import { buildTopicTakenFromDiary, buildWhatsAppUrl, formatClassTimeRange } from "@/lib/whatsapp";
+import { buildDailyClassMessage, buildDailySeparateMessage, type DailyMessageDetails } from "@/lib/daily-messages";
+import { buildTeachingDiaryLink } from "@/lib/timetable/links";
+import type { WhatsAppMissingItem } from "@/lib/whatsapp-readiness";
 import { getSetting, SETTING_CLASS_UPDATE_RECIPIENT } from "@/lib/settings";
 import { getPreparationRoster } from "@/lib/queries/preparation";
 import { preparationMessageLines } from "@/lib/preparation";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
-
-const diaryInclude = {
-  syllabusChapter: {
-    select: { chapterNumber: true, chapterTitle: true },
-  },
-  syllabusSubject: {
-    select: { subjectName: true },
-  },
-  syllabusTopic: {
-    select: { topicTitle: true, subtopics: true },
-  },
-  topics: {
-    include: {
-      syllabusTopic: {
-        select: { topicTitle: true, subtopics: true },
-      },
-    },
-  },
-  timetableEntry: {
-    include: {
-      class: { select: { displayName: true } },
-    },
-  },
-} as const;
-
-async function findDiaryEntryForSession(options: {
-  classId: string;
-  attendanceDate: Date;
-  timetableEntryId: string | null;
-}) {
-  if (options.timetableEntryId) {
-    const linkedEntry = await prisma.teachingDiaryEntry.findFirst({
-      where: {
-        classId: options.classId,
-        entryDate: options.attendanceDate,
-        timetableEntryId: options.timetableEntryId,
-      },
-      include: diaryInclude,
-      orderBy: { createdAt: "desc" },
-    });
-    return linkedEntry;
-  }
-
-  return prisma.teachingDiaryEntry.findFirst({
-    where: {
-      classId: options.classId,
-      entryDate: options.attendanceDate,
-    },
-    include: diaryInclude,
-    orderBy: { createdAt: "desc" },
-  });
-}
-
 export async function GET(request: NextRequest, context: RouteContext) {
-  if (!(await isRequestAuthenticated(request))) {
-    return unauthorizedResponse();
-  }
-
+  if (!(await isRequestAuthenticated(request))) return unauthorizedResponse();
   const { sessionId } = await context.params;
-
-  const session = await prisma.attendanceSession.findUnique({
-    where: { id: sessionId },
+  const anchor = await prisma.attendanceSession.findUnique({ where: { id: sessionId }, include: { class: true } });
+  if (!anchor) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  const date = formatISODate(anchor.attendanceDate);
+  const sessions = await prisma.attendanceSession.findMany({
+    where: { classId: anchor.classId, attendanceDate: anchor.attendanceDate },
+    orderBy: [{ startTime: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }, { id: "asc" }],
     include: {
-      class: true,
-      timetableEntry: {
-        include: {
-          class: { select: { displayName: true } },
-        },
-      },
-      records: {
-        include: { student: true },
-        orderBy: { student: { rollNo: "asc" } },
-      },
+      records: { include: { student: { select: { fullName: true } } }, orderBy: [{ student: { rollNo: "asc" } }, { studentId: "asc" }] },
+      teachingDiaryEntries: { take: 1, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], include: {
+        syllabusChapter: { select: { chapterTitle: true, chapterNumber: true } },
+        syllabusTopic: { select: { topicTitle: true, subtopics: true } },
+        topics: { include: { syllabusTopic: { select: { topicTitle: true, subtopics: true } } } },
+      } },
     },
   });
-
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-
-  if (request.nextUrl.searchParams.get("template") === "separate") {
-    const [diaryEntry, phoneNumber, preparation] = await Promise.all([
-      findDiaryEntryForSession({
-        classId: session.classId,
-        attendanceDate: session.attendanceDate,
-        timetableEntryId: session.timetableEntryId,
-      }),
-      getSetting(SETTING_CLASS_UPDATE_RECIPIENT),
-      getPreparationRoster(session.classId, formatISODate(session.attendanceDate), session.timetableEntryId),
-    ]);
-    const chapter = diaryEntry?.syllabusChapter;
-    const message = buildSeparateClassUpdateMessage({
-      className: session.class.displayName,
-      date: session.attendanceDate,
-      subject: session.timetableEntry?.subject ??
-        diaryEntry?.timetableEntry?.subject ??
-        diaryEntry?.syllabusSubject?.subjectName ??
-        subjectForStream(session.class.stream),
-      chapter: chapter
-        ? `${chapter.chapterNumber ? `${chapter.chapterNumber}. ` : ""}${chapter.chapterTitle}`
-        : null,
-      topics: diaryEntry ? buildTopicTakenFromDiary(diaryEntry) : null,
-      preparationLines: preparationMessageLines(preparation.records),
-      diaryStatus: diaryEntry?.diaryStatus,
-      absentees: session.records.filter((record) => record.status === "absent").map((record) => record.student.fullName),
-      lateStudents: session.records.filter((record) => record.status === "late").map((record) => record.student.fullName),
-    });
-    return NextResponse.json({
-      phone_number: phoneNumber,
-      message,
-      students: preparation.records,
-      class_id: session.classId,
-      attendance_date: formatISODate(session.attendanceDate),
-      timetable_entry_id: session.timetableEntryId,
-      threshold: preparation.threshold,
-      includePartial: preparation.includePartial,
-    });
-  }
-
-  if (!session.class.whatsappNumber) {
-    return NextResponse.json(
-      { error: "WhatsApp number not configured for this class" },
-      { status: 400 },
-    );
-  }
-
-  const absentRecords = session.records.filter((r) => r.status === "absent");
-  const absentStudentIds = absentRecords.map((r) => r.studentId);
-
-  const attendanceDate = session.attendanceDate;
-  const year = attendanceDate.getUTCFullYear();
-  const month = attendanceDate.getUTCMonth() + 1;
-  const rangeStart = startOfMonth(year, month);
-  const rangeEnd = endOfMonth(year, month);
-  const isoDate = formatISODate(attendanceDate);
-
-  const [monthSessions, diaryEntry] = await Promise.all([
-    absentStudentIds.length
-      ? prisma.attendanceSession.findMany({
-          where: {
-            classId: session.classId,
-            attendanceDate: { gte: rangeStart, lte: rangeEnd },
-          },
-          include: {
-            records: {
-              where: {
-                status: "absent",
-                studentId: { in: absentStudentIds },
-              },
-            },
-          },
-        })
-      : Promise.resolve([]),
-    findDiaryEntryForSession({
-      classId: session.classId,
-      attendanceDate,
-      timetableEntryId: session.timetableEntryId,
-    }),
-  ]);
-
-  const monthlyAbsentCounts = countAbsentDaysByStudent(monthSessions);
-
-  const absentees = absentRecords.map((r) => ({
-    rollNo: r.student.rollNo,
-    fullName: r.student.fullName,
-    monthlyAbsentCount: monthlyAbsentCounts.get(r.studentId) ?? 1,
+  const details: DailyMessageDetails = { class_name: anchor.class.displayName, date, channel_url: anchor.class.whatsappChannelUrl,
+    sessions: sessions.map(s => {
+      const diary = s.teachingDiaryEntries[0];
+      return { id: s.id, subject: s.subject, start_time: s.startTime, end_time: s.endTime,
+        diary_status: diary?.diaryStatus ?? null, chapter: diary?.syllabusChapter?.chapterTitle ?? null,
+        topics: diary ? buildTopicTakenFromDiary(diary) : null, attendance_recorded: s.records.length > 0,
+        absentees: s.records.filter(r => r.status === "absent").map(r => ({ id: r.studentId, name: r.student.fullName })),
+        late_students: s.records.filter(r => r.status === "late").map(r => ({ id: r.studentId, name: r.student.fullName })),
+      };
+    }) };
+  const missing: WhatsAppMissingItem[] = sessions.filter(s => !s.teachingDiaryEntries.length).map(s => ({
+    id: "teaching_diary", label: `Teaching diary: ${s.subject ?? "Class session"} · ${s.startTime ?? "Time not recorded"}`,
+    description: "Add the diary and session type for this session.", fix_href: buildTeachingDiaryLink(anchor.classId, { sessionId: s.id }),
   }));
-
-  const timetableRecord =
-    session.timetableEntry ?? diaryEntry?.timetableEntry ?? null;
-
-  let subject =
-    diaryEntry?.syllabusSubject?.subjectName ??
-    subjectForStream(session.class.stream);
-  let classTime: string | null = null;
-
-  const candidates = timetableRecord ? [] : await prisma.timetableEntry.findMany({
-    where: { classId: session.classId, isActive: true },
-    include: { class: { select: { displayName: true } } },
-  });
-  const schedule = resolveWhatsAppSchedule(
-    timetableRecord ? serializeTimetableEntry(timetableRecord) : null,
-    candidates.map(serializeTimetableEntry),
-    isoDate,
-  );
-  if (schedule) {
-    subject = schedule.entry.subject;
-    classTime = formatClassTimeRange(schedule.start_time, schedule.end_time);
+  const common = { class_id: anchor.classId, attendance_date: date, session_count: sessions.length, daily_details: details };
+  if (request.nextUrl.searchParams.get("template") === "separate") {
+    const [phoneNumber, preparation] = await Promise.all([
+      getSetting(SETTING_CLASS_UPDATE_RECIPIENT), getPreparationRoster(anchor.classId, date, null),
+    ]);
+    return NextResponse.json({ ...common, phone_number: phoneNumber,
+      message: buildDailySeparateMessage(details, preparationMessageLines(preparation.records)),
+      students: preparation.records, timetable_entry_id: null, threshold: preparation.threshold, includePartial: preparation.includePartial,
+      missing_items: missing,
+    });
   }
-
-  const topicTaken = diaryEntry ? buildTopicTakenFromDiary(diaryEntry) : null;
-
-  const missingItems = getWhatsAppMissingItems({
-    classId: session.classId,
-    attendanceDate: isoDate,
-    timetableEntryId: session.timetableEntryId,
-    whatsappChannelUrl: session.class.whatsappChannelUrl,
-    diaryEntry,
-  });
-
-  const message = buildClassUpdateMessage({
-    className: session.class.displayName,
-    subject,
-    date: session.attendanceDate,
-    classTime,
-    absentees,
-    topicTaken,
-    whatsappChannelUrl: session.class.whatsappChannelUrl,
-    diaryStatus: diaryEntry?.diaryStatus,
-  });
-
-  return NextResponse.json({
-    phone_number: session.class.whatsappNumber,
-    message,
-    whatsapp_url: buildWhatsAppUrl(session.class.whatsappNumber, message),
-    class_id: session.classId,
-    attendance_date: isoDate,
-    class_time: classTime,
-    period_options: getWhatsAppScheduleOptions(candidates.map(serializeTimetableEntry), isoDate)
-      .map(({ entry, start_time, end_time }) => ({ id: entry.id, subject: entry.subject, start_time, end_time })),
-    missing_items: missingItems,
+  if (!anchor.class.whatsappNumber) return NextResponse.json({ error: "WhatsApp number not configured for this class" }, { status: 400 });
+  if (sessions.length === 1 && details.sessions[0].absentees.length) {
+    const monthSessions = await prisma.attendanceSession.findMany({ where: {
+      classId: anchor.classId, attendanceDate: { gte: startOfMonth(anchor.attendanceDate.getUTCFullYear(), anchor.attendanceDate.getUTCMonth() + 1), lte: endOfMonth(anchor.attendanceDate.getUTCFullYear(), anchor.attendanceDate.getUTCMonth() + 1) },
+    }, include: { records: { where: { status: "absent", studentId: { in: details.sessions[0].absentees.map(a => a.id) } } } } });
+    const counts = countAbsentDaysByStudent(monthSessions);
+    for (const absentee of details.sessions[0].absentees) absentee.monthly_absent_count = counts.get(absentee.id) ?? 1;
+  }
+  if (!anchor.class.whatsappChannelUrl) missing.unshift({ id: "whatsapp_channel", label: "WhatsApp channel link", description: "Add a study materials channel link.", fix_href: `/classes/${anchor.classId}/settings` });
+  const message = buildDailyClassMessage(details);
+  const first = details.sessions[0];
+  return NextResponse.json({ ...common, phone_number: anchor.class.whatsappNumber, message,
+    whatsapp_url: buildWhatsAppUrl(anchor.class.whatsappNumber, message),
+    class_time: sessions.length === 1 && first.start_time && first.end_time ? formatClassTimeRange(first.start_time, first.end_time) : null,
+    period_options: [], missing_items: missing,
   });
 }

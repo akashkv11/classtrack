@@ -1,109 +1,35 @@
-import Table, {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from "@/components/ui/table";
+import type { ReactNode } from "react";
+import Table, { TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
 import { StatCard } from "@/components/ui/card";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments/types";
+import { PREPARATION_LABELS, type PreparationStatus } from "@/lib/preparation";
 import { formatDisplayDate } from "@/lib/dates";
+import { formatClassTimeRange } from "@/lib/whatsapp";
 import type { AssessmentType } from "@/lib/types/assessment";
-import type { StudentProfile } from "@/lib/types/student-profile";
-import ParentPhoneLink from "@/components/students/parent-phone-link";
+import type { StudentProfileReport } from "@/lib/types/student-profile-report";
 
-type StudentProfileReportViewProps = {
-  profile: StudentProfile;
-};
-
-export default function StudentProfileReportView({
-  profile,
-}: StudentProfileReportViewProps) {
-  const { student, class: cls, summary, attendance, assessments } = profile;
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-lg font-semibold text-slate-900">{student.full_name}</p>
-        <p className="mt-1 text-sm text-slate-600">
-          Roll {student.roll_no}
-          {student.admission_no ? ` · Admission ${student.admission_no}` : ""}
-          {" · "}
-          {cls.display_name}
-        </p>
-        {student.parent_phone && (
-          <p className="mt-1 text-sm text-slate-600">Parent phone: <ParentPhoneLink phone={student.parent_phone} /></p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          label={`Attendance (${attendance.month})`}
-          value={`${attendance.attendance_percentage}%`}
-        />
-        <StatCard label="Present days" value={attendance.present_days} />
-        <StatCard label="Absent days" value={attendance.absent_days} />
-        <StatCard
-          label="Average marks"
-          value={
-            summary.average_marks_percentage !== null
-              ? `${summary.average_marks_percentage}%`
-              : "—"
-          }
-        />
-      </div>
-
-      {summary.latest_assessment && (
-        <p className="text-sm text-slate-700">
-          Latest assessment: {summary.latest_assessment.assessment_name} (
-          {summary.latest_assessment.marks_obtained ?? "—"} /{" "}
-          {summary.latest_assessment.max_marks})
-        </p>
-      )}
-
-      <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Assessment History
-        </h3>
-        {assessments.length === 0 ? (
-          <p className="text-sm text-slate-600">No assessment records for this student.</p>
-        ) : (
-          <Table>
-            <TableHead>
-              <tr>
-                <TableHeaderCell>Date</TableHeaderCell>
-                <TableHeaderCell>Assessment</TableHeaderCell>
-                <TableHeaderCell>Type</TableHeaderCell>
-                <TableHeaderCell>Subject</TableHeaderCell>
-                <TableHeaderCell>Marks</TableHeaderCell>
-                <TableHeaderCell>%</TableHeaderCell>
-              </tr>
-            </TableHead>
-            <TableBody>
-              {assessments.map((entry) => (
-                <TableRow key={entry.assessment_id}>
-                  <TableCell>
-                    {formatDisplayDate(new Date(entry.assessment_date + "T00:00:00Z"))}
-                  </TableCell>
-                  <TableCell>{entry.assessment_name}</TableCell>
-                  <TableCell>
-                    {ASSESSMENT_TYPE_LABELS[entry.assessment_type as AssessmentType]}
-                  </TableCell>
-                  <TableCell>{entry.subject_name}</TableCell>
-                  <TableCell>
-                    {entry.marks_obtained !== null
-                      ? `${entry.marks_obtained} / ${entry.max_marks}`
-                      : "Absent"}
-                  </TableCell>
-                  <TableCell>
-                    {entry.percentage !== null ? `${entry.percentage}%` : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+const date = (value: string) => formatDisplayDate(new Date(`${value}T00:00:00Z`));
+const time = (start: string | null, end: string | null) => start && end ? formatClassTimeRange(start, end) : "Time not recorded";
+function History({ title, headers, rows }: { title: string; headers: string[]; rows: ReactNode[][] }) {
+  return <section><h3 className="mb-3 text-lg font-semibold">{title}</h3>{rows.length ? <Table><TableHead><TableRow>{headers.map(h => <TableHeaderCell key={h}>{h}</TableHeaderCell>)}</TableRow></TableHead><TableBody>{rows.map((cells, i) => <TableRow key={i}>{cells.map((cell, j) => <TableCell key={j}>{cell}</TableCell>)}</TableRow>)}</TableBody></Table> : <p>No records available.</p>}</section>;
+}
+export default function StudentProfileReportView({ profile }: { profile: StudentProfileReport }) {
+  const { student: s, summary: totals } = profile;
+  const latest = profile.assessments[0];
+  return <div className="space-y-6">
+    <section><h2 className="text-xl font-semibold">{s.full_name}</h2><dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+      {Object.entries({ "Roll number": s.roll_no, "Admission number": s.admission_no, Class: profile.class.display_name,
+        "Academic year": profile.class.academic_year, Email: s.email, "Parent phone": s.parent_phone, Status: s.is_active ? "Active" : "Inactive" }).map(([label, value]) => <div key={label}><dt className="inline font-medium">{label}: </dt><dd className="inline">{value ?? "Not recorded"}</dd></div>)}
+    </dl></section>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCard label="Overall attendance" value={`${totals.attendance_percentage}%`} />
+      <StatCard label="Total sessions" value={totals.total_sessions} /><StatCard label="Present sessions" value={totals.present} />
+      <StatCard label="Absent sessions" value={totals.absent} /><StatCard label="Late sessions" value={totals.late} />
+      <StatCard label="Unmarked sessions" value={totals.unmarked} /><StatCard label="Average marks" value={totals.average_marks_percentage === null ? "Not recorded" : `${totals.average_marks_percentage}%`} />
     </div>
-  );
+    <p>Latest assessment: {latest ? `${latest.name} — ${latest.marks === null ? "Absent" : `${latest.marks}/${latest.max_marks}`} (${date(latest.date)})` : "Not recorded"}</p>
+    <History title="Attendance history" headers={["Date", "Subject", "Time", "Attendance"]} rows={profile.attendance.map(a => [date(a.date), a.subject ?? "Not recorded", time(a.start_time, a.end_time), a.status === "not_marked" ? "Not marked" : a.status.charAt(0).toUpperCase() + a.status.slice(1)])} />
+    <History title="Assessment history" headers={["Date", "Assessment", "Type", "Subject", "Marks", "%"]} rows={profile.assessments.map(a => [date(a.date), a.name, ASSESSMENT_TYPE_LABELS[a.type as AssessmentType] ?? a.type, a.subject, a.marks === null ? "Absent" : `${a.marks}/${a.max_marks}`, a.percentage === null ? "—" : `${a.percentage}%`])} />
+    <History title="Preparation history" headers={["Date", "Scope / Subject", "Time", "Preparation"]} rows={profile.preparation.map(p => [date(p.date), p.scope === "daily" ? "Daily preparation" : p.subject ?? "Not recorded", p.scope === "daily" ? "Whole day" : time(p.start_time, p.end_time), PREPARATION_LABELS[p.status as PreparationStatus] ?? "Not recorded"])} />
+  </div>;
 }

@@ -48,9 +48,9 @@ test("separate update includes diary details and a numbered unprepared list", ()
   assert.equal(message, [
     "CLASS UPDATE", "", "*CLASS:* Plus Two Science", "*DATE:* 2 Nov 2026",
     "*SUBJECT:* Computer Science", "*SESSION:* Regular class", "*CHAPTER:* 3. Functions", "*TOPICS:* Functions",
-    "*HW:*", "", "",
+    "*HW:* No homework assigned.", "", "",
     "*ABSENTEES*", "None", "", "*LATE STUDENTS*", "None", "",
-    "*UNPREPARED STUDENTS*", "1) Asha", "2) Rahul",
+    "*UNPREPARED STUDENTS — DAILY PREPARATION*", "1) Asha", "2) Rahul",
   ].join("\n"));
   const url = new URL(buildWhatsAppUrl("+91 98765 43210", message));
   assert.equal(url.pathname, "/919876543210");
@@ -65,16 +65,16 @@ test("separate update includes attendance lists before preparation so preview ed
     preparationLines: ["1) Meera (not prepared)"],
   });
   assert.ok(message.includes("*ABSENTEES*\n1) Asha\n2) Dev\n\n*LATE STUDENTS*\n1) Rahul"));
-  const retained = message.split("*UNPREPARED STUDENTS*")[0];
+  const retained = message.split("*UNPREPARED STUDENTS — DAILY PREPARATION*")[0];
   assert.ok(retained.includes("*ABSENTEES*\n1) Asha\n2) Dev"));
   assert.ok(retained.includes("*LATE STUDENTS*\n1) Rahul"));
-  assert.ok(message.endsWith("*UNPREPARED STUDENTS*\n1) Meera (not prepared)"));
+  assert.ok(message.endsWith("*UNPREPARED STUDENTS — DAILY PREPARATION*\n1) Meera (not prepared)"));
 });
 
 test("missing diary data leaves fields editable and no selection says None", () => {
   const message = buildSeparateClassUpdateMessage(session);
-  assert.ok(message.includes("*SUBJECT:*\n*SESSION:* Not recorded in teaching diary\n*CHAPTER:*\n*TOPICS:*\n*HW:*"));
-  assert.ok(message.endsWith("*UNPREPARED STUDENTS*\nNone"));
+  assert.ok(message.includes("*SUBJECT:*\n*SESSION:* Not recorded in teaching diary\n*CHAPTER:*\n*TOPICS:* Diary not recorded\n*HW:*"));
+  assert.ok(message.endsWith("*UNPREPARED STUDENTS — DAILY PREPARATION*\nNone"));
 });
 
 test("session updates show the diary activity and main topics without subtopics", () => {
@@ -83,7 +83,7 @@ test("session updates show the diary activity and main topics without subtopics"
       topics: { title: "Functions; Arrays", bullets: ["• Parameters", "• Return values"] },
     });
     assert.ok(message.includes(`*SESSION:* ${label}`));
-    assert.ok(message.includes("*TOPICS:* Functions; Arrays"));
+    assert.equal(message.includes("*TOPICS:* Functions; Arrays"), diaryStatus !== "EXAM");
     assert.equal(message.includes("Parameters"), false);
     assert.equal(message.includes("Return values"), false);
   }

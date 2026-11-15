@@ -45,7 +45,7 @@ export default function PreparationRoster({ students, onChange, disabled, thresh
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
         Tap students who are not prepared. Tap <span className="font-semibold text-amber-700">P</span> at
-        the end of a row for partially prepared. Everyone else is saved as fully prepared.
+        the end of a row for partially prepared. Unmarked students stay unmarked until assessed.
         Notes are added automatically for students marked not prepared or partially prepared.
       </p>
       <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm" aria-live="polite">
@@ -54,6 +54,10 @@ export default function PreparationRoster({ students, onChange, disabled, thresh
         <span className="text-red-700">{students.filter((student) => student.preparation_status === "NONE").length} not prepared</span>
       </p>
       <fieldset disabled={disabled}>
+        <div className="mb-3 flex gap-3 text-sm">
+          <button type="button" className="text-blue-700 underline" onClick={() => onChange(students.map(s => ({ ...s, preparation_status: "FULL" })))}>Mark all fully prepared</button>
+          <button type="button" className="text-slate-700 underline" onClick={() => onChange(students.map(s => ({ ...s, preparation_status: "NOT_MARKED" })))}>Clear assessments</button>
+        </div>
         <legend className="sr-only">Student preparation</legend>
         <ul className="space-y-2">
           {students.map((student) => {

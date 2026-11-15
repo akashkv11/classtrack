@@ -42,7 +42,7 @@ export default function WhatsAppMissingItemsDialog({
       <ul className="space-y-3">
         {items.map((item) => (
           <li
-            key={item.id}
+            key={item.fix_href}
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3"
           >
             <p className="font-medium text-slate-900">{item.label}</p>

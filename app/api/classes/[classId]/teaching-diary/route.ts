@@ -44,6 +44,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
+  if (parsed.data.session_id) {
+    const existing = await prisma.teachingDiaryEntry.findFirst({
+      where: { classId, sessionId: parsed.data.session_id },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    });
+    return NextResponse.json({ entry: existing ? await getTeachingDiaryEntryById(existing.id) : null });
+  }
+
   const entries = await getTeachingDiaryEntriesForClass(classId, {
     subjectId: parsed.data.subject_id,
     chapterId: parsed.data.chapter_id,
@@ -81,6 +89,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
 
+  const session = await prisma.attendanceSession.findFirst({
+    where: { id: parsed.data.session_id, classId },
+  });
+  if (!session || session.attendanceDate.getTime() !== parseISODate(parsed.data.entry_date).getTime()) {
+    return NextResponse.json({ error: "Choose a session belonging to this class and date." }, { status: 400 });
+  }
+  parsed.data.timetable_entry_id = session.timetableEntryId;
+
+  const existing = await prisma.teachingDiaryEntry.findFirst({ where: { sessionId: session.id }, orderBy: [{ updatedAt: "desc" }, { id: "desc" }] });
+  if (existing) {
+    return NextResponse.json({ error: "This session already has a diary entry.", entry: await getTeachingDiaryEntryById(existing.id) }, { status: 409 });
+  }
+
   const topicIds = parsed.data.syllabus_topic_ids;
 
   const hierarchyCheck = await validateSyllabusTopicsHierarchy(
@@ -105,6 +126,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   const duplicateError = await findTeachingDiaryDuplicate({
+    sessionId: session.id,
     classId,
     entryDate: parsed.data.entry_date,
     syllabusTopicIds: topicIds,
@@ -123,6 +145,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const entry = await tx.teachingDiaryEntry.create({
         data: {
           classId,
+          sessionId: session.id,
           timetableEntryId: parsed.data.timetable_entry_id ?? null,
           syllabusSubjectId: parsed.data.syllabus_subject_id ?? null,
           syllabusChapterId: parsed.data.syllabus_chapter_id ?? null,
@@ -147,6 +170,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
+      const existing = await prisma.teachingDiaryEntry.findFirst({ where: { sessionId: session.id }, orderBy: [{ updatedAt: "desc" }, { id: "desc" }] });
+      if (existing) {
+        return NextResponse.json({ error: "This session already has a diary entry.", entry: await getTeachingDiaryEntryById(existing.id) }, { status: 409 });
+      }
       return NextResponse.json(
         { error: "A diary entry for this class slot on this date already exists." },
         { status: 409 },

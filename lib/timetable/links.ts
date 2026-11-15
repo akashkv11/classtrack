@@ -1,5 +1,6 @@
 export type TimetableLinkParams = {
   date?: string;
+  sessionId?: string;
   timetableEntryId?: string;
   subject?: string;
   startTime?: string;
@@ -9,6 +10,7 @@ export type TimetableLinkParams = {
 
 function buildQuery(params: TimetableLinkParams): string {
   const search = new URLSearchParams();
+  if (params.sessionId) search.set("session_id", params.sessionId);
   if (params.date) search.set("date", params.date);
   if (params.timetableEntryId) search.set("timetable_entry_id", params.timetableEntryId);
   if (params.subject) search.set("subject", params.subject);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRequestAuthenticated, unauthorizedResponse } from "@/lib/auth";
-import { getStudentProfile } from "@/lib/queries/student-profile";
+import { getStudentProfileReports } from "@/lib/queries/student-profile-report";
 import {
   parseInput,
   reportStudentProfileQuerySchema,
@@ -15,17 +15,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   const { classId } = await context.params;
-  const studentId = request.nextUrl.searchParams.get("student_id") ?? "";
+  const query = Object.fromEntries(request.nextUrl.searchParams);
 
-  const parsed = parseInput(reportStudentProfileQuerySchema, { student_id: studentId });
+  const parsed = parseInput(reportStudentProfileQuerySchema, query);
   if (!parsed.success) {
     return NextResponse.json(validationErrorResponse(parsed), { status: 400 });
   }
 
-  const profile = await getStudentProfile(classId, parsed.data.student_id);
-  if (!profile) {
+  const profiles = await getStudentProfileReports(classId, parsed.data.student_id);
+  if (!profiles || (!profiles.length && parsed.data.student_id)) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  return NextResponse.json(profile);
+  return NextResponse.json({ profiles });
 }

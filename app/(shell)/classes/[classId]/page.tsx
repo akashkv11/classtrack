@@ -23,6 +23,7 @@ export default async function ClassDetailsPage({ params }: PageProps) {
   const sessions = cls.attendanceSessions.map((session) => ({
     id: session.id,
     date: formatISODate(session.attendanceDate),
+    subject: session.subject, startTime: session.startTime, endTime: session.endTime,
   }));
 
   return (
