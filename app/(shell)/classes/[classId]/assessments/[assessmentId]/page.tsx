@@ -34,6 +34,8 @@ export default async function AssessmentDetailPage({ params }: PageProps) {
 
       <AssessmentDetailClient
         classId={classId}
+        className={cls.displayName}
+        whatsappNumber={cls.whatsappNumber}
         assessmentId={assessmentId}
         initialData={data}
         lowMarksThresholdPercent={lowMarksThresholdPercent}

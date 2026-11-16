@@ -6,15 +6,23 @@ import Card from "@/components/ui/card";
 import Alert from "@/components/ui/alert";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { TextInput } from "@/components/ui/form-field";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { AssessmentSharingState } from "@/lib/types/assessment";
 
-type Props = { assessmentId: string; classId: string; sharing: AssessmentSharingState; onChange: (sharing: AssessmentSharingState) => void };
-export default function AssessmentSharingControls({ assessmentId, classId, sharing, onChange }: Props) {
+type Props = { assessmentId: string; classId: string; className: string; assessmentName: string; whatsappNumber: string | null; sharing: AssessmentSharingState; onChange: (sharing: AssessmentSharingState) => void };
+export default function AssessmentSharingControls({ assessmentId, classId, className, assessmentName, whatsappNumber, sharing, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [origin, setOrigin] = useState("");
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const hasWhatsAppNumber = Boolean(whatsappNumber?.trim());
+  function shareOnWhatsApp() {
+    if (busy || !sharing.path || !sharing.enabled || !whatsappNumber?.trim()) return;
+    const parentUrl = window.location.origin + sharing.path;
+    const message = `${className} — ${assessmentName} results\nView your child’s result using the link below. Enter at least two characters from the student’s name.\n${parentUrl}`;
+    window.open(buildWhatsAppUrl(whatsappNumber, message), "_blank", "noopener,noreferrer");
+  }
   async function change(action: "enable" | "disable" | "regenerate") {
     setBusy(true); setError(""); setNotice("");
     try {
@@ -40,12 +48,20 @@ export default function AssessmentSharingControls({ assessmentId, classId, shari
     <p className="mt-1 text-sm text-slate-600">{!sharing.path ? "A link is generated when you save marks." : sharing.enabled ? "Parents can search by student name to view this assessment’s saved result." : "This link is disabled. Parents cannot view results."}</p>
     {sharing.path && <div className="mt-3"><label htmlFor="parent-results-link" className="sr-only">Parent results link</label><TextInput id="parent-results-link" readOnly value={origin + sharing.path} onFocus={event => { setOrigin(window.location.origin); event.target.select(); }} /></div>}
     <div className="mt-3 flex flex-wrap gap-2">
-      {sharing.path && sharing.enabled && <><Button type="button" size="sm" disabled={busy} onClick={copyLink}>Copy Link</Button><ButtonLink size="sm" href={sharing.path} target="_blank" rel="noreferrer">Open Link</ButtonLink></>}
+      {sharing.path && sharing.enabled && <>
+        <Button type="button" size="sm" disabled={busy} onClick={copyLink}>Copy Link</Button>
+        {hasWhatsAppNumber && <Button type="button" variant="whatsapp" size="sm" disabled={busy} onClick={shareOnWhatsApp}>Share on WhatsApp</Button>}
+        <ButtonLink size="sm" href={sharing.path} target="_blank" rel="noreferrer">Open Link</ButtonLink>
+      </>}
       {sharing.path ? <>
         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => change(sharing.enabled ? "disable" : "enable")}>{sharing.enabled ? "Disable Link" : "Enable Link"}</Button>
         <Button type="button" variant="secondary" size="sm" disabled={busy || !sharing.has_saved_marks} onClick={() => { setError(""); setConfirmRegenerate(true); }}>Regenerate Link</Button>
       </> : sharing.has_saved_marks && <Button type="button" size="sm" disabled={busy} onClick={() => change("enable")}>Generate Link</Button>}
     </div>
+    {sharing.path && sharing.enabled && !hasWhatsAppNumber && <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+      <p>Add a class WhatsApp number to share the parent results link.</p>
+      <ButtonLink size="sm" href={`/classes/${classId}/settings`}>Class Settings</ButtonLink>
+    </div>}
     {error && <div className="mt-3" role="alert"><Alert variant="error">{error}</Alert></div>}
     {notice && <p role="status" className="mt-3 text-sm text-green-700">{notice}</p>}
     <ConfirmDialog open={confirmRegenerate} title="Replace parent results link?" description="The existing link will stop working. Share the new link with parents." confirmLabel="Regenerate Link" loading={busy} onConfirm={() => change("regenerate")} onCancel={() => { if (!busy) setConfirmRegenerate(false); }} />

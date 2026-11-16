@@ -19,6 +19,8 @@ import type {
 
 type AssessmentDetailClientProps = {
   classId: string;
+  className: string;
+  whatsappNumber: string | null;
   assessmentId: string;
   initialData: AssessmentMarksResponse;
   lowMarksThresholdPercent: number;
@@ -26,6 +28,8 @@ type AssessmentDetailClientProps = {
 
 export default function AssessmentDetailClient({
   classId,
+  className,
+  whatsappNumber,
   assessmentId,
   initialData,
   lowMarksThresholdPercent,
@@ -129,7 +133,7 @@ export default function AssessmentDetailClient({
         </div>
       </Card>
 
-      <AssessmentSharingControls assessmentId={assessmentId} classId={classId} sharing={sharing} onChange={setSharing} />
+      <AssessmentSharingControls assessmentId={assessmentId} classId={classId} className={className} assessmentName={assessment.name} whatsappNumber={whatsappNumber} sharing={sharing} onChange={setSharing} />
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Assessment Summary</h3>
       <AssessmentSummaryCards

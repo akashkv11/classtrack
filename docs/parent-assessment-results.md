@@ -1,6 +1,6 @@
 # Parent assessment results
 
-Save an assessment's marks, then use **Parent results link → Copy Link** on its assessment page. Share the copied link manually. Parents do not need a teacher login.
+Save an assessment's marks, then use **Parent results link → Share on WhatsApp** on its assessment page. WhatsApp opens for the saved class number with the class name, assessment name, lookup instructions, and parent results link filled in. Review the message and tap **Send** in WhatsApp. If no class WhatsApp number is saved, use **Class Settings** to add one. You can also use **Copy Link** to share manually. Parents do not need a teacher login.
 
 Parents enter at least two characters from the student's name. First names, surnames, and name fragments are accepted, ignoring capitalisation and extra spaces. A unique match opens the result directly. When several students match, parents select from full names and roll numbers; even identical full names can be distinguished by roll number. Marks and remarks are shown only for the selected student. Only students with saved results in the linked assessment appear, and no student list appears before a search. Anyone holding the link can search for matching student names and view a selected result.
 
@@ -18,6 +18,8 @@ npm run build
 Migration `20261111050000_add_assessment_sharing` adds nullable unique share tokens and an initially disabled sharing flag. It does not publish existing assessments or change saved marks. The existing `build:netlify` command already migrates before building.
 
 ## Verification
+
+Check **Share on WhatsApp** on desktop and mobile: confirm the saved class number, full parent URL, and message (including non-English names and punctuation). The button is available only for enabled links and is disabled while link settings update. Check newly generated and regenerated links use the current URL. With no saved class number, confirm the setup guidance leads to class settings.
 
 ```bash
 npm run typecheck
