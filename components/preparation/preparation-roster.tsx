@@ -29,12 +29,13 @@ const statusStyles = {
   },
 } as const;
 
-export default function PreparationRoster({ students, onChange, disabled, threshold, includePartial }: {
+export default function PreparationRoster({ students, onChange, disabled, threshold, includePartial, allowUnmarked = true }: {
   students: PreparationStudent[];
   onChange: (students: PreparationStudent[]) => void;
   disabled: boolean;
   threshold: number;
   includePartial: boolean;
+  allowUnmarked?: boolean;
 }) {
   function setStatus(studentId: string, status: PreparationStatus) {
     onChange(students.map((student) => student.student_id === studentId
@@ -45,7 +46,7 @@ export default function PreparationRoster({ students, onChange, disabled, thresh
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
         Tap students who are not prepared. Tap <span className="font-semibold text-amber-700">P</span> at
-        the end of a row for partially prepared. Unmarked students stay unmarked until assessed.
+        the end of a row for partially prepared. {allowUnmarked ? "Unmarked students stay unmarked until assessed." : "Students default to fully prepared. Leave prepared students unselected."}
         Notes are added automatically for students marked not prepared or partially prepared.
       </p>
       <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm" aria-live="polite">
@@ -56,7 +57,7 @@ export default function PreparationRoster({ students, onChange, disabled, thresh
       <fieldset disabled={disabled}>
         <div className="mb-3 flex gap-3 text-sm">
           <button type="button" className="text-blue-700 underline" onClick={() => onChange(students.map(s => ({ ...s, preparation_status: "FULL" })))}>Mark all fully prepared</button>
-          <button type="button" className="text-slate-700 underline" onClick={() => onChange(students.map(s => ({ ...s, preparation_status: "NOT_MARKED" })))}>Clear assessments</button>
+          {allowUnmarked && <button type="button" className="text-slate-700 underline" onClick={() => onChange(students.map(s => ({ ...s, preparation_status: "NOT_MARKED" })))}>Clear assessments</button>}
         </div>
         <legend className="sr-only">Student preparation</legend>
         <ul className="space-y-2">

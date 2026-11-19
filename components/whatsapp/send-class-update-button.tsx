@@ -32,7 +32,9 @@ export default function SendClassUpdateButton({
   const [missingItems, setMissingItems] = useState<WhatsAppMissingItem[]>([]);
   const [dailyDetails, setDailyDetails] = useState<DailyMessageDetails | null>(null);
   const [students, setStudents] = useState<PreparationStudent[]>([]);
-  const [step, setStep] = useState<"students" | "homework" | "preview">("students");
+  const [savedStudents, setSavedStudents] = useState<PreparationStudent[]>([]);
+  const [preparationEntered, setPreparationEntered] = useState(false);
+  const [step, setStep] = useState<"preparation" | "students" | "homework" | "preview">("preparation");
   const [homeworkGiven, setHomeworkGiven] = useState<"yes" | "no" | null>(null);
   const [homework, setHomework] = useState("");
   const [saving, setSaving] = useState(false);
@@ -52,11 +54,13 @@ export default function SendClassUpdateButton({
       setPhoneNumber(data.phone_number);
       setMessage(data.message);
       setStudents(data.students);
+      setSavedStudents(data.students);
       setDailyDetails(data.daily_details);
       setMissingItems(data.missing_items ?? []);
       setSlot({ classId: data.class_id, date: data.attendance_date, timetableEntryId: data.timetable_entry_id });
       setRules({ threshold: data.threshold, includePartial: data.includePartial });
-      setStep("students");
+      setStep("preparation");
+      setPreparationEntered(false);
       setHomeworkGiven(null);
       setHomework("");
       setOpen(true);
@@ -64,6 +68,22 @@ export default function SendClassUpdateButton({
       setError(err instanceof Error ? err.message : "Could not generate class update.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function choosePreparation(needed: boolean) {
+    setError("");
+    setPreparationEntered(needed);
+    if (needed) {
+      setStudents(students.map((student) => ({
+        ...student,
+        preparation_status: student.preparation_status === "NOT_MARKED" ? "FULL" : student.preparation_status,
+      })));
+      setStep("students");
+    } else {
+      setStudents(savedStudents);
+      if (dailyDetails) setMessage(buildDailySeparateMessage(dailyDetails, preparationMessageLines(savedStudents)));
+      setStep("homework");
     }
   }
 
@@ -82,6 +102,7 @@ export default function SendClassUpdateButton({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Could not save unprepared students.");
       }
+      setSavedStudents(students);
       if (dailyDetails) setMessage(buildDailySeparateMessage(dailyDetails, preparationMessageLines(students)));
       setStep("homework");
     } catch (err) {
@@ -120,7 +141,7 @@ export default function SendClassUpdateButton({
       {error && !open && <p role="alert" className="w-full text-sm text-red-700">{error}</p>}
       <Modal
         open={open}
-        title={step === "students" ? "Mark Daily Preparation" : step === "homework" ? "Homework for This Day" : "Class Update — Separate Recipient"}
+        title={step === "preparation" ? "Preparation Details" : step === "students" ? "Mark Daily Preparation" : step === "homework" ? "Homework for This Day" : "Class Update — Separate Recipient"}
         onClose={() => { if (!saving) setOpen(false); }}
         maxWidth="lg"
         footer={
@@ -131,14 +152,15 @@ export default function SendClassUpdateButton({
               onClick={() => {
                 setError("");
                 if (step === "preview") setStep("homework");
-                else if (step === "homework") setStep("students");
+                else if (step === "homework") setStep(preparationEntered ? "students" : "preparation");
+                else if (step === "students") setStep("preparation");
                 else setOpen(false);
               }}
               className="w-full sm:w-auto"
             >
-              {step === "preview" ? "Back to Homework" : step === "homework" ? "Back to Students" : "Cancel"}
+              {step === "preview" ? "Back to Homework" : step === "homework" && preparationEntered ? "Back to Students" : step === "students" || step === "homework" ? "Back to Preparation" : "Cancel"}
             </Button>
-            {step === "students" ? (
+            {step === "preparation" ? null : step === "students" ? (
               <Button onClick={saveStudents} disabled={saving} className="w-full sm:w-auto">
                 {saving ? "Saving..." : "Save & Continue"}
               </Button>
@@ -166,12 +188,20 @@ export default function SendClassUpdateButton({
       >
         <div className="space-y-4">
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-          {missingItems.length > 0 && <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+          {step !== "preparation" && missingItems.length > 0 && <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
             <p className="font-medium">Some session diaries are missing. The message will label those details as not recorded.</p>
             {missingItems.map(item => <p key={item.fix_href}><Link className="text-blue-700 underline" href={item.fix_href}>{item.label} — Add diary</Link></p>)}
           </div>}
-          {step === "students" ? (
-            <PreparationRoster students={students} onChange={setStudents} disabled={saving} {...rules} />
+          {step === "preparation" ? (
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-slate-900">Do you need to enter preparation details?</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" onClick={() => choosePreparation(true)}>Yes, enter preparation</Button>
+                <Button type="button" variant="secondary" onClick={() => choosePreparation(false)}>No, continue</Button>
+              </div>
+            </div>
+          ) : step === "students" ? (
+            <PreparationRoster students={students} onChange={setStudents} disabled={saving} allowUnmarked={false} {...rules} />
           ) : step === "homework" ? (
             <>
               <fieldset className="space-y-3">
