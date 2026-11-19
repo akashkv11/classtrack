@@ -10,6 +10,7 @@ test("parent assessment publication, lookup and access controls", { skip: proces
   const { changeAssessmentSharing, lookupParentResult, getParentAssessment, publishAssessmentOnFirstSave } = await import("./sharing");
   const { POST: saveMarks } = await import("@/app/api/assessments/[assessmentId]/marks/route");
   const { POST: share } = await import("@/app/api/assessments/[assessmentId]/sharing/route");
+  const { POST: prepareShareUrl } = await import("@/app/api/assessments/[assessmentId]/share-url/route");
   const { POST: lookup } = await import("@/app/api/results/[token]/lookup/route");
   const { proxy } = await import("@/proxy");
   const cookie = `classtrack_session=${await createSessionToken()}`;
@@ -53,7 +54,8 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.equal(body.sharing.enabled, true);
       assert.equal(body.sharing.has_saved_marks, true);
       token = body.sharing.path.split("/").pop();
-      assert.match(token, /^[A-Za-z0-9_-]{43}$/);
+      assert.match(token, /^[A-Za-z0-9_-]{22}$/);
+      assert.equal(body.sharing.path, `/r/${token}`);
     });
     await t.test("partial-name matches reveal only names and roll numbers; selection returns only the matched result", async () => {
       const expectedMatches = { status: "matches", matches: [
@@ -118,6 +120,29 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.equal(updated.status, "found");
       if (updated.status === "found") assert.equal(updated.result.marks_obtained, 15);
     });
+    await t.test("short links are persisted and reused without another provider request", async () => {
+      const originalFetch = globalThis.fetch;
+      let calls = 0;
+      globalThis.fetch = async (_input, init) => {
+        calls++;
+        assert.equal((init?.body as URLSearchParams).get("url"), `https://classtrack.example/r/${token}`);
+        return Response.json({ shorturl: "https://is.gd/Test12" });
+      };
+      try {
+        const prepareRequest = () => new NextRequest(`https://classtrack.example/api/assessments/${assessment.id}/share-url?class_id=${cls.id}`, {
+          method: "POST", headers: { cookie },
+        });
+        for (let i = 0; i < 2; i++) {
+          const response = await prepareShareUrl(prepareRequest(), ctx);
+          assert.equal(response.status, 200);
+          assert.deepEqual(await response.json(), { path: `/r/${token}`, url: "https://is.gd/Test12", shortened: true });
+        }
+        assert.equal(calls, 1);
+        const saved = await prisma.assessment.findUniqueOrThrow({ where: { id: assessment.id } });
+        assert.equal(saved.shareShortUrl, "https://is.gd/Test12");
+        assert.equal(saved.shareShortTarget, `https://classtrack.example/r/${token}`);
+      } finally { globalThis.fetch = originalFetch; }
+    });
     await t.test("sharing controls require authentication and class ownership; disabled links stay disabled on save", async () => {
       const path = `/api/assessments/${assessment.id}/sharing?class_id=${cls.id}`;
       assert.equal((await share(request(path, { action: "disable" }), ctx)).status, 401);
@@ -135,6 +160,7 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.ok("sharing" in regenerated);
       if (regenerated.sharing) {
         const newToken = regenerated.sharing.path!.split("/").pop()!;
+        assert.match(newToken, /^[A-Za-z0-9_-]{22}$/);
         assert.notEqual(newToken, token);
         assert.equal(await getParentAssessment(token), null);
         token = newToken;
@@ -160,6 +186,9 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       const publicPage = await proxy(new NextRequest(`http://localhost:3000/results/${token}`));
       assert.equal(publicPage.headers.get("x-middleware-next"), "1");
       assert.match(publicPage.headers.get("cache-control") ?? "", /no-store/);
+      const shortPage = await proxy(new NextRequest(`http://localhost:3000/r/${token}`));
+      assert.equal(shortPage.headers.get("x-middleware-next"), "1");
+      assert.match(shortPage.headers.get("cache-control") ?? "", /no-store/);
       assert.equal((await proxy(new NextRequest(`http://localhost:3000/api/results/${token}/lookup`, { method: "POST" }))).headers.get("x-middleware-next"), "1");
       assert.equal((await proxy(new NextRequest(`http://localhost:3000/api/assessments/${assessment.id}/marks?class_id=${cls.id}`))).status, 401);
       assert.equal((await proxy(new NextRequest(`http://localhost:3000/api/results/${token}/other`))).status, 401);

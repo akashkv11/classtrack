@@ -6,6 +6,10 @@ Parents enter at least two characters from the student's name. First names, surn
 
 Corrections appear at the same link after saving. **Disable Link** stops public lookup; saving again does not enable it. **Enable Link** restores access. **Regenerate Link** replaces the link and invalidates the old one. Links have no automatic expiry. Existing assessments can use **Generate Link** when they already have saved marks.
 
+Shared links use the short `/r/` path. Newly generated links use a 22-character random token. Previously shared `/results/` links and 43-character tokens continue to work. Use **Regenerate Link** to replace an existing long token with a shorter one; this invalidates the old link, so share the new link afterward. No database migration is needed for shorter links.
+
+**Copy Link** and **Share on WhatsApp** automatically shorten the public results URL through [is.gd](https://is.gd/apishorteningreference.php). No account or API key is required. The short link is saved on the assessment and reused for the same destination. Regenerating the parent link creates a new destination and short link; old short links lead to an unavailable result. The provider receives the public lookup URL, with no student names or marks. Shortening is requested only on these button clicks. Local development URLs and service failures fall back to the original URL with an explanatory notice. If clipboard access or popup opening is blocked, copy the displayed URL manually or use **Open WhatsApp**.
+
 ## Deployment
 
 Apply migrations before serving the new application version:
@@ -16,6 +20,8 @@ npm run build
 ```
 
 Migration `20261111050000_add_assessment_sharing` adds nullable unique share tokens and an initially disabled sharing flag. It does not publish existing assessments or change saved marks. The existing `build:netlify` command already migrates before building.
+
+Migration `20261120000000_add_assessment_short_links` adds nullable columns for the saved short URL and its destination. Apply it before serving this version. It leaves existing links and marks unchanged.
 
 ## Verification
 

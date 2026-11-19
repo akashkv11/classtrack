@@ -5,7 +5,8 @@ import { formatISODate } from "@/lib/dates";
 import { roundMark, toMarkNumber } from "@/lib/assessments/marks";
 import type { AssessmentSharingState, AssessmentType, ParentAssessmentInfo, ParentAssessmentLookupResponse } from "@/lib/types/assessment";
 
-export const RESULT_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+// New links use 128-bit tokens; retain support for previously shared 256-bit tokens.
+export const RESULT_TOKEN_PATTERN = /^(?:[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$/;
 export const resultResponseHeaders = { "Cache-Control": "private, no-store, max-age=0", "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer" };
 type Database = Pick<Prisma.TransactionClient, "assessment" | "assessmentMark">;
 export type SharingAction = "enable" | "disable" | "regenerate";
@@ -15,7 +16,7 @@ export function normalizeStudentName(name: string) {
 }
 
 export function assessmentSharingState(assessment: { shareToken: string | null; sharingEnabled: boolean }, hasSavedMarks: boolean): AssessmentSharingState {
-  return { path: assessment.shareToken ? `/results/${assessment.shareToken}` : null, enabled: assessment.sharingEnabled, has_saved_marks: hasSavedMarks };
+  return { path: assessment.shareToken ? `/r/${assessment.shareToken}` : null, enabled: assessment.sharingEnabled, has_saved_marks: hasSavedMarks };
 }
 
 // Conditional update makes the first publication atomic even with concurrent saves.
@@ -23,7 +24,7 @@ export function assessmentSharingState(assessment: { shareToken: string | null; 
 export async function publishAssessmentOnFirstSave(tx: Database, assessmentId: string) {
   await tx.assessment.updateMany({
     where: { id: assessmentId, shareToken: null },
-    data: { shareToken: randomBytes(32).toString("base64url"), sharingEnabled: true },
+    data: { shareToken: randomBytes(16).toString("base64url"), sharingEnabled: true },
   });
 }
 
@@ -38,7 +39,7 @@ export async function changeAssessmentSharing(assessmentId: string, classId: str
       where: { id: assessmentId },
       data: action === "disable" ? { sharingEnabled: false } : {
         sharingEnabled: true,
-        shareToken: action === "regenerate" || !assessment.shareToken ? randomBytes(32).toString("base64url") : assessment.shareToken,
+        shareToken: action === "regenerate" || !assessment.shareToken ? randomBytes(16).toString("base64url") : assessment.shareToken,
       },
     });
     return { sharing: assessmentSharingState(saved, count > 0) } as const;

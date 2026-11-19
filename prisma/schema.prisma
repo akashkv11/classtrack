@@ -303,6 +303,8 @@ model Assessment {
   remarks           String?
   shareToken        String?  @unique @map("share_token")
   sharingEnabled    Boolean  @default(false) @map("sharing_enabled")
+  shareShortUrl     String?  @map("share_short_url")
+  shareShortTarget  String?  @map("share_short_target")
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
