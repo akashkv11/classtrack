@@ -37,6 +37,8 @@ test("message endpoint scopes daily sessions, preserves daily unmarked preparati
     const separate = await (await get("?template=separate")).json();
     assert.equal(separate.timetable_entry_id, null); assert.equal(separate.students[0].preparation_status, "NOT_MARKED");
     assert.match(separate.message, /Preparation not marked/); assert.doesNotMatch(separate.message, /SESSION 1/);
+    assert.doesNotMatch(separate.message, /\*SUBJECTS?:\*|\*SESSION:\*|\*CHAPTER:\*|\*TOPICS:\*|\*ABSENTEES\*|\*LATE STUDENTS\*/);
+    assert.match(separate.message, /\*CLASS:\* 10 A\n\*DATE:\* 15 Nov 2026\n\*HW:\* No homework assigned\./);
     sessionCount = 1;
     assert.match((await (await get()).json()).message, /^Class Update - 10 A/);
     missingAnchor = true; assert.equal((await get()).status, 404);

@@ -13,83 +13,53 @@ const session = {
   date: new Date("2026-11-02T00:00:00Z"),
 };
 
-test("homework answers replace the HW section without changing attendance or preparation", () => {
-  const message = buildSeparateClassUpdateMessage({ ...session, absentees: ["Asha"], lateStudents: ["Dev"], unpreparedStudents: ["Rahul"] });
+test("homework answers replace the HW section without changing preparation", () => {
+  const message = buildSeparateClassUpdateMessage({ ...session, unpreparedStudents: ["Rahul"] });
   const details = "Complete questions 1–5.\nBring $5 worth of supplies.";
   const withHomework = setMessageHomework(message, details);
-  assert.ok(withHomework.includes(`*HW:* ${details}\n\n*ABSENTEES*`));
-  assert.equal(withHomework.split("*ABSENTEES*")[1], message.split("*ABSENTEES*")[1]);
+  assert.ok(withHomework.includes(`*HW:* ${details}\n\n*UNPREPARED STUDENTS*`));
+  assert.equal(withHomework.split("*UNPREPARED STUDENTS")[1], message.split("*UNPREPARED STUDENTS")[1]);
   const withoutHomework = setMessageHomework(withHomework, null);
-  assert.ok(withoutHomework.includes("*HW:* No homework assigned.\n\n*ABSENTEES*"));
+  assert.ok(withoutHomework.includes("*HW:* No homework assigned.\n\n*UNPREPARED STUDENTS*"));
   assert.equal(withoutHomework.includes("Bring $5"), false);
 });
 
-test("message lists absentee and late student names without attendance totals", () => {
-  const message = buildSeparateClassUpdateMessage({ ...session,
-    absentees: ["Asha", "Dev"],
-    lateStudents: ["Meera"],
-  });
-  assert.ok(message.includes("*ABSENTEES*\n1) Asha\n2) Dev\n\n*LATE STUDENTS*\n1) Meera\n"));
-  assert.equal(message.includes("class absent"), false);
-  assert.equal(message.includes("class late"), false);
-  const withHomework = setMessageHomework(message, "Revise the chapter.");
-  assert.equal(withHomework.split("*ABSENTEES*")[1], message.split("*ABSENTEES*")[1]);
-});
-
-test("separate update includes diary details and a numbered unprepared list", () => {
+test("separate update contains only class, date, homework and preparation", () => {
   const message = buildSeparateClassUpdateMessage({
     ...session,
     subject: "Computer Science",
     chapter: "3. Functions",
     topics: { title: "Functions", bullets: ["• Parameters", "• Return values"] },
+    absentees: ["Absentee Name"], lateStudents: ["Late Name"],
     unpreparedStudents: ["Asha", "Rahul"],
     diaryStatus: "TAUGHT",
   });
   assert.equal(message, [
     "CLASS UPDATE", "", "*CLASS:* Plus Two Science", "*DATE:* 2 Nov 2026",
-    "*SUBJECT:* Computer Science", "*SESSION:* Regular class", "*CHAPTER:* 3. Functions", "*TOPICS:* Functions",
-    "*HW:* No homework assigned.", "", "",
-    "*ABSENTEES*", "None", "", "*LATE STUDENTS*", "None", "",
-    "*UNPREPARED STUDENTS — DAILY PREPARATION*", "1) Asha", "2) Rahul",
+    "*HW:* No homework assigned.", "",
+    "*UNPREPARED STUDENTS*", "1) Asha", "2) Rahul",
   ].join("\n"));
   const url = new URL(buildWhatsAppUrl("+91 98765 43210", message));
   assert.equal(url.pathname, "/919876543210");
   assert.equal(url.searchParams.get("text"), message);
 });
 
-test("separate update includes attendance lists before preparation so preview edits retain them", () => {
-  const message = buildSeparateClassUpdateMessage({
-    ...session,
-    absentees: ["Asha", "Dev"],
-    lateStudents: ["Rahul"],
-    preparationLines: ["1) Meera (not prepared)"],
-  });
-  assert.ok(message.includes("*ABSENTEES*\n1) Asha\n2) Dev\n\n*LATE STUDENTS*\n1) Rahul"));
-  const retained = message.split("*UNPREPARED STUDENTS — DAILY PREPARATION*")[0];
-  assert.ok(retained.includes("*ABSENTEES*\n1) Asha\n2) Dev"));
-  assert.ok(retained.includes("*LATE STUDENTS*\n1) Rahul"));
-  assert.ok(message.endsWith("*UNPREPARED STUDENTS — DAILY PREPARATION*\n1) Meera (not prepared)"));
-});
-
-test("missing diary data leaves fields editable and no selection says None", () => {
-  const message = buildSeparateClassUpdateMessage(session);
-  assert.ok(message.includes("*SUBJECT:*\n*SESSION:* Not recorded in teaching diary\n*CHAPTER:*\n*TOPICS:* Diary not recorded\n*HW:*"));
-  assert.ok(message.endsWith("*UNPREPARED STUDENTS — DAILY PREPARATION*\nNone"));
-});
-
-test("session updates show the diary activity and main topics without subtopics", () => {
-  for (const [diaryStatus, label] of [["REVISION", "Revision"], ["EXAM", "Exam"], ["PARTIALLY_TAUGHT", "Partially taught"]]) {
+test("preparation status lines are retained without diary or attendance details", () => {
+  for (const diaryStatus of ["TAUGHT", "REVISION", "EXAM", "PARTIALLY_TAUGHT", "CANCELLED"]) {
     const message = buildSeparateClassUpdateMessage({ ...session, diaryStatus,
-      topics: { title: "Functions; Arrays", bullets: ["• Parameters", "• Return values"] },
+      topics: { title: "Functions; Arrays", bullets: ["• Parameters"] },
+      attendanceRecorded: false, absentees: ["Asha"], lateStudents: ["Rahul"],
+      preparationLines: ["1) Meera", "2) Dev (partially)"],
     });
-    assert.ok(message.includes(`*SESSION:* ${label}`));
-    assert.equal(message.includes("*TOPICS:* Functions; Arrays"), diaryStatus !== "EXAM");
-    assert.equal(message.includes("Parameters"), false);
-    assert.equal(message.includes("Return values"), false);
+    assert.doesNotMatch(message, /SUBJECT|SESSION|CHAPTER|TOPICS|ABSENTEES|LATE STUDENTS|Functions|Parameters|Attendance not recorded|Asha|Rahul/);
+    assert.ok(message.endsWith("*UNPREPARED STUDENTS*\n1) Meera\n2) Dev (partially)"));
   }
-  const cancelled = buildSeparateClassUpdateMessage({ ...session, diaryStatus: "CANCELLED", topics: { title: "Functions", bullets: [] } });
-  assert.ok(cancelled.includes("*SESSION:* Cancelled"));
-  assert.ok(cancelled.includes("*TOPICS:* No topics covered (class cancelled)."));
+});
+
+test("no preparation selections says None without empty diary fields", () => {
+  const message = buildSeparateClassUpdateMessage(session);
+  assert.doesNotMatch(message, /SUBJECT|SESSION|CHAPTER|TOPICS|ABSENTEES|LATE STUDENTS|Diary not recorded/);
+  assert.ok(message.endsWith("*UNPREPARED STUDENTS*\nNone"));
 });
 
 test("separate recipient accepts formatted numbers or clearing and rejects invalid numbers", () => {

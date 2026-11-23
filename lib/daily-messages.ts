@@ -44,36 +44,10 @@ export function buildDailyClassMessage(details: DailyMessageDetails): string {
 }
 
 export function buildDailySeparateMessage(details: DailyMessageDetails, preparationLines: string[], homework?: string | null): string {
-  const { sessions } = details;
-  if (sessions.length === 1) {
-    const s = sessions[0];
-    return buildSeparateClassUpdateMessage({ className: details.class_name, date: new Date(`${details.date}T00:00:00Z`), subject: s.subject,
-      chapter: s.chapter || "Not recorded", topics: s.topics, diaryStatus: s.diary_status, attendanceRecorded: s.attendance_recorded,
-      absentees: s.absentees.map(a => a.name), lateStudents: s.late_students.map(a => a.name), preparationLines, homework });
-  }
-  const lines = ["CLASS UPDATE", "", `*CLASS:* ${details.class_name}`, `*DATE:* ${formatWhatsAppDate(new Date(`${details.date}T00:00:00Z`))}`,
-    `*SUBJECTS:* ${[...new Set(sessions.map(subject))].join(", ")}`];
-  const describe = (s: DailySession) => {
-    const repeated = sessions.filter(other => subject(other) === subject(s)).length > 1;
-    return `${subject(s)}${repeated ? ` (${time(s)})` : ""}`;
-  };
-  const exams = sessions.filter(s => s.diary_status === "EXAM");
-  if (exams.length) lines.push("", "*EXAM*", ...exams.map(s => `${describe(s)} — Chapter: ${chapter(s)}`));
-  const classes = sessions.filter(s => s.diary_status !== "EXAM");
-  if (classes.length) lines.push("", "*CLASSWORK*", ...classes.map(s => s.diary_status === "CANCELLED" ? `${describe(s)} — Cancelled` : !s.diary_status ? `${describe(s)} — Diary not recorded` : `${describe(s)} — ${labels[s.diary_status] ?? s.diary_status}\nChapter: ${chapter(s)}\nTopics: ${s.topics?.title ?? "Not recorded"}${s.topics?.bullets.length ? `\n${s.topics.bullets.join("\n")}` : ""}`));
-  lines.push("", `*HW:* ${homework?.trim() || "No homework assigned."}`);
-  for (const [heading, field] of [["ABSENTEES", "absentees"], ["LATE STUDENTS", "late_students"]] as const) {
-    const people = new Map<string, { name: string; labels: Set<string> }>();
-    const active = sessions.filter(s => s.diary_status !== "CANCELLED");
-    for (const s of active) for (const person of s[field]) {
-      const item = people.get(person.id) ?? { name: person.name, labels: new Set<string>() };
-      item.labels.add(describe(s)); people.set(person.id, item);
-    }
-    lines.push("", `*${heading}*`, ...[...people.values()].map((p, i) => `${i + 1}) ${p.name} — ${[...p.labels].join("; ")}`));
-    const missing = active.filter(s => !s.attendance_recorded);
-    if (missing.length) lines.push(`Attendance not recorded: ${missing.map(describe).join("; ")}.`);
-    if (!people.size && !missing.length) lines.push(active.length ? "None" : "Not applicable (cancelled)");
-  }
-  lines.push("", "*UNPREPARED STUDENTS — DAILY PREPARATION*", ...(preparationLines.length ? preparationLines : ["Preparation not recorded."]));
-  return lines.join("\n");
+  return buildSeparateClassUpdateMessage({
+    className: details.class_name,
+    date: new Date(`${details.date}T00:00:00Z`),
+    preparationLines: preparationLines.length ? preparationLines : ["Preparation not recorded."],
+    homework,
+  });
 }

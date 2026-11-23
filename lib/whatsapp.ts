@@ -259,33 +259,14 @@ export function buildSeparateClassUpdateMessage(options: {
   lateStudents?: string[];
   diaryStatus?: DiaryStatus | string | null;
 }): string {
-  const sessionLabels: Record<string, string> = {
-    TAUGHT: "Regular class",
-    PARTIALLY_TAUGHT: "Partially taught",
-    REVISION: "Revision",
-    EXAM: "Exam",
-    CANCELLED: "Cancelled",
-  };
-  const sessionLabel = sessionLabels[options.diaryStatus ?? ""] ?? "Not recorded in teaching diary";
   return [
     "CLASS UPDATE",
     "",
     `*CLASS:* ${options.className}`,
     `*DATE:* ${formatWhatsAppDate(options.date)}`,
-    `*SUBJECT:* ${options.subject ?? ""}`.trimEnd(),
-    `*SESSION:* ${sessionLabel}`,
-    `*CHAPTER:* ${options.chapter ?? ""}`.trimEnd(),
-    ...(options.diaryStatus === "EXAM" ? [] : [`*TOPICS:* ${options.diaryStatus === "CANCELLED" ? "No topics covered (class cancelled)." : options.topics?.title ?? "Diary not recorded"}`.trimEnd()]),
     `*HW:* ${options.homework?.trim() || "No homework assigned."}`,
     "",
-    "",
-    "*ABSENTEES*",
-    ...(options.diaryStatus === "CANCELLED" ? ["Not applicable (cancelled)"] : options.attendanceRecorded === false ? ["Attendance not recorded."] : formatStudentList(options.absentees ?? [])),
-    "",
-    "*LATE STUDENTS*",
-    ...(options.diaryStatus === "CANCELLED" ? ["Not applicable (cancelled)"] : options.attendanceRecorded === false ? ["Attendance not recorded."] : formatStudentList(options.lateStudents ?? [])),
-    "",
-    "*UNPREPARED STUDENTS — DAILY PREPARATION*",
+    "*UNPREPARED STUDENTS*",
     ...(options.preparationLines ?? formatStudentList(options.unpreparedStudents ?? [])),
   ].join("\n");
 }
@@ -298,7 +279,7 @@ function formatStudentList(names: string[]): string[] {
 
 export function setMessageHomework(message: string, homework: string | null): string {
   const value = homework?.trim() || "No homework assigned.";
-  return message.replace(/^\*HW:\*[\s\S]*?(?=^\*ABSENTEES\*)/m, () => `*HW:* ${value}\n\n`);
+  return message.replace(/^\*HW:\*[\s\S]*?(?=^\*(?:ABSENTEES|UNPREPARED STUDENTS)\*)/m, () => `*HW:* ${value}\n\n`);
 }
 
 export function setMessageClassTime(message: string, classTime: string | null): string {

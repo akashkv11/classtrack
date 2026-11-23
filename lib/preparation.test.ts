@@ -29,7 +29,7 @@ test("WhatsApp distinguishes partial and no preparation and does not imply unkno
     { full_name: "Rahul", preparation_status: "PARTIAL" },
     { full_name: "Dev", preparation_status: "NONE" },
     { full_name: "Meera", preparation_status: "NOT_MARKED" },
-  ]), ["1) Rahul (partially prepared)", "2) Dev (not prepared)", "Preparation not marked for 1 student."]);
+  ]), ["1) Rahul (partially)", "2) Dev", "Preparation not marked for 1 student."]);
   assert.deepEqual(preparationMessageLines([{ full_name: "Asha", preparation_status: "FULL" }]), ["None"]);
 });
 
@@ -40,9 +40,9 @@ test("message omits preparation counts even for students with a recorded streak"
     { full_name: "Rahul", preparation_status: "PARTIAL" as const, previous_streak: 2 },
   ];
   assert.deepEqual(preparationMessageLines(students), [
-    "1) Dev (not prepared)",
-    "2) Meera (not prepared)",
-    "3) Rahul (partially prepared)",
+    "1) Dev",
+    "2) Meera",
+    "3) Rahul (partially)",
   ]);
 });
 

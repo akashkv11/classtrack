@@ -22,18 +22,23 @@ test("cancelled and missing attendance sessions never imply all present", () => 
   assert.match(message, /Class cancelled/); assert.match(message, /Diary not recorded/); assert.match(message, /Attendance not recorded/);
   assert.doesNotMatch(message, /Arun|No absentees/);
 });
-test("separate daily update deduplicates by ID, preserves identical names, and labels repeated subjects by time", () => {
+test("separate daily updates use the same minimal template for one or multiple sessions", () => {
   const people = [{ id: "a", name: "Arun" }, { id: "b", name: "Arun" }];
-  const day = details(session({ absentees: people, diary_status: "EXAM" }), session({ id: "two", start_time: "14:00", end_time: "15:00", absentees: [people[0]] }));
-  const message = buildDailySeparateMessage(day, ["Preparation not marked for 2 students."], "Complete exercises 1–5.");
-  assert.doesNotMatch(message, /SESSION 1|SESSION 2/);
-  assert.match(message, /\*EXAM\*\nMaths \(09:00 AM - 10:00 AM\) — Chapter: Fractions/);
-  assert.match(message, /1\) Arun — Maths \(09:00 AM - 10:00 AM\); Maths \(02:00 PM - 03:00 PM\)/);
-  assert.match(message, /2\) Arun — Maths/); assert.match(message, /Complete exercises 1–5/);
-  assert.match(message, /DAILY PREPARATION/); assert.match(message, /Preparation not marked/);
-  assert.match(buildDailySeparateMessage(day, ["None"], null), /No homework assigned/);
+  const first = session({ absentees: people, diary_status: "EXAM" });
+  const second = session({ id: "two", start_time: "14:00", end_time: "15:00", late_students: [{ id: "c", name: "Late Name" }] });
+  const preparation = ["1) Meera", "2) Dev (partially)"];
+  const one = buildDailySeparateMessage(details(first), preparation, "Complete exercises 1–5.");
+  const multiple = buildDailySeparateMessage(details(first, second), preparation, "Complete exercises 1–5.");
+  assert.equal(multiple, one);
+  assert.equal(multiple, ["CLASS UPDATE", "", "*CLASS:* 10 A", "*DATE:* 15 Nov 2026", "*HW:* Complete exercises 1–5.", "", "*UNPREPARED STUDENTS*", ...preparation].join("\n"));
+  assert.doesNotMatch(multiple, /SUBJECT|SESSION|CHAPTER|TOPICS|EXAM|CLASSWORK|ABSENTEES|LATE STUDENTS|Arun|Late Name|Maths|Fractions|Addition/);
+  assert.match(buildDailySeparateMessage(details(first, second), ["None"], null), /No homework assigned/);
 });
-test("missing attendance in shared lists is explicit, even alongside recorded sessions", () => {
-  const message = buildDailySeparateMessage(details(session({ attendance_recorded: false }), session({ id: "two", subject: "Science" })), []);
-  assert.match(message, /Attendance not recorded: Maths/); assert.match(message, /Preparation not recorded/);
+
+test("minimal daily update reports missing preparation without attendance details", () => {
+  for (const day of [details(), details(session()), details(session({ attendance_recorded: false }), session({ id: "two", subject: "Science" }))]) {
+    const message = buildDailySeparateMessage(day, []);
+    assert.match(message, /Preparation not recorded/);
+    assert.doesNotMatch(message, /Attendance|SUBJECT|SESSION|CHAPTER|TOPICS|ABSENTEES|LATE STUDENTS/);
+  }
 });

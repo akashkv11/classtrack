@@ -52,8 +52,8 @@ export function preparationMessageLines(
 ): string[] {
   const flagged = students.filter((student) => countsAsUnprepared(student.preparation_status, true));
   const lines = flagged.map((student, index) => {
-    const status = PREPARATION_LABELS[student.preparation_status].toLowerCase();
-    return `${index + 1}) ${student.full_name} (${status})`;
+    const suffix = student.preparation_status === "PARTIAL" ? " (partially)" : "";
+    return `${index + 1}) ${student.full_name}${suffix}`;
   });
   const unmarked = students.filter((student) => student.preparation_status === "NOT_MARKED").length;
   if (lines.length === 0 && unmarked === 0) lines.push("None");
