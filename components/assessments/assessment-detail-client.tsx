@@ -133,7 +133,7 @@ export default function AssessmentDetailClient({
         </div>
       </Card>
 
-      <AssessmentSharingControls assessmentId={assessmentId} classId={classId} className={className} assessmentName={assessment.name} whatsappNumber={whatsappNumber} sharing={sharing} onChange={setSharing} />
+      <AssessmentSharingControls assessmentId={assessmentId} classId={classId} className={className} assessmentName={assessment.name} subjectName={assessment.subject.name} whatsappNumber={whatsappNumber} sharing={sharing} onChange={setSharing} />
 
       <h3 className="mb-4 text-lg font-semibold text-slate-900">Assessment Summary</h3>
       <AssessmentSummaryCards

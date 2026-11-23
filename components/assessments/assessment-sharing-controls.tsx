@@ -14,6 +14,7 @@ type Props = {
   classId: string;
   className: string;
   assessmentName: string;
+  subjectName: string;
   whatsappNumber: string | null;
   sharing: AssessmentSharingState;
   onChange: (sharing: AssessmentSharingState) => void;
@@ -23,6 +24,7 @@ export default function AssessmentSharingControls({
   classId,
   className,
   assessmentName,
+  subjectName,
   whatsappNumber,
   sharing,
   onChange,
@@ -79,7 +81,7 @@ export default function AssessmentSharingControls({
     setBusy(true);
     try {
       const parentUrl = await prepareShareUrl();
-      const message = `${className} — ${assessmentName} Results\n\nEnter the student’s name to view marks:\n${parentUrl}`;
+      const message = `${className} — ${assessmentName} Results\nSubject: ${subjectName}\n\nEnter the student’s name to view marks:\n${parentUrl}`;
       const url = buildWhatsAppUrl(whatsappNumber, message);
       if (popup && !popup.closed) popup.location.replace(url);
       else {
