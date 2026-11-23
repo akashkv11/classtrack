@@ -41,7 +41,6 @@ export default function AssessmentSharingControls({
     path: string;
     url: string;
   } | null>(null);
-  const [warning, setWarning] = useState("");
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const hasWhatsAppNumber = Boolean(whatsappNumber?.trim());
   const displayedLink =
@@ -52,7 +51,6 @@ export default function AssessmentSharingControls({
     setOrigin(window.location.origin);
     setError("");
     setNotice("");
-    setWarning("");
     setWhatsappLink(null);
     const response = await fetch(
       `/api/assessments/${assessmentId}/share-url?class_id=${classId}`,
@@ -69,7 +67,6 @@ export default function AssessmentSharingControls({
     if (data.path !== sharing.path || typeof data.url !== "string")
       throw new Error("The parent link changed. Please refresh and try again.");
     setPreparedLink({ path: data.path, url: data.url });
-    setWarning(data.warning ?? "");
     return data.url as string;
   }
   async function shareOnWhatsApp() {
@@ -105,7 +102,6 @@ export default function AssessmentSharingControls({
     setBusy(true);
     setError("");
     setNotice("");
-    setWarning("");
     setWhatsappLink(null);
     try {
       const response = await fetch(
@@ -280,11 +276,6 @@ export default function AssessmentSharingControls({
       {error && (
         <div className="mt-3" role="alert">
           <Alert variant="error">{error}</Alert>
-        </div>
-      )}
-      {warning && (
-        <div className="mt-3" role="status">
-          <Alert variant="warning">{warning}</Alert>
         </div>
       )}
       {notice && (

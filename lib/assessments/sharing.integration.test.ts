@@ -120,14 +120,12 @@ test("parent assessment publication, lookup and access controls", { skip: proces
       assert.equal(updated.status, "found");
       if (updated.status === "found") assert.equal(updated.result.marks_obtained, 15);
     });
-    await t.test("short links are persisted and reused without another provider request", async () => {
+    await t.test("share URL uses the direct site link even when a cached short link exists", async () => {
+      await prisma.assessment.update({ where: { id: assessment.id }, data: {
+        shareShortUrl: "https://is.gd/Old123", shareShortTarget: `https://classtrack.example/r/${token}`,
+      } });
       const originalFetch = globalThis.fetch;
-      let calls = 0;
-      globalThis.fetch = async (_input, init) => {
-        calls++;
-        assert.equal((init?.body as URLSearchParams).get("url"), `https://classtrack.example/r/${token}`);
-        return Response.json({ shorturl: "https://is.gd/Test12" });
-      };
+      globalThis.fetch = async () => assert.fail("Sharing must not contact a URL shortener");
       try {
         const prepareRequest = () => new NextRequest(`https://classtrack.example/api/assessments/${assessment.id}/share-url?class_id=${cls.id}`, {
           method: "POST", headers: { cookie },
@@ -135,12 +133,8 @@ test("parent assessment publication, lookup and access controls", { skip: proces
         for (let i = 0; i < 2; i++) {
           const response = await prepareShareUrl(prepareRequest(), ctx);
           assert.equal(response.status, 200);
-          assert.deepEqual(await response.json(), { path: `/r/${token}`, url: "https://is.gd/Test12", shortened: true });
+          assert.deepEqual(await response.json(), { path: `/r/${token}`, url: `https://classtrack.example/r/${token}`, shortened: false });
         }
-        assert.equal(calls, 1);
-        const saved = await prisma.assessment.findUniqueOrThrow({ where: { id: assessment.id } });
-        assert.equal(saved.shareShortUrl, "https://is.gd/Test12");
-        assert.equal(saved.shareShortTarget, `https://classtrack.example/r/${token}`);
       } finally { globalThis.fetch = originalFetch; }
     });
     await t.test("sharing controls require authentication and class ownership; disabled links stay disabled on save", async () => {
